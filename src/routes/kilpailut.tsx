@@ -1,0 +1,79 @@
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { listRaces, upsertRace, deleteRace } from "@/lib/content.functions";
+import { useAdmin } from "@/components/admin-store";
+import { useState } from "react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/kilpailut")({
+  head: () => ({ meta: [{ title: "Kilpailut — RyhäMonoposto" }, { name: "description", content: "Kaikki RyhäMonoposto-kilpailut uusiusjärjestyksessä." }] }),
+  component: RacesLayout,
+});
+
+function RacesLayout() {
+  return <Outlet />;
+}
+
+export function RacesIndex() {
+  const list = useServerFn(listRaces);
+  const create = useServerFn(upsertRace);
+  const del = useServerFn(deleteRace);
+  const qc = useQueryClient();
+  const admin = useAdmin();
+  const q = useQuery({ queryKey: ["races"], queryFn: () => list() });
+
+  const [name, setName] = useState("");
+  const [flag, setFlag] = useState("");
+
+  async function add() {
+    if (!name.trim()) return;
+    try {
+      await create({ data: { name, flag, qualifying_content: "", race_content: "" } });
+      setName(""); setFlag("");
+      await qc.invalidateQueries({ queryKey: ["races"] });
+      toast.success("Kilpailu lisätty");
+    } catch (e: any) { toast.error(e.message); }
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Poistetaanko kilpailu?")) return;
+    await del({ data: { id } });
+    await qc.invalidateQueries({ queryKey: ["races"] });
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Kilpailut</h1>
+      <div className="hairline-red mt-3 mb-6" />
+
+      {admin.isAdmin && (
+        <div className="card-dark p-3 mb-6 flex flex-col md:flex-row gap-2">
+          <input placeholder="Kilpailun nimi (esim. Kiina 2025)" value={name} onChange={e => setName(e.target.value)}
+            className="flex-1 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <input placeholder="🇨🇳" value={flag} onChange={e => setFlag(e.target.value)}
+            className="w-24 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <button onClick={add} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">
+            Lisää
+          </button>
+        </div>
+      )}
+
+      <ul className="space-y-2">
+        {(q.data ?? []).map(r => (
+          <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
+            <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
+              <span className="text-2xl">{r.flag}</span>
+              <span className="font-display uppercase tracking-widest">{r.name}</span>
+              {r.race_date && <span className="text-xs text-muted-foreground ml-auto mr-3">{new Date(r.race_date).toLocaleDateString("fi-FI")}</span>}
+            </Link>
+            {admin.isAdmin && (
+              <button onClick={() => remove(r.id)} className="text-xs text-primary underline ml-3">Poista</button>
+            )}
+          </li>
+        ))}
+        {(q.data ?? []).length === 0 && <li className="text-sm text-muted-foreground italic">Ei kilpailuja vielä.</li>}
+      </ul>
+    </div>
+  );
+}
