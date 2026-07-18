@@ -32,6 +32,7 @@ function RaceDetail() {
   if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
 
   async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null }>) {
+    if (!r) return;
     await save({ data: { id: r.id, name: r.name, flag: r.flag, race_date: r.race_date,
       qualifying_content: partial.qualifying_content ?? r.qualifying_content ?? "",
       race_content: partial.race_content ?? r.race_content ?? "",

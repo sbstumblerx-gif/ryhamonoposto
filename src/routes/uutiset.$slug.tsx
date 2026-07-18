@@ -29,6 +29,7 @@ function NewsPage() {
   if (!n) return <div className="mx-auto max-w-3xl px-4 py-8">Uutista ei löydy.</div>;
 
   async function patch(p: Partial<{ title: string; excerpt: string; content: string; hero_media_url: string | null }>) {
+    if (!n) return;
     await save({ data: {
       id: n.id,
       title: p.title ?? n.title,
