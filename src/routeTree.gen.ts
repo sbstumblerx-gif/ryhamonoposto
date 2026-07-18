@@ -9,38 +9,80 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as KilpailutRouteImport } from './routes/kilpailut'
+import { Route as AsetuksetRouteImport } from './routes/asetukset'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KilpailutIndexRouteImport } from './routes/kilpailut.index'
 
+const KilpailutRoute = KilpailutRouteImport.update({
+  id: '/kilpailut',
+  path: '/kilpailut',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AsetuksetRoute = AsetuksetRouteImport.update({
+  id: '/asetukset',
+  path: '/asetukset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KilpailutIndexRoute = KilpailutIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KilpailutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/asetukset': typeof AsetuksetRoute
+  '/kilpailut': typeof KilpailutRouteWithChildren
+  '/kilpailut/': typeof KilpailutIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/asetukset': typeof AsetuksetRoute
+  '/kilpailut': typeof KilpailutIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/asetukset': typeof AsetuksetRoute
+  '/kilpailut': typeof KilpailutRouteWithChildren
+  '/kilpailut/': typeof KilpailutIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/asetukset' | '/kilpailut' | '/kilpailut/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/asetukset' | '/kilpailut'
+  id: '__root__' | '/' | '/asetukset' | '/kilpailut' | '/kilpailut/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AsetuksetRoute: typeof AsetuksetRoute
+  KilpailutRoute: typeof KilpailutRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/kilpailut': {
+      id: '/kilpailut'
+      path: '/kilpailut'
+      fullPath: '/kilpailut'
+      preLoaderRoute: typeof KilpailutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/asetukset': {
+      id: '/asetukset'
+      path: '/asetukset'
+      fullPath: '/asetukset'
+      preLoaderRoute: typeof AsetuksetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +90,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kilpailut/': {
+      id: '/kilpailut/'
+      path: '/'
+      fullPath: '/kilpailut/'
+      preLoaderRoute: typeof KilpailutIndexRouteImport
+      parentRoute: typeof KilpailutRoute
+    }
   }
 }
 
+interface KilpailutRouteChildren {
+  KilpailutIndexRoute: typeof KilpailutIndexRoute
+}
+
+const KilpailutRouteChildren: KilpailutRouteChildren = {
+  KilpailutIndexRoute: KilpailutIndexRoute,
+}
+
+const KilpailutRouteWithChildren = KilpailutRoute._addFileChildren(
+  KilpailutRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AsetuksetRoute: AsetuksetRoute,
+  KilpailutRoute: KilpailutRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
