@@ -9,38 +9,220 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UutisetRouteImport } from './routes/uutiset'
+import { Route as TilastotRouteImport } from './routes/tilastot'
+import { Route as TiimitRouteImport } from './routes/tiimit'
+import { Route as KuljettajatRouteImport } from './routes/kuljettajat'
+import { Route as KilpailutRouteImport } from './routes/kilpailut'
+import { Route as AsetuksetRouteImport } from './routes/asetukset'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KilpailutIndexRouteImport } from './routes/kilpailut.index'
+import { Route as UutisetSlugRouteImport } from './routes/uutiset.$slug'
+import { Route as TiimitSlugRouteImport } from './routes/tiimit.$slug'
+import { Route as KuljettajatSlugRouteImport } from './routes/kuljettajat.$slug'
+import { Route as KilpailutSlugRouteImport } from './routes/kilpailut.$slug'
 
+const UutisetRoute = UutisetRouteImport.update({
+  id: '/uutiset',
+  path: '/uutiset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TilastotRoute = TilastotRouteImport.update({
+  id: '/tilastot',
+  path: '/tilastot',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TiimitRoute = TiimitRouteImport.update({
+  id: '/tiimit',
+  path: '/tiimit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KuljettajatRoute = KuljettajatRouteImport.update({
+  id: '/kuljettajat',
+  path: '/kuljettajat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KilpailutRoute = KilpailutRouteImport.update({
+  id: '/kilpailut',
+  path: '/kilpailut',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AsetuksetRoute = AsetuksetRouteImport.update({
+  id: '/asetukset',
+  path: '/asetukset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KilpailutIndexRoute = KilpailutIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KilpailutRoute,
+} as any)
+const UutisetSlugRoute = UutisetSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => UutisetRoute,
+} as any)
+const TiimitSlugRoute = TiimitSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => TiimitRoute,
+} as any)
+const KuljettajatSlugRoute = KuljettajatSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => KuljettajatRoute,
+} as any)
+const KilpailutSlugRoute = KilpailutSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => KilpailutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/asetukset': typeof AsetuksetRoute
+  '/kilpailut': typeof KilpailutRouteWithChildren
+  '/kuljettajat': typeof KuljettajatRouteWithChildren
+  '/tiimit': typeof TiimitRouteWithChildren
+  '/tilastot': typeof TilastotRoute
+  '/uutiset': typeof UutisetRouteWithChildren
+  '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/kuljettajat/$slug': typeof KuljettajatSlugRoute
+  '/tiimit/$slug': typeof TiimitSlugRoute
+  '/uutiset/$slug': typeof UutisetSlugRoute
+  '/kilpailut/': typeof KilpailutIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/asetukset': typeof AsetuksetRoute
+  '/kuljettajat': typeof KuljettajatRouteWithChildren
+  '/tiimit': typeof TiimitRouteWithChildren
+  '/tilastot': typeof TilastotRoute
+  '/uutiset': typeof UutisetRouteWithChildren
+  '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/kuljettajat/$slug': typeof KuljettajatSlugRoute
+  '/tiimit/$slug': typeof TiimitSlugRoute
+  '/uutiset/$slug': typeof UutisetSlugRoute
+  '/kilpailut': typeof KilpailutIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/asetukset': typeof AsetuksetRoute
+  '/kilpailut': typeof KilpailutRouteWithChildren
+  '/kuljettajat': typeof KuljettajatRouteWithChildren
+  '/tiimit': typeof TiimitRouteWithChildren
+  '/tilastot': typeof TilastotRoute
+  '/uutiset': typeof UutisetRouteWithChildren
+  '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/kuljettajat/$slug': typeof KuljettajatSlugRoute
+  '/tiimit/$slug': typeof TiimitSlugRoute
+  '/uutiset/$slug': typeof UutisetSlugRoute
+  '/kilpailut/': typeof KilpailutIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/asetukset'
+    | '/kilpailut'
+    | '/kuljettajat'
+    | '/tiimit'
+    | '/tilastot'
+    | '/uutiset'
+    | '/kilpailut/$slug'
+    | '/kuljettajat/$slug'
+    | '/tiimit/$slug'
+    | '/uutiset/$slug'
+    | '/kilpailut/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/asetukset'
+    | '/kuljettajat'
+    | '/tiimit'
+    | '/tilastot'
+    | '/uutiset'
+    | '/kilpailut/$slug'
+    | '/kuljettajat/$slug'
+    | '/tiimit/$slug'
+    | '/uutiset/$slug'
+    | '/kilpailut'
+  id:
+    | '__root__'
+    | '/'
+    | '/asetukset'
+    | '/kilpailut'
+    | '/kuljettajat'
+    | '/tiimit'
+    | '/tilastot'
+    | '/uutiset'
+    | '/kilpailut/$slug'
+    | '/kuljettajat/$slug'
+    | '/tiimit/$slug'
+    | '/uutiset/$slug'
+    | '/kilpailut/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AsetuksetRoute: typeof AsetuksetRoute
+  KilpailutRoute: typeof KilpailutRouteWithChildren
+  KuljettajatRoute: typeof KuljettajatRouteWithChildren
+  TiimitRoute: typeof TiimitRouteWithChildren
+  TilastotRoute: typeof TilastotRoute
+  UutisetRoute: typeof UutisetRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/uutiset': {
+      id: '/uutiset'
+      path: '/uutiset'
+      fullPath: '/uutiset'
+      preLoaderRoute: typeof UutisetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tilastot': {
+      id: '/tilastot'
+      path: '/tilastot'
+      fullPath: '/tilastot'
+      preLoaderRoute: typeof TilastotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tiimit': {
+      id: '/tiimit'
+      path: '/tiimit'
+      fullPath: '/tiimit'
+      preLoaderRoute: typeof TiimitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kuljettajat': {
+      id: '/kuljettajat'
+      path: '/kuljettajat'
+      fullPath: '/kuljettajat'
+      preLoaderRoute: typeof KuljettajatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kilpailut': {
+      id: '/kilpailut'
+      path: '/kilpailut'
+      fullPath: '/kilpailut'
+      preLoaderRoute: typeof KilpailutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/asetukset': {
+      id: '/asetukset'
+      path: '/asetukset'
+      fullPath: '/asetukset'
+      preLoaderRoute: typeof AsetuksetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +230,101 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kilpailut/': {
+      id: '/kilpailut/'
+      path: '/'
+      fullPath: '/kilpailut/'
+      preLoaderRoute: typeof KilpailutIndexRouteImport
+      parentRoute: typeof KilpailutRoute
+    }
+    '/uutiset/$slug': {
+      id: '/uutiset/$slug'
+      path: '/$slug'
+      fullPath: '/uutiset/$slug'
+      preLoaderRoute: typeof UutisetSlugRouteImport
+      parentRoute: typeof UutisetRoute
+    }
+    '/tiimit/$slug': {
+      id: '/tiimit/$slug'
+      path: '/$slug'
+      fullPath: '/tiimit/$slug'
+      preLoaderRoute: typeof TiimitSlugRouteImport
+      parentRoute: typeof TiimitRoute
+    }
+    '/kuljettajat/$slug': {
+      id: '/kuljettajat/$slug'
+      path: '/$slug'
+      fullPath: '/kuljettajat/$slug'
+      preLoaderRoute: typeof KuljettajatSlugRouteImport
+      parentRoute: typeof KuljettajatRoute
+    }
+    '/kilpailut/$slug': {
+      id: '/kilpailut/$slug'
+      path: '/$slug'
+      fullPath: '/kilpailut/$slug'
+      preLoaderRoute: typeof KilpailutSlugRouteImport
+      parentRoute: typeof KilpailutRoute
+    }
   }
 }
 
+interface KilpailutRouteChildren {
+  KilpailutSlugRoute: typeof KilpailutSlugRoute
+  KilpailutIndexRoute: typeof KilpailutIndexRoute
+}
+
+const KilpailutRouteChildren: KilpailutRouteChildren = {
+  KilpailutSlugRoute: KilpailutSlugRoute,
+  KilpailutIndexRoute: KilpailutIndexRoute,
+}
+
+const KilpailutRouteWithChildren = KilpailutRoute._addFileChildren(
+  KilpailutRouteChildren,
+)
+
+interface KuljettajatRouteChildren {
+  KuljettajatSlugRoute: typeof KuljettajatSlugRoute
+}
+
+const KuljettajatRouteChildren: KuljettajatRouteChildren = {
+  KuljettajatSlugRoute: KuljettajatSlugRoute,
+}
+
+const KuljettajatRouteWithChildren = KuljettajatRoute._addFileChildren(
+  KuljettajatRouteChildren,
+)
+
+interface TiimitRouteChildren {
+  TiimitSlugRoute: typeof TiimitSlugRoute
+}
+
+const TiimitRouteChildren: TiimitRouteChildren = {
+  TiimitSlugRoute: TiimitSlugRoute,
+}
+
+const TiimitRouteWithChildren =
+  TiimitRoute._addFileChildren(TiimitRouteChildren)
+
+interface UutisetRouteChildren {
+  UutisetSlugRoute: typeof UutisetSlugRoute
+}
+
+const UutisetRouteChildren: UutisetRouteChildren = {
+  UutisetSlugRoute: UutisetSlugRoute,
+}
+
+const UutisetRouteWithChildren =
+  UutisetRoute._addFileChildren(UutisetRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AsetuksetRoute: AsetuksetRoute,
+  KilpailutRoute: KilpailutRouteWithChildren,
+  KuljettajatRoute: KuljettajatRouteWithChildren,
+  TiimitRoute: TiimitRouteWithChildren,
+  TilastotRoute: TilastotRoute,
+  UutisetRoute: UutisetRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
