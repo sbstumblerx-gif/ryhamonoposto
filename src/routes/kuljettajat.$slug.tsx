@@ -7,8 +7,10 @@ import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
+import { MediaGallery } from "@/components/MediaGallery";
 import { useAdmin } from "@/components/admin-store";
 import { gradientFor } from "@/lib/team-colors";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/kuljettajat/$slug")({
@@ -23,6 +25,7 @@ function DriverPage() {
   const qc = useQueryClient();
   const admin = useAdmin();
   const entities = useEntityIndex();
+  const [tab, setTab] = useState<"stats" | "history">("stats");
 
   const q = useQuery({ queryKey: ["driver", slug], queryFn: () => get({ data: { slug } }) });
   if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
@@ -57,7 +60,18 @@ function DriverPage() {
           </div>
         )}
 
-        <SmartText text={d.content} entities={entities} className="text-sm leading-6" />
+        <SmartText text={d.content} entities={entities} className="text-sm leading-6 mb-6" />
+
+        <div className="flex gap-2 mb-3">
+          {(["stats", "history"] as const).map(k => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
+              {k === "stats" ? "Tilastot" : "Kisahistoria"}
+            </button>
+          ))}
+        </div>
+
+        <MediaGallery scope={`driver:${slug}:${tab}`} />
 
         <Comments entityType="driver" entityId={d.id} />
       </div>

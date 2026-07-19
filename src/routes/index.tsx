@@ -4,6 +4,7 @@ import markAsset from "@/assets/mark.png.asset.json";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listNews } from "@/lib/content.functions";
+import { AiSearch } from "@/components/AiSearch";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -38,6 +39,9 @@ function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 -mt-4">
+        <div className="mb-4">
+          <AiSearch />
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {TILES.map((t) => (
             <Link

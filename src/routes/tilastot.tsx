@@ -1,64 +1,75 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getStatsPage, updateStats } from "@/lib/content.functions";
-import { useEntityIndex } from "@/components/useEntityIndex";
-import { SmartText } from "@/components/SmartText";
-import { Comments } from "@/components/Comments";
-import { MediaUpload } from "@/components/MediaUpload";
-import { EditableText } from "@/components/EditableText";
+import { listSeasons, upsertSeason, deleteSeason } from "@/lib/seasons.functions";
 import { useAdmin } from "@/components/admin-store";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/tilastot")({
   head: () => ({ meta: [{ title: "Tilastot — RyhäMonoposto" }] }),
-  component: Stats,
+  component: StatsIndex,
 });
 
-function Stats() {
-  const [tab, setTab] = useState<"drivers" | "teams">("drivers");
-  const get = useServerFn(getStatsPage);
-  const save = useServerFn(updateStats);
+function StatsIndex() {
+  const list = useServerFn(listSeasons);
+  const save = useServerFn(upsertSeason);
+  const del = useServerFn(deleteSeason);
   const qc = useQueryClient();
   const admin = useAdmin();
-  const entities = useEntityIndex();
-  const q = useQuery({ queryKey: ["stats", tab], queryFn: () => get({ data: { id: tab } }) });
+  const [name, setName] = useState("");
+  const [year, setYear] = useState(new Date().getFullYear());
 
-  const p = q.data;
+  const q = useQuery({ queryKey: ["seasons"], queryFn: () => list() });
+  const seasons = q.data ?? [];
 
-  async function patch(patch: Partial<{ content: string; hero_media_url: string | null }>) {
-    await save({ data: { id: tab, ...patch } });
-    await qc.invalidateQueries({ queryKey: ["stats", tab] });
-    toast.success("Tallennettu");
+  async function add() {
+    if (!name.trim()) return;
+    await save({ data: { name: name.trim(), sort_order: year } });
+    setName("");
+    await qc.invalidateQueries({ queryKey: ["seasons"] });
+    toast.success("Kausi lisätty");
   }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Tilastot</h1>
       <div className="hairline-red mt-3 mb-6" />
+      <p className="text-sm text-muted-foreground mb-4">Valitse kausi.</p>
 
-      <div className="flex gap-2 mb-4">
-        {(["drivers", "teams"] as const).map(k => (
-          <button key={k} onClick={() => setTab(k)}
-            className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
-            {k === "drivers" ? "Kuljettajat" : "Valmistajat"}
-          </button>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {seasons.map(s => (
+          <div key={s.id} className="relative group">
+            <Link
+              to="/tilastot/$season"
+              params={{ season: s.slug }}
+              className="block card-dark p-6 hover:border-primary transition text-center"
+            >
+              <div className="font-display uppercase tracking-widest">{s.name}</div>
+            </Link>
+            {admin.isAdmin && (
+              <button
+                onClick={async () => {
+                  if (!confirm(`Poistetaanko ${s.name}?`)) return;
+                  await del({ data: { id: s.id } });
+                  await qc.invalidateQueries({ queryKey: ["seasons"] });
+                }}
+                className="absolute top-1 right-1 text-xs bg-black/80 border border-primary/50 rounded px-2 py-0.5 opacity-0 group-hover:opacity-100"
+              >×</button>
+            )}
+          </div>
         ))}
       </div>
 
-      {p?.hero_media_url && <img src={p.hero_media_url} alt="" className="w-full rounded border border-primary/30 mb-4" />}
-
-      {admin.isAdmin && p && (
-        <div className="card-dark p-3 mb-4 space-y-3">
-          <MediaUpload currentUrl={p.hero_media_url} onUploaded={(url) => patch({ hero_media_url: url })} label="Tilastokuva" />
-          <EditableText value={p.content ?? ""} multiline placeholder="Tilastot…" onSave={(v) => patch({ content: v })} />
+      {admin.isAdmin && (
+        <div className="card-dark p-3 mt-6 flex flex-wrap gap-2 items-center">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Kauden nimi (esim. Kausi 2027)"
+            className="flex-1 min-w-[200px] bg-black/70 border border-primary/30 rounded p-2 text-sm" />
+          <input type="number" value={year} onChange={e => setYear(Number(e.target.value))}
+            className="w-24 bg-black/70 border border-primary/30 rounded p-2 text-sm" />
+          <button onClick={add} className="bg-primary text-primary-foreground rounded px-4 py-2 text-xs font-display uppercase tracking-widest">Lisää kausi</button>
         </div>
       )}
-
-      <SmartText text={p?.content} entities={entities} className="text-sm leading-6" />
-
-      {p && <Comments entityType={`stats:${tab}`} entityId={p.id} />}
     </div>
   );
 }
