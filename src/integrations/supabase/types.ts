@@ -91,6 +91,36 @@ export type Database = {
           },
         ]
       }
+      media_items: {
+        Row: {
+          caption: string
+          created_at: string
+          id: string
+          scope: string
+          sort_order: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          id?: string
+          scope: string
+          sort_order?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          id?: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           content: string | null
@@ -186,6 +216,33 @@ export type Database = {
           race_date?: string | null
           race_media_url?: string | null
           slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
