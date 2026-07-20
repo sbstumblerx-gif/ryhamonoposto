@@ -27,107 +27,45 @@ function TeamPage() {
   const entities = useEntityIndex();
   const [tab, setTab] = useState<"stats" | "history">("stats");
 
-  const q = useQuery({
-    queryKey: ["team", slug],
-    queryFn: () => get({ data: { slug } }),
-  });
-
-  if (q.isLoading) {
-    return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
-  }
-
-  if (q.isError) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-8 text-destructive">
-        Virhe ladattaessa tiimin tietoja.
-      </div>
-    );
-  }
-
+  const q = useQuery({ queryKey: ["team", slug], queryFn: () => get({ data: { slug } }) });
+  if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
   const t = q.data;
-  if (!t) {
-    return <div className="mx-auto max-w-4xl px-4 py-8">Tiimiä ei löydy.</div>;
-  }
+  if (!t) return <div className="mx-auto max-w-4xl px-4 py-8">Tiimiä ei löydy.</div>;
 
-  async function patch(
-    p: Partial<{ content: string; hero_media_url: string | null; logo_url: string | null }>
-  ) {
-    try {
-      await save({ data: { slug, ...p } });
-      await qc.invalidateQueries({ queryKey: ["team", slug] });
-      toast.success("Tallennettu");
-    } catch {
-      toast.error("Tallennus epäonnistui");
-    }
+  async function patch(p: Partial<{ content: string; hero_media_url: string | null; logo_url: string | null }>) {
+    await save({ data: { slug, ...p } });
+    await qc.invalidateQueries({ queryKey: ["team", slug] });
+    toast.success("Tallennettu");
   }
 
   return (
     <div>
-      <div
-        className="w-full py-14 border-b border-primary/40"
-        style={{ background: gradientFor(t.color_key) }}
-      >
+      <div className="w-full py-14 border-b border-primary/40" style={{ background: gradientFor(t.color_key) }}>
         <div className="mx-auto max-w-4xl px-4 flex items-center gap-4">
           {t.logo_url && (
-            <img
-              src={t.logo_url}
-              alt={`${t.name} logo`}
-              className="h-20 w-20 md:h-24 md:w-24 object-cover rounded border border-primary/40 bg-black/40"
-            />
+            <img src={t.logo_url} alt={`${t.name} logo`} className="h-20 w-20 md:h-24 md:w-24 object-cover rounded border border-primary/40 bg-black/40" />
           )}
           <div>
             <div className="text-2xl">{t.flag}</div>
-            <h1 className="font-display uppercase tracking-widest text-2xl md:text-4xl">
-              {t.name}
-            </h1>
+            <h1 className="font-display uppercase tracking-widest text-2xl md:text-4xl">{t.name}</h1>
           </div>
         </div>
       </div>
-
       <div className="mx-auto max-w-4xl px-4 py-8">
-        {t.hero_media_url && (
-          <img
-            src={t.hero_media_url}
-            alt={t.name}
-            className="w-full rounded border border-primary/30 mb-4"
-          />
-        )}
-
+        {t.hero_media_url && <img src={t.hero_media_url} alt={t.name} className="w-full rounded border border-primary/30 mb-4" />}
         {admin.isAdmin && (
           <div className="card-dark p-3 mb-4 space-y-3">
-            <MediaUpload
-              currentUrl={t.logo_url}
-              onUploaded={(url) => patch({ logo_url: url })}
-              label="Logo (1:1)"
-            />
-            <MediaUpload
-              currentUrl={t.hero_media_url}
-              onUploaded={(url) => patch({ hero_media_url: url })}
-              label="Pääkuva"
-            />
-            <EditableText
-              value={t.content ?? ""}
-              multiline
-              placeholder="Tiimin esittely…"
-              onSave={(v) => patch({ content: v })}
-            />
+            <MediaUpload currentUrl={t.logo_url} onUploaded={(url) => patch({ logo_url: url })} label="Logo (1:1)" />
+            <MediaUpload currentUrl={t.hero_media_url} onUploaded={(url) => patch({ hero_media_url: url })} label="Pääkuva" />
+            <EditableText value={t.content ?? ""} multiline placeholder="Tiimin esittely…" onSave={(v) => patch({ content: v })} />
           </div>
         )}
-
         <SmartText text={t.content} entities={entities} className="text-sm leading-6 mb-6" />
 
         <div className="flex gap-2 mb-3">
-          {(["stats", "history"] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setTab(k)}
-              className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border transition-colors ${
-                tab === k
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-primary/40 hover:border-primary"
-              }`}
-            >
+          {(["stats", "history"] as const).map(k => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
               {k === "stats" ? "Tilastot" : "Kisahistoria"}
             </button>
           ))}
