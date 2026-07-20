@@ -18,6 +18,7 @@ import { Route as AsetuksetRouteImport } from './routes/asetukset'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KilpailutIndexRouteImport } from './routes/kilpailut.index'
 import { Route as UutisetSlugRouteImport } from './routes/uutiset.$slug'
+import { Route as TilastotKokoHistoriaRouteImport } from './routes/tilastot.koko-historia'
 import { Route as TilastotSeasonRouteImport } from './routes/tilastot.$season'
 import { Route as TiimitSlugRouteImport } from './routes/tiimit.$slug'
 import { Route as KuljettajatSlugRouteImport } from './routes/kuljettajat.$slug'
@@ -68,6 +69,11 @@ const UutisetSlugRoute = UutisetSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => UutisetRoute,
 } as any)
+const TilastotKokoHistoriaRoute = TilastotKokoHistoriaRouteImport.update({
+  id: '/koko-historia',
+  path: '/koko-historia',
+  getParentRoute: () => TilastotRoute,
+} as any)
 const TilastotSeasonRoute = TilastotSeasonRouteImport.update({
   id: '/$season',
   path: '/$season',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
+  '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
   '/uutiset/$slug': typeof UutisetSlugRoute
   '/kilpailut/': typeof KilpailutIndexRoute
 }
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
+  '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
   '/uutiset/$slug': typeof UutisetSlugRoute
   '/kilpailut': typeof KilpailutIndexRoute
 }
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
+  '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
   '/uutiset/$slug': typeof UutisetSlugRoute
   '/kilpailut/': typeof KilpailutIndexRoute
 }
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
+    | '/tilastot/koko-historia'
     | '/uutiset/$slug'
     | '/kilpailut/'
   fileRoutesByTo: FileRoutesByTo
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
+    | '/tilastot/koko-historia'
     | '/uutiset/$slug'
     | '/kilpailut'
   id:
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
+    | '/tilastot/koko-historia'
     | '/uutiset/$slug'
     | '/kilpailut/'
   fileRoutesById: FileRoutesById
@@ -256,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UutisetSlugRouteImport
       parentRoute: typeof UutisetRoute
     }
+    '/tilastot/koko-historia': {
+      id: '/tilastot/koko-historia'
+      path: '/koko-historia'
+      fullPath: '/tilastot/koko-historia'
+      preLoaderRoute: typeof TilastotKokoHistoriaRouteImport
+      parentRoute: typeof TilastotRoute
+    }
     '/tilastot/$season': {
       id: '/tilastot/$season'
       path: '/$season'
@@ -326,10 +345,12 @@ const TiimitRouteWithChildren =
 
 interface TilastotRouteChildren {
   TilastotSeasonRoute: typeof TilastotSeasonRoute
+  TilastotKokoHistoriaRoute: typeof TilastotKokoHistoriaRoute
 }
 
 const TilastotRouteChildren: TilastotRouteChildren = {
   TilastotSeasonRoute: TilastotSeasonRoute,
+  TilastotKokoHistoriaRoute: TilastotKokoHistoriaRoute,
 }
 
 const TilastotRouteWithChildren = TilastotRoute._addFileChildren(
