@@ -8,6 +8,7 @@ import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
 import { MediaGallery } from "@/components/MediaGallery";
+import { DriverInfoCard } from "@/components/DriverInfoCard";
 import { useAdmin } from "@/components/admin-store";
 import { gradientFor } from "@/lib/team-colors";
 import { useState } from "react";
@@ -18,6 +19,12 @@ export const Route = createFileRoute("/kuljettajat/$slug")({
   component: DriverPage,
 });
 
+const TABS = [
+  { key: "info", label: "Tietokortti" },
+  { key: "stats", label: "Tilastot" },
+  { key: "history", label: "Kisahistoria" },
+] as const;
+
 function DriverPage() {
   const { slug } = Route.useParams();
   const get = useServerFn(getDriver);
@@ -25,7 +32,7 @@ function DriverPage() {
   const qc = useQueryClient();
   const admin = useAdmin();
   const entities = useEntityIndex();
-  const [tab, setTab] = useState<"stats" | "history">("stats");
+  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("info");
 
   const q = useQuery({ queryKey: ["driver", slug], queryFn: () => get({ data: { slug } }) });
   if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
@@ -62,16 +69,20 @@ function DriverPage() {
 
         <SmartText text={d.content} entities={entities} className="text-sm leading-6 mb-6" />
 
-        <div className="flex gap-2 mb-3">
-          {(["stats", "history"] as const).map(k => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
-              {k === "stats" ? "Tilastot" : "Kisahistoria"}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {TABS.map(k => (
+            <button key={k.key} onClick={() => setTab(k.key)}
+              className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k.key ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
+              {k.label}
             </button>
           ))}
         </div>
 
-        <MediaGallery scope={`driver:${slug}:${tab}`} />
+        {tab === "info" ? (
+          <DriverInfoCard driver={d as never} isAdmin={admin.isAdmin} />
+        ) : (
+          <MediaGallery scope={`driver:${slug}:${tab}`} />
+        )}
 
         <Comments entityType="driver" entityId={d.id} />
       </div>

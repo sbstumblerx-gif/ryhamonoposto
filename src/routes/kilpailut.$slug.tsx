@@ -12,9 +12,25 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/kilpailut/$slug")({
-  head: ({ params }) => ({ meta: [{ title: `${params.slug} — Kilpailu` }, { name: "description", content: "Aika-ajon ja kisan tulokset." }] }),
+  head: ({ params }) => ({ meta: [{ title: `${params.slug} — Kilpailu` }] }),
   component: RaceDetail,
 });
+
+function youtubeEmbedUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    let id = "";
+    if (u.hostname.includes("youtu.be")) id = u.pathname.slice(1);
+    else if (u.searchParams.get("v")) id = u.searchParams.get("v") ?? "";
+    else if (u.pathname.startsWith("/embed/")) id = u.pathname.split("/embed/")[1] ?? "";
+    else if (u.pathname.startsWith("/shorts/")) id = u.pathname.split("/shorts/")[1] ?? "";
+    if (!id) return null;
+    return `https://www.youtube.com/embed/${id.split(/[?&]/)[0]}`;
+  } catch {
+    return null;
+  }
+}
 
 function RaceDetail() {
   const { slug } = Route.useParams();
@@ -31,13 +47,14 @@ function RaceDetail() {
   const r = q.data;
   if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
 
-  async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null }>) {
+  async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null }>) {
     if (!r) return;
     await save({ data: { id: r.id, name: r.name, flag: r.flag, race_date: r.race_date,
       qualifying_content: partial.qualifying_content ?? r.qualifying_content ?? "",
       race_content: partial.race_content ?? r.race_content ?? "",
       qualifying_media_url: partial.qualifying_media_url ?? r.qualifying_media_url ?? null,
       race_media_url: partial.race_media_url ?? r.race_media_url ?? null,
+      youtube_url: partial.youtube_url ?? r.youtube_url ?? null,
     }});
     await qc.invalidateQueries({ queryKey: ["race", slug] });
     toast.success("Tallennettu");
@@ -45,6 +62,7 @@ function RaceDetail() {
 
   const activeContent = tab === "qualifying" ? (r.qualifying_content ?? "") : (r.race_content ?? "");
   const activeMedia = tab === "qualifying" ? r.qualifying_media_url : r.race_media_url;
+  const embed = youtubeEmbedUrl(r.youtube_url);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -53,6 +71,12 @@ function RaceDetail() {
         <h1 className="font-display uppercase tracking-widest text-2xl md:text-3xl">{r.name}</h1>
       </div>
       <div className="hairline-red mt-3 mb-6" />
+
+      {embed && (
+        <div className="mb-6 aspect-video w-full rounded overflow-hidden border border-primary/30 bg-black">
+          <iframe src={embed} title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full" />
+        </div>
+      )}
 
       <div className="flex gap-2 mb-4">
         {(["qualifying", "race"] as const).map(k => (
@@ -69,6 +93,13 @@ function RaceDetail() {
 
       {admin.isAdmin && (
         <div className="card-dark p-3 mb-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">YouTube-linkki</span>
+            <input defaultValue={r.youtube_url ?? ""} onBlur={(e) => {
+              const v = e.target.value.trim();
+              if ((v || null) !== (r.youtube_url ?? null)) void patch({ youtube_url: v || null });
+            }} placeholder="https://youtu.be/…" className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm" />
+          </div>
           <MediaUpload
             label={tab === "qualifying" ? "Aika-ajokuva" : "Kisakuva"}
             currentUrl={activeMedia}

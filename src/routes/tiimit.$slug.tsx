@@ -32,7 +32,7 @@ function TeamPage() {
   const t = q.data;
   if (!t) return <div className="mx-auto max-w-4xl px-4 py-8">Tiimiä ei löydy.</div>;
 
-  async function patch(p: Partial<{ content: string; hero_media_url: string | null }>) {
+  async function patch(p: Partial<{ content: string; hero_media_url: string | null; logo_url: string | null }>) {
     await save({ data: { slug, ...p } });
     await qc.invalidateQueries({ queryKey: ["team", slug] });
     toast.success("Tallennettu");
@@ -41,15 +41,21 @@ function TeamPage() {
   return (
     <div>
       <div className="w-full py-14 border-b border-primary/40" style={{ background: gradientFor(t.color_key) }}>
-        <div className="mx-auto max-w-4xl px-4">
-          <div className="text-2xl">{t.flag}</div>
-          <h1 className="font-display uppercase tracking-widest text-2xl md:text-4xl">{t.name}</h1>
+        <div className="mx-auto max-w-4xl px-4 flex items-center gap-4">
+          {t.logo_url && (
+            <img src={t.logo_url} alt={`${t.name} logo`} className="h-20 w-20 md:h-24 md:w-24 object-cover rounded border border-primary/40 bg-black/40" />
+          )}
+          <div>
+            <div className="text-2xl">{t.flag}</div>
+            <h1 className="font-display uppercase tracking-widest text-2xl md:text-4xl">{t.name}</h1>
+          </div>
         </div>
       </div>
       <div className="mx-auto max-w-4xl px-4 py-8">
         {t.hero_media_url && <img src={t.hero_media_url} alt={t.name} className="w-full rounded border border-primary/30 mb-4" />}
         {admin.isAdmin && (
           <div className="card-dark p-3 mb-4 space-y-3">
+            <MediaUpload currentUrl={t.logo_url} onUploaded={(url) => patch({ logo_url: url })} label="Logo (1:1)" />
             <MediaUpload currentUrl={t.hero_media_url} onUploaded={(url) => patch({ hero_media_url: url })} label="Pääkuva" />
             <EditableText value={t.content ?? ""} multiline placeholder="Tiimin esittely…" onSave={(v) => patch({ content: v })} />
           </div>
