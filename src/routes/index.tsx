@@ -82,6 +82,24 @@ function Home() {
           <p className="text-sm text-muted-foreground italic">Ei vielä uutisia.</p>
         )}
       </section>
+
+      <section className="mx-auto max-w-6xl px-4 mt-10 mb-10">
+        <div className="card-dark p-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Kaikki kilpailut täältä:</span>
+          <a
+            href="https://youtube.com/playlist?list=PLBRpDkep-7oJKiv3-PKvvbJRkvmFspBZd&si=9_heaCayEzxDaGts"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-primary hover:underline font-display uppercase tracking-widest"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-7" aria-hidden="true">
+              <path fill="#FF0000" d="M23 12s0-3.7-.5-5.5c-.3-1-1.1-1.8-2.1-2.1C18.6 4 12 4 12 4s-6.6 0-8.4.4C2.6 4.7 1.8 5.5 1.5 6.5 1 8.3 1 12 1 12s0 3.7.5 5.5c.3 1 1.1 1.8 2.1 2.1C5.4 20 12 20 12 20s6.6 0 8.4-.4c1-.3 1.8-1.1 2.1-2.1.5-1.8.5-5.5.5-5.5z"/>
+              <path fill="#fff" d="M10 15.5l6-3.5-6-3.5z"/>
+            </svg>
+            YouTube-soittolista
+          </a>
+        </div>
+      </section>
     </div>
   );
 }

@@ -114,7 +114,9 @@ const RaceInput = z.object({
   race_content: z.string().default(""),
   qualifying_media_url: z.string().nullable().optional(),
   race_media_url: z.string().nullable().optional(),
+  youtube_url: z.string().nullable().optional(),
 });
+
 
 export const upsertRace = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => RaceInput.parse(d))
@@ -129,6 +131,7 @@ export const upsertRace = createServerFn({ method: "POST" })
         race_content: data.race_content,
         qualifying_media_url: data.qualifying_media_url ?? null,
         race_media_url: data.race_media_url ?? null,
+        youtube_url: data.youtube_url ?? null,
       }).eq("id", data.id).select().single();
       if (error) throw error;
       return row;
@@ -139,6 +142,7 @@ export const upsertRace = createServerFn({ method: "POST" })
       race_date: data.race_date || null,
       qualifying_content: data.qualifying_content,
       race_content: data.race_content,
+      youtube_url: data.youtube_url ?? null,
     }).select().single();
     if (error) throw error;
     return row;
@@ -154,6 +158,12 @@ export const deleteRace = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const FormerTeam = z.object({
+  slug: z.string().min(1),
+  from: z.number().int().min(2025).max(2100),
+  to: z.number().int().min(2025).max(2100),
+});
+
 const DriverPatch = z.object({
   slug: z.string(),
   content: z.string().optional(),
@@ -161,8 +171,12 @@ const DriverPatch = z.object({
   team_slug: z.string().nullable().optional(),
   color_key: z.string().optional(),
   name: z.string().optional(),
-  number: z.number().int().nullable().optional(),
+  number: z.number().int().min(1).max(99).nullable().optional(),
   flag: z.string().optional(),
+  info_card: z.string().nullable().optional(),
+  current_team_slug: z.string().nullable().optional(),
+  current_team_since: z.number().int().min(2025).max(2100).nullable().optional(),
+  former_teams: z.array(FormerTeam).optional(),
 });
 
 export const updateDriver = createServerFn({ method: "POST" })
@@ -180,6 +194,7 @@ const TeamPatch = z.object({
   slug: z.string(),
   content: z.string().optional(),
   hero_media_url: z.string().nullable().optional(),
+  logo_url: z.string().nullable().optional(),
   color_key: z.string().optional(),
   name: z.string().optional(),
   flag: z.string().optional(),

@@ -46,9 +46,13 @@ export type Database = {
           color_key: string
           content: string | null
           created_at: string
+          current_team_since: number | null
+          current_team_slug: string | null
           flag: string
+          former_teams: Json
           hero_media_url: string | null
           id: string
+          info_card: string | null
           name: string
           number: number | null
           slug: string
@@ -59,9 +63,13 @@ export type Database = {
           color_key: string
           content?: string | null
           created_at?: string
+          current_team_since?: number | null
+          current_team_slug?: string | null
           flag?: string
+          former_teams?: Json
           hero_media_url?: string | null
           id?: string
+          info_card?: string | null
           name: string
           number?: number | null
           slug: string
@@ -72,9 +80,13 @@ export type Database = {
           color_key?: string
           content?: string | null
           created_at?: string
+          current_team_since?: number | null
+          current_team_slug?: string | null
           flag?: string
+          former_teams?: Json
           hero_media_url?: string | null
           id?: string
+          info_card?: string | null
           name?: string
           number?: number | null
           slug?: string
@@ -191,6 +203,7 @@ export type Database = {
           race_media_url: string | null
           slug: string
           updated_at: string
+          youtube_url: string | null
         }
         Insert: {
           created_at?: string
@@ -204,6 +217,7 @@ export type Database = {
           race_media_url?: string | null
           slug: string
           updated_at?: string
+          youtube_url?: string | null
         }
         Update: {
           created_at?: string
@@ -217,6 +231,7 @@ export type Database = {
           race_media_url?: string | null
           slug?: string
           updated_at?: string
+          youtube_url?: string | null
         }
         Relationships: []
       }
@@ -279,6 +294,7 @@ export type Database = {
           flag: string
           hero_media_url: string | null
           id: string
+          logo_url: string | null
           name: string
           slug: string
           updated_at: string
@@ -290,6 +306,7 @@ export type Database = {
           flag?: string
           hero_media_url?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           slug: string
           updated_at?: string
@@ -301,6 +318,7 @@ export type Database = {
           flag?: string
           hero_media_url?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           slug?: string
           updated_at?: string

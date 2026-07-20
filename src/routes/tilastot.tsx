@@ -38,6 +38,12 @@ function StatsIndex() {
       <p className="text-sm text-muted-foreground mb-4">Valitse kausi.</p>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <Link
+          to="/tilastot/koko-historia"
+          className="block card-dark p-6 hover:border-primary transition text-center border-primary/60"
+        >
+          <div className="font-display uppercase tracking-widest text-primary">Koko historia</div>
+        </Link>
         {seasons.map(s => (
           <div key={s.id} className="relative group">
             <Link
@@ -60,6 +66,7 @@ function StatsIndex() {
           </div>
         ))}
       </div>
+
 
       {admin.isAdmin && (
         <div className="card-dark p-3 mt-6 flex flex-wrap gap-2 items-center">
