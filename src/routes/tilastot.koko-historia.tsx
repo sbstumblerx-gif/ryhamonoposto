@@ -9,13 +9,12 @@ export const Route = createFileRoute("/tilastot/koko-historia")({
 });
 
 const SECTIONS = [
-  { key: "overall", label: "Yleistilasto" },
   { key: "drivers", label: "Kuljettajat" },
   { key: "teams", label: "Valmistajat" },
 ] as const;
 
 function FullHistoryPage() {
-  const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("overall");
+  const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("drivers");
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
