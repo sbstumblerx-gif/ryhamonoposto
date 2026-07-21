@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listTeams } from "@/lib/content.functions";
@@ -6,10 +6,10 @@ import { gradientFor } from "@/lib/team-colors";
 
 export const Route = createFileRoute("/tiimit")({
   head: () => ({ meta: [{ title: "Tiimit — RyhäMonoposto" }] }),
-  component: TeamsList,
+  component: () => <Outlet />,
 });
 
-function TeamsList() {
+export function TeamsList() {
   const list = useServerFn(listTeams);
   const q = useQuery({ queryKey: ["teams"], queryFn: () => list() });
 
