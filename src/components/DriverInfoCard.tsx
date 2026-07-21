@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listTeams, updateDriver } from "@/lib/content.functions";
 import { EditableText } from "@/components/EditableText";
+import { SmartText } from "@/components/SmartText";
+import { useEntityIndex } from "@/components/useEntityIndex";
 import { toast } from "sonner";
 
 type FormerTeam = { slug: string; from: number; to: number };
@@ -26,6 +28,7 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
   const teamBySlug = useMemo(() => new Map(teams.map(t => [t.slug, t] as const)), [teams]);
   const save = useServerFn(updateDriver);
   const qc = useQueryClient();
+  const entities = useEntityIndex();
   const former: FormerTeam[] = Array.isArray(driver.former_teams) ? driver.former_teams : [];
 
   async function patch(p: Partial<Pick<Driver, "info_card" | "current_team_slug" | "current_team_since" | "number" | "flag"> & { former_teams: FormerTeam[] }>) {
@@ -134,7 +137,7 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
           <EditableText value={driver.info_card ?? ""} multiline placeholder="Kirjoita tietoja kuljettajasta…"
             onSave={(v) => patch({ info_card: v })} />
         ) : (
-          <div className="font-display whitespace-pre-wrap text-sm leading-6">{driver.info_card || <span className="italic text-muted-foreground">Ei kuvausta.</span>}</div>
+          <SmartText text={driver.info_card || "Ei kuvausta."} entities={entities} className="font-display text-sm leading-6" />
         )}
       </div>
     </div>
