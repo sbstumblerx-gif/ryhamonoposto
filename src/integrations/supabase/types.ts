@@ -291,9 +291,12 @@ export type Database = {
           color_key: string
           content: string | null
           created_at: string
+          current_driver_slugs: Json
           flag: string
+          former_lineups: Json
           hero_media_url: string | null
           id: string
+          info_card: string | null
           logo_url: string | null
           name: string
           slug: string
@@ -303,9 +306,12 @@ export type Database = {
           color_key: string
           content?: string | null
           created_at?: string
+          current_driver_slugs?: Json
           flag?: string
+          former_lineups?: Json
           hero_media_url?: string | null
           id?: string
+          info_card?: string | null
           logo_url?: string | null
           name: string
           slug: string
@@ -315,9 +321,12 @@ export type Database = {
           color_key?: string
           content?: string | null
           created_at?: string
+          current_driver_slugs?: Json
           flag?: string
+          former_lineups?: Json
           hero_media_url?: string | null
           id?: string
+          info_card?: string | null
           logo_url?: string | null
           name?: string
           slug?: string
