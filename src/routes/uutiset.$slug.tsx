@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getNews, upsertNews } from "@/lib/content.functions";
 import { useEntityIndex } from "@/components/useEntityIndex";
-import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
