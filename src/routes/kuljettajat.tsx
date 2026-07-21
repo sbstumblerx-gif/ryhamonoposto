@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listDrivers } from "@/lib/content.functions";
@@ -6,10 +6,10 @@ import { gradientFor } from "@/lib/team-colors";
 
 export const Route = createFileRoute("/kuljettajat")({
   head: () => ({ meta: [{ title: "Kuljettajat — RyhäMonoposto" }, { name: "description", content: "Kaikki RyhäMonoposto-kuljettajat." }] }),
-  component: DriversList,
+  component: () => <Outlet />,
 });
 
-function DriversList() {
+export function DriversList() {
   const list = useServerFn(listDrivers);
   const q = useQuery({ queryKey: ["drivers"], queryFn: () => list() });
 

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listSeasons, upsertSeason, deleteSeason } from "@/lib/seasons.functions";
@@ -8,10 +8,10 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/tilastot")({
   head: () => ({ meta: [{ title: "Tilastot — RyhäMonoposto" }] }),
-  component: StatsIndex,
+  component: () => <Outlet />,
 });
 
-function StatsIndex() {
+export function StatsIndex() {
   const list = useServerFn(listSeasons);
   const save = useServerFn(upsertSeason);
   const del = useServerFn(deleteSeason);

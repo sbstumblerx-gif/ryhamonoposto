@@ -32,6 +32,16 @@ function youtubeEmbedUrl(url: string | null | undefined): string | null {
   }
 }
 
+function YouTubePreview({ url }: { url: string | null | undefined }) {
+  const embed = youtubeEmbedUrl(url);
+  if (!embed) return null;
+  return (
+    <div className="mt-2 aspect-video w-full rounded overflow-hidden border border-primary/30 bg-black">
+      <iframe src={embed} title="YouTube-esikatselu" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full" />
+    </div>
+  );
+}
+
 function RaceDetail() {
   const { slug } = Route.useParams();
   const get = useServerFn(getRace);
@@ -47,7 +57,7 @@ function RaceDetail() {
   const r = q.data;
   if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
 
-  async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null }>) {
+  async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null; qualifying_youtube_url: string | null; race_youtube_url: string | null }>) {
     if (!r) return;
     await save({ data: { id: r.id, name: r.name, flag: r.flag, race_date: r.race_date,
       qualifying_content: partial.qualifying_content ?? r.qualifying_content ?? "",
@@ -55,6 +65,8 @@ function RaceDetail() {
       qualifying_media_url: partial.qualifying_media_url ?? r.qualifying_media_url ?? null,
       race_media_url: partial.race_media_url ?? r.race_media_url ?? null,
       youtube_url: partial.youtube_url ?? r.youtube_url ?? null,
+      qualifying_youtube_url: partial.qualifying_youtube_url ?? r.qualifying_youtube_url ?? null,
+      race_youtube_url: partial.race_youtube_url ?? r.race_youtube_url ?? null,
     }});
     await qc.invalidateQueries({ queryKey: ["race", slug] });
     toast.success("Tallennettu");
@@ -62,7 +74,8 @@ function RaceDetail() {
 
   const activeContent = tab === "qualifying" ? (r.qualifying_content ?? "") : (r.race_content ?? "");
   const activeMedia = tab === "qualifying" ? r.qualifying_media_url : r.race_media_url;
-  const embed = youtubeEmbedUrl(r.youtube_url);
+  const activeYoutube = tab === "qualifying" ? (r.qualifying_youtube_url ?? r.youtube_url) : (r.race_youtube_url ?? r.youtube_url);
+  const embed = youtubeEmbedUrl(activeYoutube);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -94,12 +107,14 @@ function RaceDetail() {
       {admin.isAdmin && (
         <div className="card-dark p-3 mb-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">YouTube-linkki</span>
-            <input defaultValue={r.youtube_url ?? ""} onBlur={(e) => {
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">{tab === "qualifying" ? "Aika-ajon YouTube-linkki" : "Kisan YouTube-linkki"}</span>
+            <input key={`${tab}-youtube-${activeYoutube ?? ""}`} defaultValue={activeYoutube ?? ""} onBlur={(e) => {
               const v = e.target.value.trim();
-              if ((v || null) !== (r.youtube_url ?? null)) void patch({ youtube_url: v || null });
+              const old = activeYoutube ?? null;
+              if ((v || null) !== old) void patch(tab === "qualifying" ? { qualifying_youtube_url: v || null } : { race_youtube_url: v || null });
             }} placeholder="https://youtu.be/…" className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm" />
           </div>
+          <YouTubePreview url={activeYoutube} />
           <MediaUpload
             label={tab === "qualifying" ? "Aika-ajokuva" : "Kisakuva"}
             currentUrl={activeMedia}

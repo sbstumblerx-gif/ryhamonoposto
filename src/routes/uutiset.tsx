@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listNews, upsertNews, deleteNews } from "@/lib/content.functions";
@@ -8,10 +8,10 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/uutiset")({
   head: () => ({ meta: [{ title: "Uutiset — RyhäMonoposto" }] }),
-  component: NewsList,
+  component: () => <Outlet />,
 });
 
-function NewsList() {
+export function NewsList() {
   const list = useServerFn(listNews);
   const create = useServerFn(upsertNews);
   const del = useServerFn(deleteNews);

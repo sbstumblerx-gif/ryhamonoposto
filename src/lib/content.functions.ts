@@ -25,7 +25,7 @@ export const listTeams = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("teams")
-    .select("id, slug, name, flag, color_key, content, hero_media_url")
+    .select("id, slug, name, flag, color_key, content, hero_media_url, logo_url, info_card, current_driver_slugs, former_lineups")
     .order("name");
   if (error) throw error;
   return data ?? [];
@@ -48,6 +48,43 @@ export const listRaces = createServerFn({ method: "GET" }).handler(async () => {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
+});
+
+export const getLatestSessionResult = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("races")
+    .select("slug, name, qualifying_content, race_content, qualifying_updated_at, race_updated_at, updated_at, created_at")
+    .order("updated_at", { ascending: false })
+    .limit(30);
+  if (error) throw error;
+
+  const sessions = (data ?? []).flatMap((race) => [
+    {
+      slug: race.slug,
+      title: `${race.name} aika-ajot`,
+      content: race.qualifying_content ?? "",
+      updatedAt: race.qualifying_updated_at ?? race.updated_at ?? race.created_at,
+    },
+    {
+      slug: race.slug,
+      title: `${race.name} kisa`,
+      content: race.race_content ?? "",
+      updatedAt: race.race_updated_at ?? race.updated_at ?? race.created_at,
+    },
+  ]).filter((session) => session.content.trim().length > 0);
+
+  sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const latest = sessions[0];
+  if (!latest) return null;
+
+  const summary = latest.content
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 240);
+
+  return { slug: latest.slug, label: latest.title, summary };
 });
 
 export const getRace = createServerFn({ method: "GET" })
@@ -115,6 +152,8 @@ const RaceInput = z.object({
   qualifying_media_url: z.string().nullable().optional(),
   race_media_url: z.string().nullable().optional(),
   youtube_url: z.string().nullable().optional(),
+  qualifying_youtube_url: z.string().nullable().optional(),
+  race_youtube_url: z.string().nullable().optional(),
 });
 
 
@@ -124,6 +163,21 @@ export const upsertRace = createServerFn({ method: "POST" })
     await assertAdmin();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.id) {
+      const { data: current, error: readError } = await supabaseAdmin
+        .from("races")
+        .select("qualifying_content, race_content, qualifying_media_url, race_media_url, qualifying_youtube_url, race_youtube_url")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (readError) throw readError;
+      const now = new Date().toISOString();
+      const qualifyingChanged = !current
+        || (current.qualifying_content ?? "") !== data.qualifying_content
+        || (current.qualifying_media_url ?? null) !== (data.qualifying_media_url ?? null)
+        || (current.qualifying_youtube_url ?? null) !== (data.qualifying_youtube_url ?? null);
+      const raceChanged = !current
+        || (current.race_content ?? "") !== data.race_content
+        || (current.race_media_url ?? null) !== (data.race_media_url ?? null)
+        || (current.race_youtube_url ?? null) !== (data.race_youtube_url ?? null);
       const { data: row, error } = await supabaseAdmin.from("races").update({
         name: data.name, flag: data.flag,
         race_date: data.race_date || null,
@@ -132,6 +186,10 @@ export const upsertRace = createServerFn({ method: "POST" })
         qualifying_media_url: data.qualifying_media_url ?? null,
         race_media_url: data.race_media_url ?? null,
         youtube_url: data.youtube_url ?? null,
+        qualifying_youtube_url: data.qualifying_youtube_url ?? null,
+        race_youtube_url: data.race_youtube_url ?? null,
+        ...(qualifyingChanged ? { qualifying_updated_at: now } : {}),
+        ...(raceChanged ? { race_updated_at: now } : {}),
       }).eq("id", data.id).select().single();
       if (error) throw error;
       return row;
@@ -142,7 +200,13 @@ export const upsertRace = createServerFn({ method: "POST" })
       race_date: data.race_date || null,
       qualifying_content: data.qualifying_content,
       race_content: data.race_content,
+      qualifying_media_url: data.qualifying_media_url ?? null,
+      race_media_url: data.race_media_url ?? null,
       youtube_url: data.youtube_url ?? null,
+      qualifying_youtube_url: data.qualifying_youtube_url ?? null,
+      race_youtube_url: data.race_youtube_url ?? null,
+      qualifying_updated_at: data.qualifying_content.trim() ? new Date().toISOString() : null,
+      race_updated_at: data.race_content.trim() ? new Date().toISOString() : null,
     }).select().single();
     if (error) throw error;
     return row;
@@ -193,11 +257,18 @@ export const updateDriver = createServerFn({ method: "POST" })
 const TeamPatch = z.object({
   slug: z.string(),
   content: z.string().optional(),
+  info_card: z.string().nullable().optional(),
   hero_media_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
   color_key: z.string().optional(),
   name: z.string().optional(),
   flag: z.string().optional(),
+  current_driver_slugs: z.array(z.string()).max(2).optional(),
+  former_lineups: z.array(z.object({
+    from: z.number().int().min(2025).max(2100),
+    to: z.number().int().min(2025).max(2100),
+    driver_slugs: z.tuple([z.string(), z.string()]),
+  })).optional(),
 });
 
 export const updateTeam = createServerFn({ method: "POST" })

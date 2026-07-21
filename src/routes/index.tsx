@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listNews } from "@/lib/content.functions";
 import { AiSearch } from "@/components/AiSearch";
+import { AiChat } from "@/components/AiChat";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -39,7 +40,8 @@ function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 -mt-4">
-        <div className="mb-4">
+        <div className="mb-4 space-y-4">
+          <AiChat />
           <AiSearch />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

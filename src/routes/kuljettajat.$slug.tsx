@@ -81,7 +81,7 @@ function DriverPage() {
         {tab === "info" ? (
           <DriverInfoCard driver={d as never} isAdmin={admin.isAdmin} />
         ) : (
-          <MediaGallery scope={`driver:${slug}:${tab}`} />
+          <MediaGallery scope={`driver:${slug}:${tab}`} title={tab === "stats" ? "Tilastot" : "Kisahistoria"} />
         )}
 
         <Comments entityType="driver" entityId={d.id} />

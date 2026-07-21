@@ -39,10 +39,11 @@ export function AiSearch() {
 
   return (
     <div className="card-dark p-4">
+      <h2 className="font-display uppercase tracking-widest text-primary text-sm mb-3">AI-pikahaku</h2>
       <form onSubmit={submit} className="flex gap-2">
         <input
           value={q} onChange={e => setQ(e.target.value)}
-          placeholder="Kysy tekoälyltä sivustosta…"
+          placeholder="Etsi tieto ja lähteet…"
           className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm"
         />
         <button disabled={busy || !q.trim()} className="bg-primary text-primary-foreground rounded px-4 py-2 text-xs font-display uppercase tracking-widest disabled:opacity-50">

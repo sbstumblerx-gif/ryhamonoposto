@@ -11,6 +11,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader, SiteFooter } from "@/components/SiteChrome";
 import { AdminBootstrap } from "@/components/admin-store";
 import logoAsset from "@/assets/logo.png.asset.json";
+import { LatestSessionTicker } from "@/components/LatestSessionTicker";
 
 function NotFoundComponent() {
   return (
@@ -92,6 +93,7 @@ function RootComponent() {
       <AdminBootstrap />
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
+        <LatestSessionTicker />
         <main className="flex-1"><Outlet /></main>
         <SiteFooter />
       </div>

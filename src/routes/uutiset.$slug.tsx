@@ -3,10 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getNews, upsertNews } from "@/lib/content.functions";
 import { useEntityIndex } from "@/components/useEntityIndex";
-import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
+import { NewsBodyEditor } from "@/components/NewsBodyEditor";
+import { NewsContent } from "@/components/NewsContent";
 import { useAdmin } from "@/components/admin-store";
 import { toast } from "sonner";
 
@@ -54,12 +55,12 @@ function NewsPage() {
           <MediaUpload currentUrl={n.hero_media_url} onUploaded={(url) => patch({ hero_media_url: url })} label="Pääkuva" />
           <EditableText value={n.title} placeholder="Otsikko" onSave={(v) => patch({ title: v })} />
           <EditableText value={n.excerpt ?? ""} placeholder="Ingressi" onSave={(v) => patch({ excerpt: v })} />
-          <EditableText value={n.content ?? ""} multiline placeholder="Sisältö…" onSave={(v) => patch({ content: v })} />
+          <NewsBodyEditor value={n.content ?? ""} onSave={(v) => patch({ content: v })} />
         </div>
       )}
 
       {n.excerpt && <p className="italic text-muted-foreground mb-4">{n.excerpt}</p>}
-      <SmartText text={n.content} entities={entities} className="text-sm leading-6" />
+      <NewsContent content={n.content} entities={entities} />
 
       <Comments entityType="news" entityId={n.id} />
     </article>
