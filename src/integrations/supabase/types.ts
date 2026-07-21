@@ -198,10 +198,12 @@ export type Database = {
           name: string
           qualifying_content: string | null
           qualifying_media_url: string | null
+          qualifying_updated_at: string | null
           qualifying_youtube_url: string | null
           race_content: string | null
           race_date: string | null
           race_media_url: string | null
+          race_updated_at: string | null
           race_youtube_url: string | null
           slug: string
           updated_at: string
@@ -214,10 +216,12 @@ export type Database = {
           name: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
+          qualifying_updated_at?: string | null
           qualifying_youtube_url?: string | null
           race_content?: string | null
           race_date?: string | null
           race_media_url?: string | null
+          race_updated_at?: string | null
           race_youtube_url?: string | null
           slug: string
           updated_at?: string
@@ -230,10 +234,12 @@ export type Database = {
           name?: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
+          qualifying_updated_at?: string | null
           qualifying_youtube_url?: string | null
           race_content?: string | null
           race_date?: string | null
           race_media_url?: string | null
+          race_updated_at?: string | null
           race_youtube_url?: string | null
           slug?: string
           updated_at?: string
