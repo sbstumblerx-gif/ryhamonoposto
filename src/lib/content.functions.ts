@@ -1,24 +1,43 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// Public reads
+// Public reads — driver color is derived from their assigned team when available,
+// so admin changes to a team's color propagate automatically.
+async function teamColorMap() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.from("teams").select("slug, color_key");
+  return new Map((data ?? []).map(t => [t.slug, t.color_key] as const));
+}
+
+function effectiveColor(driver: { color_key: string; team_slug: string | null; current_team_slug: string | null }, map: Map<string, string>): string {
+  const teamSlug = driver.current_team_slug ?? driver.team_slug ?? "";
+  return map.get(teamSlug) ?? driver.color_key;
+}
+
 export const listDrivers = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("drivers")
-    .select("id, slug, name, flag, number, color_key, team_slug, content, hero_media_url")
-    .order("number", { ascending: true });
+  const [{ data, error }, colors] = await Promise.all([
+    supabaseAdmin
+      .from("drivers")
+      .select("id, slug, name, flag, number, color_key, team_slug, current_team_slug, content, hero_media_url")
+      .order("number", { ascending: true }),
+    teamColorMap(),
+  ]);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(d => ({ ...d, color_key: effectiveColor(d, colors) }));
 });
 
 export const getDriver = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ slug: z.string() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin.from("drivers").select("*").eq("slug", data.slug).maybeSingle();
+    const [{ data: row, error }, colors] = await Promise.all([
+      supabaseAdmin.from("drivers").select("*").eq("slug", data.slug).maybeSingle(),
+      teamColorMap(),
+    ]);
     if (error) throw error;
-    return row;
+    if (!row) return row;
+    return { ...row, color_key: effectiveColor(row, colors) };
   });
 
 export const listTeams = createServerFn({ method: "GET" }).handler(async () => {
@@ -337,4 +356,75 @@ export const updateStats = createServerFn({ method: "POST" })
     const { data: row, error } = await supabaseAdmin.from("stats_pages").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().single();
     if (error) throw error;
     return row;
+  });
+
+// ============ Team & Driver creation / deletion ============
+
+const CreateTeamInput = z.object({
+  name: z.string().min(1).max(120),
+  flag: z.string().max(20).default(""),
+  color_key: z.string().min(1).max(40).default("red"),
+});
+
+export const createTeam = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => CreateTeamInput.parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const slug = `${slugify(data.name)}-${Date.now().toString(36)}`;
+    const { data: row, error } = await supabaseAdmin.from("teams").insert({
+      slug, name: data.name, flag: data.flag, color_key: data.color_key,
+    }).select().single();
+    if (error) throw error;
+    return row;
+  });
+
+export const deleteTeam = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("teams").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+const CreateDriverInput = z.object({
+  name: z.string().min(1).max(120),
+  flag: z.string().max(20).default(""),
+  number: z.number().int().min(1).max(99).default(1),
+  team_slug: z.string().nullable().optional(),
+  color_key: z.string().min(1).max(40).default("red"),
+});
+
+export const createDriver = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => CreateDriverInput.parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Derive color from the team if one is assigned.
+    let color = data.color_key;
+    if (data.team_slug) {
+      const { data: team } = await supabaseAdmin.from("teams").select("color_key").eq("slug", data.team_slug).maybeSingle();
+      if (team?.color_key) color = team.color_key;
+    }
+    const slug = `${slugify(data.name)}-${Date.now().toString(36)}`;
+    const { data: row, error } = await supabaseAdmin.from("drivers").insert({
+      slug, name: data.name, flag: data.flag, number: data.number,
+      team_slug: data.team_slug ?? null,
+      current_team_slug: data.team_slug ?? null,
+      color_key: color,
+    }).select().single();
+    if (error) throw error;
+    return row;
+  });
+
+export const deleteDriver = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("drivers").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
   });
