@@ -1,24 +1,43 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// Public reads
+// Public reads — driver color is derived from their assigned team when available,
+// so admin changes to a team's color propagate automatically.
+async function teamColorMap() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.from("teams").select("slug, color_key");
+  return new Map((data ?? []).map(t => [t.slug, t.color_key] as const));
+}
+
+function effectiveColor(driver: { color_key: string; team_slug: string | null; current_team_slug: string | null }, map: Map<string, string>): string {
+  const teamSlug = driver.current_team_slug ?? driver.team_slug ?? "";
+  return map.get(teamSlug) ?? driver.color_key;
+}
+
 export const listDrivers = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("drivers")
-    .select("id, slug, name, flag, number, color_key, team_slug, content, hero_media_url")
-    .order("number", { ascending: true });
+  const [{ data, error }, colors] = await Promise.all([
+    supabaseAdmin
+      .from("drivers")
+      .select("id, slug, name, flag, number, color_key, team_slug, current_team_slug, content, hero_media_url")
+      .order("number", { ascending: true }),
+    teamColorMap(),
+  ]);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(d => ({ ...d, color_key: effectiveColor(d, colors) }));
 });
 
 export const getDriver = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ slug: z.string() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin.from("drivers").select("*").eq("slug", data.slug).maybeSingle();
+    const [{ data: row, error }, colors] = await Promise.all([
+      supabaseAdmin.from("drivers").select("*").eq("slug", data.slug).maybeSingle(),
+      teamColorMap(),
+    ]);
     if (error) throw error;
-    return row;
+    if (!row) return row;
+    return { ...row, color_key: effectiveColor(row, colors) };
   });
 
 export const listTeams = createServerFn({ method: "GET" }).handler(async () => {
