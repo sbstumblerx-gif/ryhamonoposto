@@ -4,10 +4,17 @@ import markAsset from "@/assets/mark.png.asset.json";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listNews } from "@/lib/content.functions";
-import { AiSearch } from "@/components/AiSearch";
-import { AiChat } from "@/components/AiChat";
+import { AiChatPanel } from "@/components/AiChatPanel";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "RyhäMonoposto - kotisivu" },
+      { name: "description", content: "RyhäMonoposto-sarjan viralliset kotisivut — kisat, kuljettajat, tiimit, uutiset, tilastot ja AI-tila." },
+      { property: "og:title", content: "RyhäMonoposto - kotisivu" },
+      { property: "og:description", content: "RyhäMonoposto-sarjan viralliset kotisivut — kisat, kuljettajat, tiimit, uutiset, tilastot ja AI-tila." },
+    ],
+  }),
   component: Home,
 });
 
@@ -40,9 +47,8 @@ function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 -mt-4">
-        <div className="mb-4 space-y-4">
-          <AiChat />
-          <AiSearch />
+        <div className="mb-4">
+          <AiChatPanel />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {TILES.map((t) => (

@@ -10,8 +10,22 @@ export const TEAM_COLORS: Record<string, string> = {
   blue: "#2563eb",
 };
 
+export const TEAM_COLOR_OPTIONS: { key: string; label: string }[] = [
+  { key: "red", label: "Punainen" },
+  { key: "green", label: "Vihreä" },
+  { key: "yellow", label: "Keltainen" },
+  { key: "darkblue", label: "Tummansininen" },
+  { key: "gray", label: "Harmaa" },
+  { key: "darkred", label: "Tummanpunainen" },
+  { key: "darkgreen", label: "Tummanvihreä" },
+  { key: "cyan", label: "Syaani" },
+  { key: "blue", label: "Sininen" },
+];
+
 export function colorFor(key: string | null | undefined): string {
-  return TEAM_COLORS[key ?? ""] ?? "#ef2929";
+  if (!key) return "#ef2929";
+  if (key.startsWith("#")) return key;
+  return TEAM_COLORS[key] ?? "#ef2929";
 }
 
 export function gradientFor(key: string | null | undefined): string {

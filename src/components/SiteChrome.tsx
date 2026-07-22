@@ -1,35 +1,115 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import logoAsset from "@/assets/logo.png.asset.json";
 import { useAdmin, useAdminLogout } from "./admin-store";
+import { AiChatPanel } from "./AiChatPanel";
+
+const NAV = [
+  { to: "/kilpailut", label: "Kilpailut" },
+  { to: "/kuljettajat", label: "Kuljettajat" },
+  { to: "/tiimit", label: "Tiimit" },
+  { to: "/tilastot", label: "Tilastot" },
+  { to: "/uutiset", label: "Uutiset" },
+  { to: "/tekoalytila", label: "Tekoälytila" },
+] as const;
 
 export function SiteHeader() {
   const admin = useAdmin();
   const logout = useAdminLogout();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const title = useRouterState({ select: (r) => r.matches.at(-1)?.meta?.find((m: any) => m?.title)?.title ?? "" });
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setAskOpen(false);
+  }, [pathname]);
+
+  const pageContext = `Käyttäjä on sivulla: ${pathname}${title ? ` (${title})` : ""}. Vastaa ensin sivun sisällön pohjalta, hae tarvittaessa lisätietoa muualta sivustolta.`;
+  const isAiPage = pathname === "/tekoalytila" || pathname === "/";
+
   return (
-    <header className="sticky top-0 z-40 bg-black/90 backdrop-blur border-b border-primary/40">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={logoAsset.url} alt="RyhäMonoposto" className="h-7 w-auto" />
-        </Link>
-        <nav className="hidden md:flex items-center gap-5 text-sm font-display uppercase tracking-widest">
-          <Link to="/kilpailut" className="hover:text-primary">Kilpailut</Link>
-          <Link to="/kuljettajat" className="hover:text-primary">Kuljettajat</Link>
-          <Link to="/tiimit" className="hover:text-primary">Tiimit</Link>
-          <Link to="/uutiset" className="hover:text-primary">Uutiset</Link>
-          <Link to="/tilastot" className="hover:text-primary">Tilastot</Link>
-        </nav>
-        <div className="flex items-center gap-2">
-          {admin.isAdmin && (
-            <button onClick={logout} className="text-xs uppercase tracking-widest text-primary border border-primary/60 rounded px-2 py-1">
-              Admin ✓
+    <>
+      <header className="sticky top-0 z-40 bg-black/90 backdrop-blur border-b border-primary/40">
+        <div className="mx-auto max-w-6xl px-3 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              aria-label="Avaa valikko"
+              onClick={() => setMenuOpen(true)}
+              className="p-2 border border-primary/40 rounded hover:bg-primary/20"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
+              </svg>
             </button>
-          )}
-          <Link to="/asetukset" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary border border-primary/30 rounded px-2 py-1">
-            Asetukset
-          </Link>
+            <Link to="/" className="flex items-center gap-2">
+              <img src={logoAsset.url} alt="RyhäMonoposto" className="h-7 w-auto" />
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!isAiPage && (
+              <button
+                onClick={() => setAskOpen(true)}
+                className="text-[10px] md:text-xs uppercase tracking-widest text-primary border border-primary/60 rounded px-2 py-1 hover:bg-primary/20"
+              >
+                Kysy tästä sivusta
+              </button>
+            )}
+            {admin.isAdmin && (
+              <button onClick={logout} className="text-xs uppercase tracking-widest text-primary border border-primary/60 rounded px-2 py-1">
+                Admin ✓
+              </button>
+            )}
+            <Link to="/asetukset" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary border border-primary/30 rounded px-2 py-1">
+              Asetukset
+            </Link>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {menuOpen && (
+        <div className="fixed inset-0 z-50" onClick={() => setMenuOpen(false)}>
+          <div className="absolute inset-0 bg-black/70" />
+          <aside
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-0 left-0 h-full w-72 max-w-[85vw] bg-black border-r border-primary/60 p-5 flex flex-col gap-2 shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <img src={logoAsset.url} alt="RyhäMonoposto" className="h-8 w-auto" />
+              <button aria-label="Sulje" onClick={() => setMenuOpen(false)} className="text-xl text-muted-foreground hover:text-primary">×</button>
+            </div>
+            <div className="hairline-red mb-2" />
+            <nav className="flex flex-col gap-1">
+              {NAV.map((n) => (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  className="font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-transparent hover:border-primary/60 hover:bg-primary/10"
+                  activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-primary bg-primary/20 text-primary" }}
+                >
+                  {n.label}
+                </Link>
+              ))}
+            </nav>
+          </aside>
+        </div>
+      )}
+
+      {askOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-3 md:p-8" onClick={() => setAskOpen(false)}>
+          <div className="absolute inset-0 bg-black/80" />
+          <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-2xl mt-8">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-display uppercase tracking-widest text-primary">Kysy tästä sivusta</h3>
+              <button aria-label="Sulje" onClick={() => setAskOpen(false)} className="text-2xl text-muted-foreground hover:text-primary">×</button>
+            </div>
+            <AiChatPanel pageContext={pageContext} compact />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
