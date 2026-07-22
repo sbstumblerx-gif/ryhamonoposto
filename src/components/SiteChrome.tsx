@@ -19,7 +19,7 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const title = useRouterState({ select: (r) => r.matches.at(-1)?.meta?.find((m: any) => m?.title)?.title ?? "" });
+  const title = "";
 
   useEffect(() => {
     setMenuOpen(false);
