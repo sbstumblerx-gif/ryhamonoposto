@@ -12,7 +12,6 @@ export const Route = createFileRoute("/tilastot/$season")({
 });
 
 const SECTIONS = [
-  { key: "overall", label: "Koko historia" },
   { key: "drivers", label: "Kuljettajat" },
   { key: "teams", label: "Valmistajat" },
 ] as const;
@@ -21,7 +20,7 @@ function SeasonPage() {
   const { season } = Route.useParams();
   const get = useServerFn(getSeason);
   const q = useQuery({ queryKey: ["season", season], queryFn: () => get({ data: { slug: season } }) });
-  const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("overall");
+  const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("drivers");
 
   const s = q.data;
 
