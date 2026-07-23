@@ -41,7 +41,7 @@ export function TeamInfoCard({ team, isAdmin }: { team: Team; isAdmin: boolean }
   function driverSelect(value: string, onChange: (slug: string) => void) {
     return (
       <select value={value} onChange={(event) => onChange(event.target.value)} className="bg-black/70 border border-primary/30 rounded p-2 font-display flex-1 min-w-[160px]">
-        <option value="">— valitse kuljettaja —</option>
+        <option value="">Ei aktiivinen</option>
         {drivers.map((driver) => <option key={driver.slug} value={driver.slug}>{driver.name}</option>)}
       </select>
     );
