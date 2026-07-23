@@ -73,8 +73,8 @@ export function DriversList() {
         activeMap.set(d.current_team_slug, arr);
       } else {
         // Attach to first former team if any, else "no team"
-        const former = Array.isArray(d.former_teams) ? d.former_teams : [];
-        const slug = former[0]?.slug;
+        const former = Array.isArray(d.former_teams) ? (d.former_teams as any[]) : [];
+        const slug = typeof former[0] === "object" && former[0] ? (former[0] as any).slug : undefined;
         if (slug) {
           const arr = formerMap.get(slug) ?? [];
           arr.push(d);
