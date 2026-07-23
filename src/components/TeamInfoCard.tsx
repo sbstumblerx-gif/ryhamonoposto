@@ -31,7 +31,7 @@ export function TeamInfoCard({ team, isAdmin }: { team: Team; isAdmin: boolean }
   const current = asDriverPair(team.current_driver_slugs);
   const lineups = asLineups(team.former_lineups);
 
-  async function patch(p: Partial<Pick<Team, "flag" | "info_card"> & { current_driver_slugs: string[]; former_lineups: TeamLineup[] }>) {
+  async function patch(p: Partial<Pick<Team, "flag" | "info_card"> & { color_key: string; current_driver_slugs: string[]; former_lineups: TeamLineup[] }>) {
     await save({ data: { slug: team.slug, ...p } });
     await qc.invalidateQueries({ queryKey: ["team", team.slug] });
     await qc.invalidateQueries({ queryKey: ["teams"] });
