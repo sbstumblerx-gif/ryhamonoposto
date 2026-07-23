@@ -5,11 +5,13 @@ import { useAdmin, useAdminLogout } from "./admin-store";
 import { AiChatPanel } from "./AiChatPanel";
 
 const NAV = [
+  { to: "/", label: "Etusivu" },
   { to: "/kilpailut", label: "Kilpailut" },
   { to: "/kuljettajat", label: "Kuljettajat" },
   { to: "/tiimit", label: "Tiimit" },
   { to: "/tilastot", label: "Tilastot" },
   { to: "/uutiset", label: "Uutiset" },
+  { to: "/veikkaa", label: "Veikkaa" },
   { to: "/tekoalytila", label: "Tekoälytila" },
 ] as const;
 
