@@ -169,6 +169,71 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          result_top3: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          result_top3?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          result_top3?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          created_at: string
+          id: string
+          points: number
+          session_id: string
+          top3: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points?: number
+          session_id: string
+          top3: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points?: number
+          session_id?: string
+          top3?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
