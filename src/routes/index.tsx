@@ -24,6 +24,7 @@ const TILES = [
   { to: "/tiimit", label: "Tiimit" },
   { to: "/uutiset", label: "Uutiset" },
   { to: "/tilastot", label: "Tilastot" },
+  { to: "/veikkaa", label: "Veikkaa" },
 ] as const;
 
 function Home() {
@@ -50,7 +51,7 @@ function Home() {
         <div className="mb-4">
           <AiChatPanel />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           {TILES.map((t) => (
             <Link
               key={t.to}

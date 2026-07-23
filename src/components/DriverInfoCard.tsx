@@ -67,7 +67,7 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
           <div className="flex gap-2 flex-wrap">
             <select value={driver.current_team_slug ?? ""} onChange={e => patch({ current_team_slug: e.target.value || null })}
               className="bg-black/70 border border-primary/30 rounded p-2 font-display flex-1 min-w-[180px]">
-              <option value="">— valitse tiimi —</option>
+              <option value="">Ei aktiivinen</option>
               {teams.map(t => <option key={t.slug} value={t.slug}>{t.name}</option>)}
             </select>
             <select value={driver.current_team_since ?? ""} onChange={e => patch({ current_team_since: e.target.value ? Number(e.target.value) : null })}

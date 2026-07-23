@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VeikkaaRouteImport } from './routes/veikkaa'
 import { Route as UutisetRouteImport } from './routes/uutiset'
 import { Route as TilastotRouteImport } from './routes/tilastot'
 import { Route as TiimitRouteImport } from './routes/tiimit'
@@ -29,6 +30,11 @@ import { Route as TiimitSlugRouteImport } from './routes/tiimit.$slug'
 import { Route as KuljettajatSlugRouteImport } from './routes/kuljettajat.$slug'
 import { Route as KilpailutSlugRouteImport } from './routes/kilpailut.$slug'
 
+const VeikkaaRoute = VeikkaaRouteImport.update({
+  id: '/veikkaa',
+  path: '/veikkaa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UutisetRoute = UutisetRouteImport.update({
   id: '/uutiset',
   path: '/uutiset',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/tiimit': typeof TiimitRouteWithChildren
   '/tilastot': typeof TilastotRouteWithChildren
   '/uutiset': typeof UutisetRouteWithChildren
+  '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/asetukset': typeof AsetuksetRoute
   '/tekoalytila': typeof TekoalytilaRoute
+  '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/tiimit': typeof TiimitRouteWithChildren
   '/tilastot': typeof TilastotRouteWithChildren
   '/uutiset': typeof UutisetRouteWithChildren
+  '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/tiimit'
     | '/tilastot'
     | '/uutiset'
+    | '/veikkaa'
     | '/kilpailut/$slug'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/'
     | '/asetukset'
     | '/tekoalytila'
+    | '/veikkaa'
     | '/kilpailut/$slug'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/tiimit'
     | '/tilastot'
     | '/uutiset'
+    | '/veikkaa'
     | '/kilpailut/$slug'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
@@ -254,10 +266,18 @@ export interface RootRouteChildren {
   TiimitRoute: typeof TiimitRouteWithChildren
   TilastotRoute: typeof TilastotRouteWithChildren
   UutisetRoute: typeof UutisetRouteWithChildren
+  VeikkaaRoute: typeof VeikkaaRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/veikkaa': {
+      id: '/veikkaa'
+      path: '/veikkaa'
+      fullPath: '/veikkaa'
+      preLoaderRoute: typeof VeikkaaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/uutiset': {
       id: '/uutiset'
       path: '/uutiset'
@@ -473,6 +493,7 @@ const rootRouteChildren: RootRouteChildren = {
   TiimitRoute: TiimitRouteWithChildren,
   TilastotRoute: TilastotRouteWithChildren,
   UutisetRoute: UutisetRouteWithChildren,
+  VeikkaaRoute: VeikkaaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

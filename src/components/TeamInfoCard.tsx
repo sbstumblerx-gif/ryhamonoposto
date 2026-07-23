@@ -31,7 +31,7 @@ export function TeamInfoCard({ team, isAdmin }: { team: Team; isAdmin: boolean }
   const current = asDriverPair(team.current_driver_slugs);
   const lineups = asLineups(team.former_lineups);
 
-  async function patch(p: Partial<Pick<Team, "flag" | "info_card"> & { current_driver_slugs: string[]; former_lineups: TeamLineup[] }>) {
+  async function patch(p: Partial<Pick<Team, "flag" | "info_card"> & { color_key: string; current_driver_slugs: string[]; former_lineups: TeamLineup[] }>) {
     await save({ data: { slug: team.slug, ...p } });
     await qc.invalidateQueries({ queryKey: ["team", team.slug] });
     await qc.invalidateQueries({ queryKey: ["teams"] });
@@ -41,7 +41,7 @@ export function TeamInfoCard({ team, isAdmin }: { team: Team; isAdmin: boolean }
   function driverSelect(value: string, onChange: (slug: string) => void) {
     return (
       <select value={value} onChange={(event) => onChange(event.target.value)} className="bg-black/70 border border-primary/30 rounded p-2 font-display flex-1 min-w-[160px]">
-        <option value="">— valitse kuljettaja —</option>
+        <option value="">Ei aktiivinen</option>
         {drivers.map((driver) => <option key={driver.slug} value={driver.slug}>{driver.name}</option>)}
       </select>
     );
@@ -56,6 +56,15 @@ export function TeamInfoCard({ team, isAdmin }: { team: Team; isAdmin: boolean }
             <input value={team.flag ?? ""} onChange={(event) => patch({ flag: event.target.value })} placeholder="🇫🇮" className="w-full bg-black/70 border border-primary/30 rounded p-2 font-display" />
           ) : <span className="font-display text-xl">{team.flag || "—"}</span>}
         </div>
+        {isAdmin && (
+          <div className="card-dark p-3">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 font-display">Tiimin väri</div>
+            <input type="color"
+              value={(team as any).color_key?.startsWith?.("#") ? (team as any).color_key : "#ef2929"}
+              onChange={(e) => patch({ color_key: e.target.value } as any)}
+              className="h-10 w-full bg-black border border-primary/30 rounded cursor-pointer" />
+          </div>
+        )}
       </div>
 
       <section>
