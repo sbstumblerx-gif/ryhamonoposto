@@ -56,6 +56,15 @@ export function TeamInfoCard({ team, isAdmin }: { team: Team; isAdmin: boolean }
             <input value={team.flag ?? ""} onChange={(event) => patch({ flag: event.target.value })} placeholder="🇫🇮" className="w-full bg-black/70 border border-primary/30 rounded p-2 font-display" />
           ) : <span className="font-display text-xl">{team.flag || "—"}</span>}
         </div>
+        {isAdmin && (
+          <div className="card-dark p-3">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 font-display">Tiimin väri</div>
+            <input type="color"
+              value={(team as any).color_key?.startsWith?.("#") ? (team as any).color_key : "#ef2929"}
+              onChange={(e) => patch({ color_key: e.target.value } as any)}
+              className="h-10 w-full bg-black border border-primary/30 rounded cursor-pointer" />
+          </div>
+        )}
       </div>
 
       <section>
