@@ -85,6 +85,9 @@ function RaceDetail() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center gap-3">
         <span className="text-3xl">{r.flag}</span>
+        {r.round_number != null && (
+          <span className="font-display text-sm px-2 py-1 rounded border border-primary/60 text-primary">R{r.round_number}</span>
+        )}
         <h1 className="font-display uppercase tracking-widest text-2xl md:text-3xl">{r.name}</h1>
       </div>
       <div className="hairline-red mt-3 mb-6" />
