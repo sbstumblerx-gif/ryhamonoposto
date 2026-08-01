@@ -151,21 +151,21 @@ function VeikkaaPage() {
               existing={myPredMap.get(s.id)?.top3 ?? null}
               signedIn={!!uid}
               admin={admin.isAdmin}
+              locked={false}
               onSubmit={async (top3) => {
                 await submitFn({ data: { session_id: s.id, top3: top3 as [string, string, string] } });
                 await qc.invalidateQueries({ queryKey: ["my-preds", uid] });
                 toast.success("Veikkaus tallennettu");
               }}
               onSignIn={signIn}
+              onToggleLock={async () => {
+                await statusFn({ data: { id: s.id, status: "closed" } });
+                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
+                toast.success("Veikkaus suljettu");
+              }}
               onFinalize={async (top3) => {
                 await finalizeFn({ data: { id: s.id, top3 } });
-                await Promise.all([
-                  qc.invalidateQueries({ queryKey: ["p-sessions"] }),
-                  qc.invalidateQueries({ queryKey: ["p-leaderboard"] }),
-                  qc.invalidateQueries({ queryKey: ["my-preds", uid] }),
-                  qc.invalidateQueries({ queryKey: ["my-total", uid] }),
-                  qc.invalidateQueries({ queryKey: ["my-rank", uid] }),
-                ]);
+                await invalidateAll();
                 toast.success("Sessio päätetty");
               }}
               onDelete={async () => {
@@ -177,6 +177,42 @@ function VeikkaaPage() {
           ))}
         </div>
       </section>
+
+      <section>
+        <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Suljetut veikkaukset</h2>
+        {closed.length === 0 && <p className="text-sm text-muted-foreground italic">Ei suljettuja veikkauksia.</p>}
+        <div className="space-y-3">
+          {closed.map(s => (
+            <UpcomingCard
+              key={s.id}
+              session={s}
+              drivers={drivers}
+              existing={myPredMap.get(s.id)?.top3 ?? null}
+              signedIn={!!uid}
+              admin={admin.isAdmin}
+              locked
+              onSubmit={async () => {}}
+              onSignIn={signIn}
+              onToggleLock={async () => {
+                await statusFn({ data: { id: s.id, status: "upcoming" } });
+                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
+                toast.success("Veikkaus avattu uudelleen");
+              }}
+              onFinalize={async (top3) => {
+                await finalizeFn({ data: { id: s.id, top3 } });
+                await invalidateAll();
+                toast.success("Sessio päätetty");
+              }}
+              onDelete={async () => {
+                if (!confirm("Poistetaanko sessio?")) return;
+                await delFn({ data: { id: s.id } });
+                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
+              }}
+            />
+          ))}
+        </div>
+      </section>
+
 
       <section>
         <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Menneet sessiot</h2>
