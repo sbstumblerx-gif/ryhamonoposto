@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRace, upsertRace } from "@/lib/content.functions";
+import { generateResultList } from "@/lib/ai-results.functions";
 import { useEntityIndex } from "@/components/useEntityIndex";
 import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
