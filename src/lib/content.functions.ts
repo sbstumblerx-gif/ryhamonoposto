@@ -216,7 +216,7 @@ export const upsertRace = createServerFn({ method: "POST" })
     }
     const slug = `${slugify(data.name)}-${Date.now().toString(36)}`;
     const { data: row, error } = await supabaseAdmin.from("races").insert({
-      slug, name: data.name, flag: data.flag,
+      slug, name: data.name, flag: data.flag, round_number: data.round_number ?? null,
       race_date: data.race_date || null,
       qualifying_content: data.qualifying_content,
       race_content: data.race_content,
