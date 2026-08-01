@@ -311,11 +311,12 @@ function PodiumList({ slugs, driverName, truth }: { slugs: string[]; driverName:
 }
 
 function UpcomingCard({
-  session, drivers, existing, signedIn, admin, onSubmit, onSignIn, onFinalize, onDelete,
+  session, drivers, existing, signedIn, admin, locked, onSubmit, onSignIn, onFinalize, onDelete, onToggleLock,
 }: {
-  session: any; drivers: any[]; existing: string[] | null; signedIn: boolean; admin: boolean;
+  session: any; drivers: any[]; existing: string[] | null; signedIn: boolean; admin: boolean; locked: boolean;
   onSubmit: (top3: string[]) => Promise<void>; onSignIn: () => void;
   onFinalize: (top3: [string, string, string]) => Promise<void>; onDelete: () => void;
+  onToggleLock: () => Promise<void>;
 }) {
   const [t, setT] = useState<string[]>(existing ?? ["", "", ""]);
   const [busy, setBusy] = useState(false);
