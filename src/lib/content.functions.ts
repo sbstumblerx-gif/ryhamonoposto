@@ -199,7 +199,7 @@ export const upsertRace = createServerFn({ method: "POST" })
         || (current.race_media_url ?? null) !== (data.race_media_url ?? null)
         || (current.race_youtube_url ?? null) !== (data.race_youtube_url ?? null);
       const { data: row, error } = await supabaseAdmin.from("races").update({
-        name: data.name, flag: data.flag,
+        name: data.name, flag: data.flag, round_number: data.round_number ?? null,
         race_date: data.race_date || null,
         qualifying_content: data.qualifying_content,
         race_content: data.race_content,
