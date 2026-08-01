@@ -68,6 +68,9 @@ export function RacesIndex() {
           <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
             <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
               <span className="text-2xl">{r.flag}</span>
+              {r.round_number != null && (
+                <span className="font-display text-[10px] px-1.5 py-0.5 rounded border border-primary/60 text-primary">R{r.round_number}</span>
+              )}
               <span className="font-display uppercase tracking-widest">{r.name}</span>
               {r.race_date && <span className="text-xs text-muted-foreground ml-auto mr-3">{new Date(r.race_date).toLocaleDateString("fi-FI")}</span>}
             </Link>
