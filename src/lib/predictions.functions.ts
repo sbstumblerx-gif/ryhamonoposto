@@ -1,17 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { scorePrediction, yearStartIso } from "./predictions-scoring";
 
 const Top3 = z.tuple([z.string(), z.string(), z.string()]);
-
-function scorePrediction(pred: string[], truth: string[]): number {
-  let s = 0;
-  for (let i = 0; i < 3; i++) {
-    if (pred[i] && truth[i] && pred[i] === truth[i]) s += 3;
-    else if (pred[i] && truth.includes(pred[i])) s += 1;
-  }
-  return s;
-}
+const Scope = z.object({ scope: z.enum(["all", "year"]).default("all") });
 
 // Public: list all sessions
 export const listSessions = createServerFn({ method: "GET" }).handler(async () => {
@@ -36,11 +29,14 @@ export const listMyPredictions = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
-// Authenticated: submit/update own prediction (only allowed on upcoming)
+// Authenticated: submit/update own prediction (only allowed while the session is open)
 export const submitPrediction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ session_id: z.string().uuid(), top3: Top3 }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: session } = await context.supabase
+      .from("prediction_sessions").select("status").eq("id", data.session_id).maybeSingle();
+    if (!session || session.status !== "upcoming") throw new Error("Veikkaus on suljettu");
     const { data: row, error } = await context.supabase
       .from("predictions")
       .upsert({ session_id: data.session_id, user_id: context.userId, top3: data.top3, points: 0 }, { onConflict: "session_id,user_id" })
@@ -50,52 +46,58 @@ export const submitPrediction = createServerFn({ method: "POST" })
     return row;
   });
 
-// Authenticated: my total points
-export const myTotalPoints = createServerFn({ method: "GET" })
+// Authenticated: my total points (all time or current year)
+export const myTotalPoints = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("predictions")
-      .select("points")
-      .eq("user_id", context.userId);
+  .inputValidator((d: unknown) => Scope.parse(d))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("predictions").select("points").eq("user_id", context.userId);
+    if (data.scope === "year") q = q.gte("created_at", yearStartIso());
+    const { data: rows, error } = await q;
     if (error) throw error;
-    return (data ?? []).reduce((s, r) => s + (r.points ?? 0), 0);
+    return (rows ?? []).reduce((s, r) => s + (r.points ?? 0), 0);
   });
 
-// Public: leaderboard top 50 all-time
-export const leaderboard = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("predictions")
-    .select("user_id, points");
-  if (error) throw error;
-  const totals = new Map<string, number>();
-  for (const r of data ?? []) totals.set(r.user_id, (totals.get(r.user_id) ?? 0) + (r.points ?? 0));
-  const rows = [...totals.entries()].map(([user_id, points]) => ({ user_id, points }));
-  rows.sort((a, b) => b.points - a.points);
-  const userIds = rows.slice(0, 50).map(r => r.user_id);
-  let profiles: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
-  if (userIds.length) {
-    const { data: p } = await supabaseAdmin.from("profiles").select("id, display_name, avatar_url").in("id", userIds);
-    for (const it of p ?? []) profiles[it.id] = { display_name: it.display_name, avatar_url: it.avatar_url };
-  }
-  return rows.map((r, i) => ({
-    rank: i + 1,
-    user_id: r.user_id,
-    points: r.points,
-    display_name: profiles[r.user_id]?.display_name ?? "Vierailija",
-    avatar_url: profiles[r.user_id]?.avatar_url ?? null,
-  }));
-});
-
-// Authenticated: my rank across everyone
-export const myRank = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.from("predictions").select("user_id, points");
+// Public: leaderboard top 50
+export const leaderboard = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => Scope.parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin.from("predictions").select("user_id, points");
+    if (data.scope === "year") q = q.gte("created_at", yearStartIso());
+    const { data: rows0, error } = await q;
     if (error) throw error;
     const totals = new Map<string, number>();
-    for (const r of data ?? []) totals.set(r.user_id, (totals.get(r.user_id) ?? 0) + (r.points ?? 0));
+    for (const r of rows0 ?? []) totals.set(r.user_id, (totals.get(r.user_id) ?? 0) + (r.points ?? 0));
+    const rows = [...totals.entries()].map(([user_id, points]) => ({ user_id, points }));
+    rows.sort((a, b) => b.points - a.points);
+    const top = rows.slice(0, 50);
+    const userIds = top.map(r => r.user_id);
+    const profiles: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+    if (userIds.length) {
+      const { data: p } = await supabaseAdmin.from("profiles").select("id, display_name, avatar_url").in("id", userIds);
+      for (const it of p ?? []) profiles[it.id] = { display_name: it.display_name, avatar_url: it.avatar_url };
+    }
+    return top.map((r, i) => ({
+      rank: i + 1,
+      user_id: r.user_id,
+      points: r.points,
+      display_name: profiles[r.user_id]?.display_name ?? "Vierailija",
+      avatar_url: profiles[r.user_id]?.avatar_url ?? null,
+    }));
+  });
+
+// Authenticated: my rank across everyone
+export const myRank = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => Scope.parse(d))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("predictions").select("user_id, points, created_at");
+    if (data.scope === "year") q = q.gte("created_at", yearStartIso());
+    const { data: rows, error } = await q;
+    if (error) throw error;
+    const totals = new Map<string, number>();
+    for (const r of rows ?? []) totals.set(r.user_id, (totals.get(r.user_id) ?? 0) + (r.points ?? 0));
     const arr = [...totals.entries()].map(([user_id, points]) => ({ user_id, points })).sort((a, b) => b.points - a.points);
     const idx = arr.findIndex(r => r.user_id === context.userId);
     if (idx < 0) return { rank: null, points: 0 };
@@ -130,6 +132,18 @@ export const adminDeleteSession = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Admin: close betting without publishing results yet
+export const adminSetSessionStatus = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), status: z.enum(["upcoming", "closed"]) }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./admin-session.server");
+    await requireAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("prediction_sessions").update({ status: data.status }).eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 // Admin: finalize session with top3, computes points for all predictions
 export const adminFinalizeSession = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), top3: Top3 }).parse(d))
@@ -137,13 +151,11 @@ export const adminFinalizeSession = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // mark session as past
     const { error: upErr } = await supabaseAdmin
       .from("prediction_sessions")
       .update({ status: "past", result_top3: data.top3 })
       .eq("id", data.id);
     if (upErr) throw upErr;
-    // recompute all predictions
     const { data: preds, error: pErr } = await supabaseAdmin
       .from("predictions")
       .select("id, top3")
