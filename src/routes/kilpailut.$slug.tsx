@@ -46,12 +46,15 @@ function RaceDetail() {
   const { slug } = Route.useParams();
   const get = useServerFn(getRace);
   const save = useServerFn(upsertRace);
+  const genResults = useServerFn(generateResultList);
   const qc = useQueryClient();
   const admin = useAdmin();
   const entities = useEntityIndex();
 
   const q = useQuery({ queryKey: ["race", slug], queryFn: () => get({ data: { slug } }) });
-  const [tab, setTab] = useState<"qualifying" | "race">("qualifying");
+  // Users most often want the race result, so the race tab is the default.
+  const [tab, setTab] = useState<"qualifying" | "race">("race");
+  const [aiBusy, setAiBusy] = useState(false);
 
   if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
   const r = q.data;
