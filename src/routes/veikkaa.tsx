@@ -118,15 +118,24 @@ function VeikkaaPage() {
           <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Veikkaa</h1>
           <div className="hairline-red mt-3" />
           <p className="text-sm text-muted-foreground mt-2 max-w-xl">
-            Veikkaa jokaisen session kolme kärjessä. Oikeasta paikasta 3 p, väärästä paikasta mutta kolmen kärjessä 1 p.
+            Veikkaa jokaisen session kolme kärjessä. Oikea kuljettaja oikealla paikalla 30 p, kolmen kärjessä väärällä paikalla 10 p. Maksimi 90 p.
           </p>
         </div>
-        <div className="card-dark p-4 text-right min-w-[200px]">
+        <div className="card-dark p-4 text-right min-w-[220px]">
+          <div className="flex justify-end gap-1 mb-2">
+            {(["year", "all"] as const).map(sc => (
+              <button key={sc} onClick={() => setScope(sc)}
+                className={`text-[10px] font-display uppercase tracking-widest px-2 py-1 rounded border ${scope === sc ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 text-muted-foreground"}`}>
+                {sc === "year" ? `Kausi ${new Date().getUTCFullYear()}` : "Kaikki ajat"}
+              </button>
+            ))}
+          </div>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Omat pisteet</div>
           <div className="font-display text-3xl text-primary">{uid ? (totalQ.data ?? 0) : "—"}</div>
           {uid && myRankVal && <div className="text-xs text-muted-foreground">Sija #{myRankVal}</div>}
           {!uid && <button onClick={signIn} className="mt-2 text-xs bg-primary text-primary-foreground rounded px-3 py-1 font-display uppercase tracking-widest">Kirjaudu</button>}
         </div>
+
       </header>
 
       {admin.isAdmin && (
