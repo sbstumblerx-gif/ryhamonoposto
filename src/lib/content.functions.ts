@@ -63,7 +63,7 @@ export const listRaces = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("races")
-    .select("id, slug, name, flag, race_date, created_at")
+    .select("id, slug, name, flag, race_date, round_number, created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
