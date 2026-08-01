@@ -14,6 +14,7 @@ import {
   adminDeleteSession,
   adminFinalizeSession,
   adminReopenSession,
+  adminSetSessionStatus,
 } from "@/lib/predictions.functions";
 import { listDrivers } from "@/lib/content.functions";
 import { useAdmin } from "@/components/admin-store";
