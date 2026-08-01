@@ -55,6 +55,8 @@ export function RacesIndex() {
             className="flex-1 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
           <input placeholder="🇨🇳" value={flag} onChange={e => setFlag(e.target.value)}
             className="w-24 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <input type="number" min={1} max={50} placeholder="R#" value={round} onChange={e => setRound(e.target.value)}
+            className="w-20 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
           <button onClick={add} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">
             Lisää
           </button>
