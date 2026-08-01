@@ -14,6 +14,7 @@ import {
   adminDeleteSession,
   adminFinalizeSession,
   adminReopenSession,
+  adminSetSessionStatus,
 } from "@/lib/predictions.functions";
 import { listDrivers } from "@/lib/content.functions";
 import { useAdmin } from "@/components/admin-store";
@@ -57,13 +58,16 @@ function VeikkaaPage() {
   const delFn = useServerFn(adminDeleteSession);
   const finalizeFn = useServerFn(adminFinalizeSession);
   const reopenFn = useServerFn(adminReopenSession);
+  const statusFn = useServerFn(adminSetSessionStatus);
+
+  const [scope, setScope] = useState<"all" | "year">("year");
 
   const sessionsQ = useQuery({ queryKey: ["p-sessions"], queryFn: () => sessionsFn() });
   const driversQ = useQuery({ queryKey: ["drivers"], queryFn: () => driversFn() });
   const myPredsQ = useQuery({ queryKey: ["my-preds", uid], queryFn: () => myPredsFn(), enabled: !!uid });
-  const totalQ = useQuery({ queryKey: ["my-total", uid], queryFn: () => totalFn(), enabled: !!uid });
-  const rankQ = useQuery({ queryKey: ["my-rank", uid], queryFn: () => rankFn(), enabled: !!uid });
-  const lbQ = useQuery({ queryKey: ["p-leaderboard"], queryFn: () => lbFn() });
+  const totalQ = useQuery({ queryKey: ["my-total", uid, scope], queryFn: () => totalFn({ data: { scope } }), enabled: !!uid });
+  const rankQ = useQuery({ queryKey: ["my-rank", uid, scope], queryFn: () => rankFn({ data: { scope } }), enabled: !!uid });
+  const lbQ = useQuery({ queryKey: ["p-leaderboard", scope], queryFn: () => lbFn({ data: { scope } }) });
 
   const [showAll, setShowAll] = useState(false);
   const [newName, setNewName] = useState("");
@@ -89,11 +93,23 @@ function VeikkaaPage() {
 
   const sessions = sessionsQ.data ?? [];
   const upcoming = sessions.filter(s => s.status === "upcoming");
+  const closed = sessions.filter(s => s.status === "closed");
   const past = sessions.filter(s => s.status === "past");
   const lb = lbQ.data ?? [];
   const shown = showAll ? lb : lb.slice(0, 10);
   const myRankVal = rankQ.data?.rank ?? null;
   const inTop10 = myRankVal != null && myRankVal <= 10;
+
+  async function invalidateAll() {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["p-sessions"] }),
+      qc.invalidateQueries({ queryKey: ["p-leaderboard"] }),
+      qc.invalidateQueries({ queryKey: ["my-preds", uid] }),
+      qc.invalidateQueries({ queryKey: ["my-total", uid] }),
+      qc.invalidateQueries({ queryKey: ["my-rank", uid] }),
+    ]);
+  }
+
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
@@ -102,15 +118,24 @@ function VeikkaaPage() {
           <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Veikkaa</h1>
           <div className="hairline-red mt-3" />
           <p className="text-sm text-muted-foreground mt-2 max-w-xl">
-            Veikkaa jokaisen session kolme kärjessä. Oikeasta paikasta 3 p, väärästä paikasta mutta kolmen kärjessä 1 p.
+            Veikkaa jokaisen session kolme kärjessä. Oikea kuljettaja oikealla paikalla 30 p, kolmen kärjessä väärällä paikalla 10 p. Maksimi 90 p.
           </p>
         </div>
-        <div className="card-dark p-4 text-right min-w-[200px]">
+        <div className="card-dark p-4 text-right min-w-[220px]">
+          <div className="flex justify-end gap-1 mb-2">
+            {(["year", "all"] as const).map(sc => (
+              <button key={sc} onClick={() => setScope(sc)}
+                className={`text-[10px] font-display uppercase tracking-widest px-2 py-1 rounded border ${scope === sc ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 text-muted-foreground"}`}>
+                {sc === "year" ? `Kausi ${new Date().getUTCFullYear()}` : "Kaikki ajat"}
+              </button>
+            ))}
+          </div>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Omat pisteet</div>
           <div className="font-display text-3xl text-primary">{uid ? (totalQ.data ?? 0) : "—"}</div>
           {uid && myRankVal && <div className="text-xs text-muted-foreground">Sija #{myRankVal}</div>}
           {!uid && <button onClick={signIn} className="mt-2 text-xs bg-primary text-primary-foreground rounded px-3 py-1 font-display uppercase tracking-widest">Kirjaudu</button>}
         </div>
+
       </header>
 
       {admin.isAdmin && (
@@ -135,21 +160,21 @@ function VeikkaaPage() {
               existing={myPredMap.get(s.id)?.top3 ?? null}
               signedIn={!!uid}
               admin={admin.isAdmin}
+              locked={false}
               onSubmit={async (top3) => {
                 await submitFn({ data: { session_id: s.id, top3: top3 as [string, string, string] } });
                 await qc.invalidateQueries({ queryKey: ["my-preds", uid] });
                 toast.success("Veikkaus tallennettu");
               }}
               onSignIn={signIn}
+              onToggleLock={async () => {
+                await statusFn({ data: { id: s.id, status: "closed" } });
+                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
+                toast.success("Veikkaus suljettu");
+              }}
               onFinalize={async (top3) => {
                 await finalizeFn({ data: { id: s.id, top3 } });
-                await Promise.all([
-                  qc.invalidateQueries({ queryKey: ["p-sessions"] }),
-                  qc.invalidateQueries({ queryKey: ["p-leaderboard"] }),
-                  qc.invalidateQueries({ queryKey: ["my-preds", uid] }),
-                  qc.invalidateQueries({ queryKey: ["my-total", uid] }),
-                  qc.invalidateQueries({ queryKey: ["my-rank", uid] }),
-                ]);
+                await invalidateAll();
                 toast.success("Sessio päätetty");
               }}
               onDelete={async () => {
@@ -161,6 +186,42 @@ function VeikkaaPage() {
           ))}
         </div>
       </section>
+
+      <section>
+        <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Suljetut veikkaukset</h2>
+        {closed.length === 0 && <p className="text-sm text-muted-foreground italic">Ei suljettuja veikkauksia.</p>}
+        <div className="space-y-3">
+          {closed.map(s => (
+            <UpcomingCard
+              key={s.id}
+              session={s}
+              drivers={drivers}
+              existing={myPredMap.get(s.id)?.top3 ?? null}
+              signedIn={!!uid}
+              admin={admin.isAdmin}
+              locked
+              onSubmit={async () => {}}
+              onSignIn={signIn}
+              onToggleLock={async () => {
+                await statusFn({ data: { id: s.id, status: "upcoming" } });
+                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
+                toast.success("Veikkaus avattu uudelleen");
+              }}
+              onFinalize={async (top3) => {
+                await finalizeFn({ data: { id: s.id, top3 } });
+                await invalidateAll();
+                toast.success("Sessio päätetty");
+              }}
+              onDelete={async () => {
+                if (!confirm("Poistetaanko sessio?")) return;
+                await delFn({ data: { id: s.id } });
+                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
+              }}
+            />
+          ))}
+        </div>
+      </section>
+
 
       <section>
         <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Menneet sessiot</h2>
@@ -259,11 +320,12 @@ function PodiumList({ slugs, driverName, truth }: { slugs: string[]; driverName:
 }
 
 function UpcomingCard({
-  session, drivers, existing, signedIn, admin, onSubmit, onSignIn, onFinalize, onDelete,
+  session, drivers, existing, signedIn, admin, locked, onSubmit, onSignIn, onFinalize, onDelete, onToggleLock,
 }: {
-  session: any; drivers: any[]; existing: string[] | null; signedIn: boolean; admin: boolean;
+  session: any; drivers: any[]; existing: string[] | null; signedIn: boolean; admin: boolean; locked: boolean;
   onSubmit: (top3: string[]) => Promise<void>; onSignIn: () => void;
   onFinalize: (top3: [string, string, string]) => Promise<void>; onDelete: () => void;
+  onToggleLock: () => Promise<void>;
 }) {
   const [t, setT] = useState<string[]>(existing ?? ["", "", ""]);
   const [busy, setBusy] = useState(false);
@@ -288,16 +350,26 @@ function UpcomingCard({
   return (
     <div className="card-dark p-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <h3 className="font-display uppercase tracking-widest text-primary">{session.name}</h3>
-        {admin && <button onClick={onDelete} className="text-xs border border-primary/50 rounded px-2 py-1">Poista</button>}
+        <h3 className="font-display uppercase tracking-widest text-primary">
+          {session.name}
+          {locked && <span className="ml-2 text-[10px] border border-primary/50 rounded px-2 py-0.5 text-muted-foreground">Veikkaus suljettu</span>}
+        </h3>
+        {admin && (
+          <div className="flex gap-2">
+            <button onClick={() => void onToggleLock()} className="text-xs border border-primary/50 rounded px-2 py-1">
+              {locked ? "Avaa veikkaus" : "Sulje veikkaus"}
+            </button>
+            <button onClick={onDelete} className="text-xs border border-primary/50 rounded px-2 py-1">Poista</button>
+          </div>
+        )}
       </div>
       <div className="mt-3 grid md:grid-cols-3 gap-2">
         {[0, 1, 2].map(i => (
           <label key={i} className="text-sm">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Sija {i + 1}</span>
             <select value={t[i]} onChange={e => { const next = [...t]; next[i] = e.target.value; setT(next); }}
-              disabled={!signedIn}
-              className="w-full mt-1 bg-black/70 border border-primary/30 rounded p-2 font-display">
+              disabled={!signedIn || locked}
+              className="w-full mt-1 bg-black/70 border border-primary/30 rounded p-2 font-display disabled:opacity-60">
               <option value="">—</option>
               {drivers.map(d => <option key={d.slug} value={d.slug}>{d.name}</option>)}
             </select>
@@ -305,15 +377,18 @@ function UpcomingCard({
         ))}
       </div>
       <div className="mt-3 flex gap-2 flex-wrap items-center">
-        {signedIn ? (
+        {locked ? (
+          <span className="text-xs text-muted-foreground">Veikkaus on suljettu — muutokset eivät ole enää mahdollisia.</span>
+        ) : signedIn ? (
           <button disabled={busy} onClick={submit} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2 disabled:opacity-50">
             {existing ? "Päivitä veikkaus" : "Veikkaa tulosta"}
           </button>
         ) : (
           <button onClick={onSignIn} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">Kirjaudu veikataksesi</button>
         )}
-        {existing && <span className="text-xs text-muted-foreground">Veikkauksesi tallennettu</span>}
+        {existing && !locked && <span className="text-xs text-muted-foreground">Veikkauksesi tallennettu</span>}
       </div>
+
 
       {admin && (
         <div className="mt-4 pt-4 border-t border-primary/20">

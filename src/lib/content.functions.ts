@@ -63,7 +63,7 @@ export const listRaces = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("races")
-    .select("id, slug, name, flag, race_date, created_at")
+    .select("id, slug, name, flag, race_date, round_number, created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -164,6 +164,7 @@ function slugify(s: string): string {
 const RaceInput = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1).max(200),
+  round_number: z.number().int().min(1).max(50).nullable().optional(),
   flag: z.string().max(20).default(""),
   race_date: z.string().nullable().optional(),
   qualifying_content: z.string().default(""),
@@ -198,7 +199,7 @@ export const upsertRace = createServerFn({ method: "POST" })
         || (current.race_media_url ?? null) !== (data.race_media_url ?? null)
         || (current.race_youtube_url ?? null) !== (data.race_youtube_url ?? null);
       const { data: row, error } = await supabaseAdmin.from("races").update({
-        name: data.name, flag: data.flag,
+        name: data.name, flag: data.flag, round_number: data.round_number ?? null,
         race_date: data.race_date || null,
         qualifying_content: data.qualifying_content,
         race_content: data.race_content,
@@ -215,7 +216,7 @@ export const upsertRace = createServerFn({ method: "POST" })
     }
     const slug = `${slugify(data.name)}-${Date.now().toString(36)}`;
     const { data: row, error } = await supabaseAdmin.from("races").insert({
-      slug, name: data.name, flag: data.flag,
+      slug, name: data.name, flag: data.flag, round_number: data.round_number ?? null,
       race_date: data.race_date || null,
       qualifying_content: data.qualifying_content,
       race_content: data.race_content,

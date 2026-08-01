@@ -25,12 +25,14 @@ export function RacesIndex() {
 
   const [name, setName] = useState("");
   const [flag, setFlag] = useState("");
+  const [round, setRound] = useState("");
 
   async function add() {
     if (!name.trim()) return;
     try {
-      await create({ data: { name, flag, qualifying_content: "", race_content: "" } });
-      setName(""); setFlag("");
+      const r = round.trim() ? Math.min(50, Math.max(1, Number(round))) : null;
+      await create({ data: { name, flag, round_number: r, qualifying_content: "", race_content: "" } });
+      setName(""); setFlag(""); setRound("");
       await qc.invalidateQueries({ queryKey: ["races"] });
       toast.success("Kilpailu lisätty");
     } catch (e: any) { toast.error(e.message); }
@@ -53,6 +55,8 @@ export function RacesIndex() {
             className="flex-1 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
           <input placeholder="🇨🇳" value={flag} onChange={e => setFlag(e.target.value)}
             className="w-24 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <input type="number" min={1} max={50} placeholder="R#" value={round} onChange={e => setRound(e.target.value)}
+            className="w-20 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
           <button onClick={add} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">
             Lisää
           </button>
@@ -64,6 +68,9 @@ export function RacesIndex() {
           <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
             <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
               <span className="text-2xl">{r.flag}</span>
+              {r.round_number != null && (
+                <span className="font-display text-[10px] px-1.5 py-0.5 rounded border border-primary/60 text-primary">R{r.round_number}</span>
+              )}
               <span className="font-display uppercase tracking-widest">{r.name}</span>
               {r.race_date && <span className="text-xs text-muted-foreground ml-auto mr-3">{new Date(r.race_date).toLocaleDateString("fi-FI")}</span>}
             </Link>

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRace, upsertRace } from "@/lib/content.functions";
+import { generateResultList } from "@/lib/ai-results.functions";
 import { useEntityIndex } from "@/components/useEntityIndex";
 import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
@@ -46,20 +47,24 @@ function RaceDetail() {
   const { slug } = Route.useParams();
   const get = useServerFn(getRace);
   const save = useServerFn(upsertRace);
+  const genResults = useServerFn(generateResultList);
   const qc = useQueryClient();
   const admin = useAdmin();
   const entities = useEntityIndex();
 
   const q = useQuery({ queryKey: ["race", slug], queryFn: () => get({ data: { slug } }) });
-  const [tab, setTab] = useState<"qualifying" | "race">("qualifying");
+  // Users most often want the race result, so the race tab is the default.
+  const [tab, setTab] = useState<"qualifying" | "race">("race");
+  const [aiBusy, setAiBusy] = useState(false);
 
   if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
   const r = q.data;
   if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
 
-  async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null; qualifying_youtube_url: string | null; race_youtube_url: string | null }>) {
+  async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null; qualifying_youtube_url: string | null; race_youtube_url: string | null; round_number: number | null }>) {
     if (!r) return;
     await save({ data: { id: r.id, name: r.name, flag: r.flag, race_date: r.race_date,
+      round_number: partial.round_number !== undefined ? partial.round_number : (r.round_number ?? null),
       qualifying_content: partial.qualifying_content ?? r.qualifying_content ?? "",
       race_content: partial.race_content ?? r.race_content ?? "",
       qualifying_media_url: partial.qualifying_media_url ?? r.qualifying_media_url ?? null,
@@ -81,6 +86,9 @@ function RaceDetail() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center gap-3">
         <span className="text-3xl">{r.flag}</span>
+        {r.round_number != null && (
+          <span className="font-display text-sm px-2 py-1 rounded border border-primary/60 text-primary">R{r.round_number}</span>
+        )}
         <h1 className="font-display uppercase tracking-widest text-2xl md:text-3xl">{r.name}</h1>
       </div>
       <div className="hairline-red mt-3 mb-6" />
@@ -115,11 +123,47 @@ function RaceDetail() {
             }} placeholder="https://youtu.be/…" className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm" />
           </div>
           <YouTubePreview url={activeYoutube} />
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Kilpailun järjestysnumero (R1–R50)</span>
+            <input
+              key={`round-${r.round_number ?? ""}`}
+              type="number"
+              min={1}
+              max={50}
+              defaultValue={r.round_number ?? ""}
+              onBlur={(e) => {
+                const raw = e.target.value.trim();
+                const v = raw ? Math.min(50, Math.max(1, Number(raw))) : null;
+                if (v !== (r.round_number ?? null)) void patch({ round_number: v });
+              }}
+              className="w-24 bg-black/70 border border-primary/30 rounded p-2 text-sm"
+            />
+          </div>
           <MediaUpload
             label={tab === "qualifying" ? "Aika-ajokuva" : "Kisakuva"}
             currentUrl={activeMedia}
-            onUploaded={(url) => patch(tab === "qualifying" ? { qualifying_media_url: url } : { race_media_url: url })}
+            onUploaded={async (url) => {
+              await patch(tab === "qualifying" ? { qualifying_media_url: url } : { race_media_url: url });
+              setAiBusy(true);
+              try {
+                const yearMatch = r.name.match(/(20\d\d)/);
+                const res = await genResults({ data: {
+                  image_url: url,
+                  session_label: `${r.name} ${tab === "qualifying" ? "aika-ajot" : "kisa"}`,
+                  year: yearMatch ? Number(yearMatch[1]) : null,
+                }});
+                if (res.text.trim()) {
+                  await patch(tab === "qualifying" ? { qualifying_content: res.text } : { race_content: res.text });
+                  toast.success("Tekoäly loi tuloslistan — voit muokata sitä");
+                }
+              } catch (e: any) {
+                toast.error(`Tuloslistan luonti epäonnistui: ${e?.message ?? ""}`);
+              } finally {
+                setAiBusy(false);
+              }
+            }}
           />
+          {aiBusy && <p className="text-xs text-muted-foreground">Tekoäly lukee tuloskuvaa…</p>}
           <EditableText
             value={activeContent}
             multiline
