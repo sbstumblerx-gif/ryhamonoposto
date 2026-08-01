@@ -58,13 +58,16 @@ function VeikkaaPage() {
   const delFn = useServerFn(adminDeleteSession);
   const finalizeFn = useServerFn(adminFinalizeSession);
   const reopenFn = useServerFn(adminReopenSession);
+  const statusFn = useServerFn(adminSetSessionStatus);
+
+  const [scope, setScope] = useState<"all" | "year">("year");
 
   const sessionsQ = useQuery({ queryKey: ["p-sessions"], queryFn: () => sessionsFn() });
   const driversQ = useQuery({ queryKey: ["drivers"], queryFn: () => driversFn() });
   const myPredsQ = useQuery({ queryKey: ["my-preds", uid], queryFn: () => myPredsFn(), enabled: !!uid });
-  const totalQ = useQuery({ queryKey: ["my-total", uid], queryFn: () => totalFn(), enabled: !!uid });
-  const rankQ = useQuery({ queryKey: ["my-rank", uid], queryFn: () => rankFn(), enabled: !!uid });
-  const lbQ = useQuery({ queryKey: ["p-leaderboard"], queryFn: () => lbFn() });
+  const totalQ = useQuery({ queryKey: ["my-total", uid, scope], queryFn: () => totalFn({ data: { scope } }), enabled: !!uid });
+  const rankQ = useQuery({ queryKey: ["my-rank", uid, scope], queryFn: () => rankFn({ data: { scope } }), enabled: !!uid });
+  const lbQ = useQuery({ queryKey: ["p-leaderboard", scope], queryFn: () => lbFn({ data: { scope } }) });
 
   const [showAll, setShowAll] = useState(false);
   const [newName, setNewName] = useState("");
@@ -90,11 +93,23 @@ function VeikkaaPage() {
 
   const sessions = sessionsQ.data ?? [];
   const upcoming = sessions.filter(s => s.status === "upcoming");
+  const closed = sessions.filter(s => s.status === "closed");
   const past = sessions.filter(s => s.status === "past");
   const lb = lbQ.data ?? [];
   const shown = showAll ? lb : lb.slice(0, 10);
   const myRankVal = rankQ.data?.rank ?? null;
   const inTop10 = myRankVal != null && myRankVal <= 10;
+
+  async function invalidateAll() {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["p-sessions"] }),
+      qc.invalidateQueries({ queryKey: ["p-leaderboard"] }),
+      qc.invalidateQueries({ queryKey: ["my-preds", uid] }),
+      qc.invalidateQueries({ queryKey: ["my-total", uid] }),
+      qc.invalidateQueries({ queryKey: ["my-rank", uid] }),
+    ]);
+  }
+
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
