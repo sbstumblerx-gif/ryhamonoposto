@@ -123,11 +123,47 @@ function RaceDetail() {
             }} placeholder="https://youtu.be/…" className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm" />
           </div>
           <YouTubePreview url={activeYoutube} />
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Kilpailun järjestysnumero (R1–R50)</span>
+            <input
+              key={`round-${r.round_number ?? ""}`}
+              type="number"
+              min={1}
+              max={50}
+              defaultValue={r.round_number ?? ""}
+              onBlur={(e) => {
+                const raw = e.target.value.trim();
+                const v = raw ? Math.min(50, Math.max(1, Number(raw))) : null;
+                if (v !== (r.round_number ?? null)) void patch({ round_number: v });
+              }}
+              className="w-24 bg-black/70 border border-primary/30 rounded p-2 text-sm"
+            />
+          </div>
           <MediaUpload
             label={tab === "qualifying" ? "Aika-ajokuva" : "Kisakuva"}
             currentUrl={activeMedia}
-            onUploaded={(url) => patch(tab === "qualifying" ? { qualifying_media_url: url } : { race_media_url: url })}
+            onUploaded={async (url) => {
+              await patch(tab === "qualifying" ? { qualifying_media_url: url } : { race_media_url: url });
+              setAiBusy(true);
+              try {
+                const yearMatch = r.name.match(/(20\d\d)/);
+                const res = await genResults({ data: {
+                  image_url: url,
+                  session_label: `${r.name} ${tab === "qualifying" ? "aika-ajot" : "kisa"}`,
+                  year: yearMatch ? Number(yearMatch[1]) : null,
+                }});
+                if (res.text.trim()) {
+                  await patch(tab === "qualifying" ? { qualifying_content: res.text } : { race_content: res.text });
+                  toast.success("Tekoäly loi tuloslistan — voit muokata sitä");
+                }
+              } catch (e: any) {
+                toast.error(`Tuloslistan luonti epäonnistui: ${e?.message ?? ""}`);
+              } finally {
+                setAiBusy(false);
+              }
+            }}
           />
+          {aiBusy && <p className="text-xs text-muted-foreground">Tekoäly lukee tuloskuvaa…</p>}
           <EditableText
             value={activeContent}
             multiline
