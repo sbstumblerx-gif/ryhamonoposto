@@ -14,6 +14,170 @@ export type Database = {
   }
   public: {
     Tables: {
+      club_join_requests: {
+        Row: {
+          club_id: string
+          created_at: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_join_requests_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_members: {
+        Row: {
+          club_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "club_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_messages: {
+        Row: {
+          body: string
+          club_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          club_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          club_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clubs: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          id: string
+          name: string
+          owner_id: string
+          require_approval: boolean
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          owner_id: string
+          require_approval?: boolean
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          require_approval?: boolean
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           body: string
@@ -169,6 +333,47 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string
+          club_id: string | null
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prediction_sessions: {
         Row: {
           created_at: string
@@ -270,6 +475,7 @@ export type Database = {
           race_media_url: string | null
           race_updated_at: string | null
           race_youtube_url: string | null
+          round_number: number | null
           slug: string
           updated_at: string
           youtube_url: string | null
@@ -288,6 +494,7 @@ export type Database = {
           race_media_url?: string | null
           race_updated_at?: string | null
           race_youtube_url?: string | null
+          round_number?: number | null
           slug: string
           updated_at?: string
           youtube_url?: string | null
@@ -306,6 +513,7 @@ export type Database = {
           race_media_url?: string | null
           race_updated_at?: string | null
           race_youtube_url?: string | null
+          round_number?: number | null
           slug?: string
           updated_at?: string
           youtube_url?: string | null
