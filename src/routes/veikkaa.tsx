@@ -341,16 +341,26 @@ function UpcomingCard({
   return (
     <div className="card-dark p-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <h3 className="font-display uppercase tracking-widest text-primary">{session.name}</h3>
-        {admin && <button onClick={onDelete} className="text-xs border border-primary/50 rounded px-2 py-1">Poista</button>}
+        <h3 className="font-display uppercase tracking-widest text-primary">
+          {session.name}
+          {locked && <span className="ml-2 text-[10px] border border-primary/50 rounded px-2 py-0.5 text-muted-foreground">Veikkaus suljettu</span>}
+        </h3>
+        {admin && (
+          <div className="flex gap-2">
+            <button onClick={() => void onToggleLock()} className="text-xs border border-primary/50 rounded px-2 py-1">
+              {locked ? "Avaa veikkaus" : "Sulje veikkaus"}
+            </button>
+            <button onClick={onDelete} className="text-xs border border-primary/50 rounded px-2 py-1">Poista</button>
+          </div>
+        )}
       </div>
       <div className="mt-3 grid md:grid-cols-3 gap-2">
         {[0, 1, 2].map(i => (
           <label key={i} className="text-sm">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Sija {i + 1}</span>
             <select value={t[i]} onChange={e => { const next = [...t]; next[i] = e.target.value; setT(next); }}
-              disabled={!signedIn}
-              className="w-full mt-1 bg-black/70 border border-primary/30 rounded p-2 font-display">
+              disabled={!signedIn || locked}
+              className="w-full mt-1 bg-black/70 border border-primary/30 rounded p-2 font-display disabled:opacity-60">
               <option value="">—</option>
               {drivers.map(d => <option key={d.slug} value={d.slug}>{d.name}</option>)}
             </select>
@@ -358,15 +368,18 @@ function UpcomingCard({
         ))}
       </div>
       <div className="mt-3 flex gap-2 flex-wrap items-center">
-        {signedIn ? (
+        {locked ? (
+          <span className="text-xs text-muted-foreground">Veikkaus on suljettu — muutokset eivät ole enää mahdollisia.</span>
+        ) : signedIn ? (
           <button disabled={busy} onClick={submit} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2 disabled:opacity-50">
             {existing ? "Päivitä veikkaus" : "Veikkaa tulosta"}
           </button>
         ) : (
           <button onClick={onSignIn} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">Kirjaudu veikataksesi</button>
         )}
-        {existing && <span className="text-xs text-muted-foreground">Veikkauksesi tallennettu</span>}
+        {existing && !locked && <span className="text-xs text-muted-foreground">Veikkauksesi tallennettu</span>}
       </div>
+
 
       {admin && (
         <div className="mt-4 pt-4 border-t border-primary/20">
