@@ -119,12 +119,18 @@ export function SiteHeader() {
                 <Link
                   key={n.to}
                   to={n.to}
-                  className="font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-transparent hover:border-primary/60 hover:bg-primary/10"
-                  activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-primary bg-primary/20 text-primary" }}
+                  className="font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-transparent hover:border-primary/60 hover:bg-primary/10 flex items-center justify-between gap-2"
+                  activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-primary bg-primary/20 text-primary flex items-center justify-between gap-2" }}
                 >
-                  {n.label}
+                  <span>{n.label}</span>
+                  {n.to === "/ilmoitukset" && unread > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  )}
                 </Link>
               ))}
+
             </nav>
           </aside>
         </div>
