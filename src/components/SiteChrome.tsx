@@ -64,12 +64,18 @@ export function SiteHeader() {
             <button
               aria-label="Avaa valikko"
               onClick={() => setMenuOpen(true)}
-              className="p-2 border border-primary/40 rounded hover:bg-primary/20"
+              className="relative p-2 border border-primary/40 rounded hover:bg-primary/20"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
               </svg>
+              {unread > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-display flex items-center justify-center">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
             </button>
+
             <Link to="/" className="flex items-center gap-2">
               <img src={logoAsset.url} alt="RyhäMonoposto" className="h-7 w-auto" />
             </Link>
