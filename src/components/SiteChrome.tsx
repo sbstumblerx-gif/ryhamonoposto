@@ -1,8 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import logoAsset from "@/assets/logo.png.asset.json";
 import { useAdmin, useAdminLogout } from "./admin-store";
 import { AiChatPanel } from "./AiChatPanel";
+import { unreadNotificationCount } from "@/lib/clubs.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { to: "/", label: "Etusivu" },
@@ -12,8 +16,27 @@ const NAV = [
   { to: "/tilastot", label: "Tilastot" },
   { to: "/uutiset", label: "Uutiset" },
   { to: "/veikkaa", label: "Veikkaa" },
+  { to: "/klubit", label: "Klubit" },
+  { to: "/ilmoitukset", label: "Ilmoitukset" },
   { to: "/tekoalytila", label: "Tekoälytila" },
 ] as const;
+
+function useUnreadCount() {
+  const [uid, setUid] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUid(data.user?.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUid(s?.user?.id ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  const countFn = useServerFn(unreadNotificationCount);
+  const q = useQuery({
+    queryKey: ["notif-count", uid],
+    queryFn: () => countFn(),
+    enabled: !!uid,
+    refetchInterval: 30000,
+  });
+  return Number((q.data as any) ?? 0);
+}
 
 export function SiteHeader() {
   const admin = useAdmin();
@@ -21,7 +44,9 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const unread = useUnreadCount();
   const title = "";
+
 
   useEffect(() => {
     setMenuOpen(false);
@@ -39,12 +64,18 @@ export function SiteHeader() {
             <button
               aria-label="Avaa valikko"
               onClick={() => setMenuOpen(true)}
-              className="p-2 border border-primary/40 rounded hover:bg-primary/20"
+              className="relative p-2 border border-primary/40 rounded hover:bg-primary/20"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
               </svg>
+              {unread > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-display flex items-center justify-center">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
             </button>
+
             <Link to="/" className="flex items-center gap-2">
               <img src={logoAsset.url} alt="RyhäMonoposto" className="h-7 w-auto" />
             </Link>
@@ -88,12 +119,18 @@ export function SiteHeader() {
                 <Link
                   key={n.to}
                   to={n.to}
-                  className="font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-transparent hover:border-primary/60 hover:bg-primary/10"
-                  activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-primary bg-primary/20 text-primary" }}
+                  className="font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-transparent hover:border-primary/60 hover:bg-primary/10 flex items-center justify-between gap-2"
+                  activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-primary bg-primary/20 text-primary flex items-center justify-between gap-2" }}
                 >
-                  {n.label}
+                  <span>{n.label}</span>
+                  {n.to === "/ilmoitukset" && unread > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  )}
                 </Link>
               ))}
+
             </nav>
           </aside>
         </div>

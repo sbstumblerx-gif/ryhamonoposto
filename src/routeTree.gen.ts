@@ -16,18 +16,21 @@ import { Route as TiimitRouteImport } from './routes/tiimit'
 import { Route as TekoalytilaRouteImport } from './routes/tekoalytila'
 import { Route as KuljettajatRouteImport } from './routes/kuljettajat'
 import { Route as KilpailutRouteImport } from './routes/kilpailut'
+import { Route as IlmoituksetRouteImport } from './routes/ilmoitukset'
 import { Route as AsetuksetRouteImport } from './routes/asetukset'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UutisetIndexRouteImport } from './routes/uutiset.index'
 import { Route as TilastotIndexRouteImport } from './routes/tilastot.index'
 import { Route as TiimitIndexRouteImport } from './routes/tiimit.index'
 import { Route as KuljettajatIndexRouteImport } from './routes/kuljettajat.index'
+import { Route as KlubitIndexRouteImport } from './routes/klubit.index'
 import { Route as KilpailutIndexRouteImport } from './routes/kilpailut.index'
 import { Route as UutisetSlugRouteImport } from './routes/uutiset.$slug'
 import { Route as TilastotKokoHistoriaRouteImport } from './routes/tilastot.koko-historia'
 import { Route as TilastotSeasonRouteImport } from './routes/tilastot.$season'
 import { Route as TiimitSlugRouteImport } from './routes/tiimit.$slug'
 import { Route as KuljettajatSlugRouteImport } from './routes/kuljettajat.$slug'
+import { Route as KlubitIdRouteImport } from './routes/klubit.$id'
 import { Route as KilpailutSlugRouteImport } from './routes/kilpailut.$slug'
 
 const VeikkaaRoute = VeikkaaRouteImport.update({
@@ -65,6 +68,11 @@ const KilpailutRoute = KilpailutRouteImport.update({
   path: '/kilpailut',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IlmoituksetRoute = IlmoituksetRouteImport.update({
+  id: '/ilmoitukset',
+  path: '/ilmoitukset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AsetuksetRoute = AsetuksetRouteImport.update({
   id: '/asetukset',
   path: '/asetukset',
@@ -94,6 +102,11 @@ const KuljettajatIndexRoute = KuljettajatIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => KuljettajatRoute,
+} as any)
+const KlubitIndexRoute = KlubitIndexRouteImport.update({
+  id: '/klubit/',
+  path: '/klubit/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const KilpailutIndexRoute = KilpailutIndexRouteImport.update({
   id: '/',
@@ -125,6 +138,11 @@ const KuljettajatSlugRoute = KuljettajatSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => KuljettajatRoute,
 } as any)
+const KlubitIdRoute = KlubitIdRouteImport.update({
+  id: '/klubit/$id',
+  path: '/klubit/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KilpailutSlugRoute = KilpailutSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -134,6 +152,7 @@ const KilpailutSlugRoute = KilpailutSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/asetukset': typeof AsetuksetRoute
+  '/ilmoitukset': typeof IlmoituksetRoute
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kuljettajat': typeof KuljettajatRouteWithChildren
   '/tekoalytila': typeof TekoalytilaRoute
@@ -142,12 +161,14 @@ export interface FileRoutesByFullPath {
   '/uutiset': typeof UutisetRouteWithChildren
   '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/klubit/$id': typeof KlubitIdRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
   '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
   '/uutiset/$slug': typeof UutisetSlugRoute
   '/kilpailut/': typeof KilpailutIndexRoute
+  '/klubit/': typeof KlubitIndexRoute
   '/kuljettajat/': typeof KuljettajatIndexRoute
   '/tiimit/': typeof TiimitIndexRoute
   '/tilastot/': typeof TilastotIndexRoute
@@ -156,15 +177,18 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/asetukset': typeof AsetuksetRoute
+  '/ilmoitukset': typeof IlmoituksetRoute
   '/tekoalytila': typeof TekoalytilaRoute
   '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/klubit/$id': typeof KlubitIdRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
   '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
   '/uutiset/$slug': typeof UutisetSlugRoute
   '/kilpailut': typeof KilpailutIndexRoute
+  '/klubit': typeof KlubitIndexRoute
   '/kuljettajat': typeof KuljettajatIndexRoute
   '/tiimit': typeof TiimitIndexRoute
   '/tilastot': typeof TilastotIndexRoute
@@ -174,6 +198,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/asetukset': typeof AsetuksetRoute
+  '/ilmoitukset': typeof IlmoituksetRoute
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kuljettajat': typeof KuljettajatRouteWithChildren
   '/tekoalytila': typeof TekoalytilaRoute
@@ -182,12 +207,14 @@ export interface FileRoutesById {
   '/uutiset': typeof UutisetRouteWithChildren
   '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/klubit/$id': typeof KlubitIdRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
   '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
   '/uutiset/$slug': typeof UutisetSlugRoute
   '/kilpailut/': typeof KilpailutIndexRoute
+  '/klubit/': typeof KlubitIndexRoute
   '/kuljettajat/': typeof KuljettajatIndexRoute
   '/tiimit/': typeof TiimitIndexRoute
   '/tilastot/': typeof TilastotIndexRoute
@@ -198,6 +225,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/asetukset'
+    | '/ilmoitukset'
     | '/kilpailut'
     | '/kuljettajat'
     | '/tekoalytila'
@@ -206,12 +234,14 @@ export interface FileRouteTypes {
     | '/uutiset'
     | '/veikkaa'
     | '/kilpailut/$slug'
+    | '/klubit/$id'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
     | '/tilastot/koko-historia'
     | '/uutiset/$slug'
     | '/kilpailut/'
+    | '/klubit/'
     | '/kuljettajat/'
     | '/tiimit/'
     | '/tilastot/'
@@ -220,15 +250,18 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/asetukset'
+    | '/ilmoitukset'
     | '/tekoalytila'
     | '/veikkaa'
     | '/kilpailut/$slug'
+    | '/klubit/$id'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
     | '/tilastot/koko-historia'
     | '/uutiset/$slug'
     | '/kilpailut'
+    | '/klubit'
     | '/kuljettajat'
     | '/tiimit'
     | '/tilastot'
@@ -237,6 +270,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/asetukset'
+    | '/ilmoitukset'
     | '/kilpailut'
     | '/kuljettajat'
     | '/tekoalytila'
@@ -245,12 +279,14 @@ export interface FileRouteTypes {
     | '/uutiset'
     | '/veikkaa'
     | '/kilpailut/$slug'
+    | '/klubit/$id'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
     | '/tilastot/koko-historia'
     | '/uutiset/$slug'
     | '/kilpailut/'
+    | '/klubit/'
     | '/kuljettajat/'
     | '/tiimit/'
     | '/tilastot/'
@@ -260,6 +296,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AsetuksetRoute: typeof AsetuksetRoute
+  IlmoituksetRoute: typeof IlmoituksetRoute
   KilpailutRoute: typeof KilpailutRouteWithChildren
   KuljettajatRoute: typeof KuljettajatRouteWithChildren
   TekoalytilaRoute: typeof TekoalytilaRoute
@@ -267,6 +304,8 @@ export interface RootRouteChildren {
   TilastotRoute: typeof TilastotRouteWithChildren
   UutisetRoute: typeof UutisetRouteWithChildren
   VeikkaaRoute: typeof VeikkaaRoute
+  KlubitIdRoute: typeof KlubitIdRoute
+  KlubitIndexRoute: typeof KlubitIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -320,6 +359,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KilpailutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ilmoitukset': {
+      id: '/ilmoitukset'
+      path: '/ilmoitukset'
+      fullPath: '/ilmoitukset'
+      preLoaderRoute: typeof IlmoituksetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/asetukset': {
       id: '/asetukset'
       path: '/asetukset'
@@ -362,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KuljettajatIndexRouteImport
       parentRoute: typeof KuljettajatRoute
     }
+    '/klubit/': {
+      id: '/klubit/'
+      path: '/klubit'
+      fullPath: '/klubit/'
+      preLoaderRoute: typeof KlubitIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kilpailut/': {
       id: '/kilpailut/'
       path: '/'
@@ -403,6 +456,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kuljettajat/$slug'
       preLoaderRoute: typeof KuljettajatSlugRouteImport
       parentRoute: typeof KuljettajatRoute
+    }
+    '/klubit/$id': {
+      id: '/klubit/$id'
+      path: '/klubit/$id'
+      fullPath: '/klubit/$id'
+      preLoaderRoute: typeof KlubitIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/kilpailut/$slug': {
       id: '/kilpailut/$slug'
@@ -487,6 +547,7 @@ const UutisetRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AsetuksetRoute: AsetuksetRoute,
+  IlmoituksetRoute: IlmoituksetRoute,
   KilpailutRoute: KilpailutRouteWithChildren,
   KuljettajatRoute: KuljettajatRouteWithChildren,
   TekoalytilaRoute: TekoalytilaRoute,
@@ -494,6 +555,8 @@ const rootRouteChildren: RootRouteChildren = {
   TilastotRoute: TilastotRouteWithChildren,
   UutisetRoute: UutisetRouteWithChildren,
   VeikkaaRoute: VeikkaaRoute,
+  KlubitIdRoute: KlubitIdRoute,
+  KlubitIndexRoute: KlubitIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

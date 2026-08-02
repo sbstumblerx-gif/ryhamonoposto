@@ -25,7 +25,9 @@ const TILES = [
   { to: "/uutiset", label: "Uutiset" },
   { to: "/tilastot", label: "Tilastot" },
   { to: "/veikkaa", label: "Veikkaa" },
+  { to: "/klubit", label: "Klubit" },
 ] as const;
+
 
 function Home() {
   const list = useServerFn(listNews);
