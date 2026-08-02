@@ -29,6 +29,7 @@ import { Route as TilastotKokoHistoriaRouteImport } from './routes/tilastot.koko
 import { Route as TilastotSeasonRouteImport } from './routes/tilastot.$season'
 import { Route as TiimitSlugRouteImport } from './routes/tiimit.$slug'
 import { Route as KuljettajatSlugRouteImport } from './routes/kuljettajat.$slug'
+import { Route as KlubitIdRouteImport } from './routes/klubit.$id'
 import { Route as KilpailutSlugRouteImport } from './routes/kilpailut.$slug'
 
 const VeikkaaRoute = VeikkaaRouteImport.update({
@@ -131,6 +132,11 @@ const KuljettajatSlugRoute = KuljettajatSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => KuljettajatRoute,
 } as any)
+const KlubitIdRoute = KlubitIdRouteImport.update({
+  id: '/klubit/$id',
+  path: '/klubit/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KilpailutSlugRoute = KilpailutSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/uutiset': typeof UutisetRouteWithChildren
   '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/klubit/$id': typeof KlubitIdRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/tekoalytila': typeof TekoalytilaRoute
   '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/klubit/$id': typeof KlubitIdRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/uutiset': typeof UutisetRouteWithChildren
   '/veikkaa': typeof VeikkaaRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
+  '/klubit/$id': typeof KlubitIdRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/uutiset'
     | '/veikkaa'
     | '/kilpailut/$slug'
+    | '/klubit/$id'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/tekoalytila'
     | '/veikkaa'
     | '/kilpailut/$slug'
+    | '/klubit/$id'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/uutiset'
     | '/veikkaa'
     | '/kilpailut/$slug'
+    | '/klubit/$id'
     | '/kuljettajat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
@@ -279,6 +291,7 @@ export interface RootRouteChildren {
   TilastotRoute: typeof TilastotRouteWithChildren
   UutisetRoute: typeof UutisetRouteWithChildren
   VeikkaaRoute: typeof VeikkaaRoute
+  KlubitIdRoute: typeof KlubitIdRoute
   KlubitIndexRoute: typeof KlubitIndexRoute
 }
 
@@ -424,6 +437,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KuljettajatSlugRouteImport
       parentRoute: typeof KuljettajatRoute
     }
+    '/klubit/$id': {
+      id: '/klubit/$id'
+      path: '/klubit/$id'
+      fullPath: '/klubit/$id'
+      preLoaderRoute: typeof KlubitIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kilpailut/$slug': {
       id: '/kilpailut/$slug'
       path: '/$slug'
@@ -514,18 +534,9 @@ const rootRouteChildren: RootRouteChildren = {
   TilastotRoute: TilastotRouteWithChildren,
   UutisetRoute: UutisetRouteWithChildren,
   VeikkaaRoute: VeikkaaRoute,
+  KlubitIdRoute: KlubitIdRoute,
   KlubitIndexRoute: KlubitIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
