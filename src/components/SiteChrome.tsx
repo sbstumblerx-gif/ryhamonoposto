@@ -1,8 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import logoAsset from "@/assets/logo.png.asset.json";
 import { useAdmin, useAdminLogout } from "./admin-store";
 import { AiChatPanel } from "./AiChatPanel";
+import { unreadNotificationCount } from "@/lib/clubs.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { to: "/", label: "Etusivu" },
@@ -12,8 +16,27 @@ const NAV = [
   { to: "/tilastot", label: "Tilastot" },
   { to: "/uutiset", label: "Uutiset" },
   { to: "/veikkaa", label: "Veikkaa" },
+  { to: "/klubit", label: "Klubit" },
+  { to: "/ilmoitukset", label: "Ilmoitukset" },
   { to: "/tekoalytila", label: "Tekoälytila" },
 ] as const;
+
+function useUnreadCount() {
+  const [uid, setUid] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUid(data.user?.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUid(s?.user?.id ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  const countFn = useServerFn(unreadNotificationCount);
+  const q = useQuery({
+    queryKey: ["notif-count", uid],
+    queryFn: () => countFn(),
+    enabled: !!uid,
+    refetchInterval: 30000,
+  });
+  return Number((q.data as any) ?? 0);
+}
 
 export function SiteHeader() {
   const admin = useAdmin();
@@ -21,7 +44,9 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const unread = useUnreadCount();
   const title = "";
+
 
   useEffect(() => {
     setMenuOpen(false);
