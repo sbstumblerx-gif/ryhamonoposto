@@ -154,7 +154,7 @@ export async function updateClub(userId: string, clubId: string, patch: { name?:
 export async function listMessages(userId: string, clubId: string) {
   const db = await admin();
   await requireRole(db, clubId, userId, ["owner", "moderator", "member"]);
-  const { data: msgs } = await db.from("club_messages").select("id, user_id, body, created_at").eq("club_id", clubId).order("created_at", { ascending: true }).limit(300);
+  const { data: msgs } = await db.from("club_messages").select("id, user_id, body, created_at, media_url, media_type, media_duration").eq("club_id", clubId).order("created_at", { ascending: true }).limit(300);
   const ids = [...new Set((msgs ?? []).map(m => m.user_id))];
   const profiles = await profileMap(db, ids);
   const { data: reactions } = await db.from("club_message_reactions").select("message_id, emoji, user_id").in("message_id", (msgs ?? []).map(m => m.id));
@@ -169,14 +169,25 @@ export async function listMessages(userId: string, clubId: string) {
   return (msgs ?? []).map(m => ({
     ...m,
     display_name: profiles.get(m.user_id)?.display_name ?? "Vierailija",
+    avatar_url: profiles.get(m.user_id)?.avatar_url ?? null,
     reactions: byMsg.get(m.id) ?? [],
   }));
 }
 
-export async function postMessage(userId: string, clubId: string, body: string) {
+export async function postMessage(
+  userId: string,
+  clubId: string,
+  body: string,
+  media?: { url: string; type: "image" | "audio" | "video"; duration?: number | null },
+) {
   const db = await admin();
   await requireRole(db, clubId, userId, ["owner", "moderator", "member"]);
-  const { data: msg, error } = await db.from("club_messages").insert({ club_id: clubId, user_id: userId, body }).select().single();
+  const { data: msg, error } = await db.from("club_messages").insert({
+    club_id: clubId, user_id: userId, body,
+    media_url: media?.url ?? null,
+    media_type: media?.type ?? null,
+    media_duration: media?.duration ?? null,
+  }).select().single();
   if (error) throw error;
 
   // @mentions -> notifications for tagged members
@@ -301,4 +312,29 @@ export async function markAllRead(userId: string) {
   const db = await admin();
   await db.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
   return { ok: true };
+}
+
+// ============ Invite links ============
+
+export async function previewClubByCode(code: string) {
+  const db = await admin();
+  const { data: club } = await db.from("clubs").select("id, name, description, code, visibility, require_approval").eq("code", code).maybeSingle();
+  if (!club) throw new Error("Klubia ei löytynyt tällä kutsulinkillä");
+  const counts = await memberCounts(db, [club.id]);
+  return {
+    id: club.id,
+    name: club.name,
+    description: club.description,
+    code: club.code,
+    require_approval: club.require_approval,
+    members: counts.get(club.id) ?? 0,
+    max_members: MAX_MEMBERS,
+  };
+}
+
+export async function myMembership(userId: string, clubId: string) {
+  const db = await admin();
+  const role = await membership(db, clubId, userId);
+  const { data: req } = await db.from("club_join_requests").select("status").eq("club_id", clubId).eq("user_id", userId).maybeSingle();
+  return { role, pending: req?.status === "pending" };
 }

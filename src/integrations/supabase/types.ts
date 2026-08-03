@@ -116,13 +116,19 @@ export type Database = {
           club_id: string
           created_at: string
           id: string
+          media_duration: number | null
+          media_type: string | null
+          media_url: string | null
           user_id: string
         }
         Insert: {
-          body: string
+          body?: string
           club_id: string
           created_at?: string
           id?: string
+          media_duration?: number | null
+          media_type?: string | null
+          media_url?: string | null
           user_id: string
         }
         Update: {
@@ -130,6 +136,9 @@ export type Database = {
           club_id?: string
           created_at?: string
           id?: string
+          media_duration?: number | null
+          media_type?: string | null
+          media_url?: string | null
           user_id?: string
         }
         Relationships: [
