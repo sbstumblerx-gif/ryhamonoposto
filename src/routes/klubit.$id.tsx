@@ -17,8 +17,6 @@ import {
   updateClub,
 } from "@/lib/clubs.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadUserMedia } from "@/lib/upload.functions";
-import { fileToBase64 } from "@/lib/file-base64";
 import { Avatar } from "@/components/Avatar";
 import { ClubComposer } from "@/components/ClubComposer";
 import { ClubMessageMedia } from "@/components/ClubMessageMedia";
@@ -91,6 +89,7 @@ function ClubPage() {
   const club = data.club;
   const myRole: "owner" | "moderator" | "member" = data.myRole;
   const isStaff = myRole === "owner" || myRole === "moderator";
+  const inviteUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/klubit/liity/${club.code}`;
 
   async function send(body: string, media?: { url: string; type: "image" | "audio" | "video"; duration?: number | null } | null) {
     if (!body.trim() && !media) return;
@@ -194,6 +193,19 @@ function ClubPage() {
                 <p className="text-xs text-muted-foreground">{club.visibility === "public" ? "Julkinen klubi" : "Vain koodilla"}</p>
               </>
             )}
+          </section>
+
+          <section className="card-dark p-4 space-y-2">
+            <h2 className="font-display uppercase tracking-widest text-sm text-primary">Kutsulinkki</h2>
+            <p className="text-xs text-muted-foreground">Jaa tämä linkki — sen avaaja näkee klubin tiedot ja voi liittyä{club.require_approval ? " tai lähettää liittymispyynnön" : ""}.</p>
+            <div className="flex gap-2 items-center">
+              <input readOnly value={inviteUrl} onFocus={(e) => e.currentTarget.select()}
+                className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-xs" />
+              <button onClick={async () => {
+                try { await navigator.clipboard.writeText(inviteUrl); toast.success("Kutsulinkki kopioitu"); }
+                catch { toast.error("Kopiointi epäonnistui"); }
+              }} className="bg-primary text-primary-foreground rounded px-3 py-2 text-[10px] uppercase tracking-widest">Kopioi</button>
+            </div>
           </section>
 
           {isStaff && data.requests.length > 0 && (
