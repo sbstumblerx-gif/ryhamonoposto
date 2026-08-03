@@ -95,6 +95,9 @@ export function SiteHeader() {
                 Admin ✓
               </button>
             )}
+            <Link to="/profiili" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary border border-primary/30 rounded px-2 py-1">
+              Profiili
+            </Link>
             <Link to="/asetukset" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary border border-primary/30 rounded px-2 py-1">
               Asetukset
             </Link>
