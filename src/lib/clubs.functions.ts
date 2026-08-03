@@ -58,8 +58,16 @@ export const listClubMessages = createServerFn({ method: "POST" })
 
 export const postClubMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => Id.extend({ body: z.string().min(1).max(2000) }).parse(d))
-  .handler(async ({ data, context }) => (await import("./clubs.server")).postMessage(context.userId, data.club_id, data.body));
+  .inputValidator((d: unknown) => Id.extend({
+    body: z.string().max(2000).default(""),
+    media: z.object({
+      url: z.string().url(),
+      type: z.enum(["image", "audio", "video"]),
+      duration: z.number().int().min(0).max(3600).nullable().optional(),
+    }).nullable().optional(),
+  }).refine((v) => v.body.trim().length > 0 || !!v.media, { message: "Tyhjää viestiä ei voi lähettää" }).parse(d))
+  .handler(async ({ data, context }) =>
+    (await import("./clubs.server")).postMessage(context.userId, data.club_id, data.body, data.media ?? undefined));
 
 export const deleteClubMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -107,3 +115,12 @@ export const unreadNotificationCount = createServerFn({ method: "GET" })
 export const markNotificationsRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => (await import("./clubs.server")).markAllRead(context.userId));
+
+export const previewClubByCode = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ code: z.string().regex(/^\d{6}$/) }).parse(d))
+  .handler(async ({ data }) => (await import("./clubs.server")).previewClubByCode(data.code));
+
+export const myClubMembership = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => Id.parse(d))
+  .handler(async ({ data, context }) => (await import("./clubs.server")).myMembership(context.userId, data.club_id));
