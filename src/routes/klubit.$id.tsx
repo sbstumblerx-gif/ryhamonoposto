@@ -17,6 +17,11 @@ import {
   updateClub,
 } from "@/lib/clubs.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadUserMedia } from "@/lib/upload.functions";
+import { fileToBase64 } from "@/lib/file-base64";
+import { Avatar } from "@/components/Avatar";
+import { ClubComposer } from "@/components/ClubComposer";
+import { ClubMessageMedia } from "@/components/ClubMessageMedia";
 
 export const Route = createFileRoute("/klubit/$id")({
   head: () => ({
@@ -63,7 +68,6 @@ function ClubPage() {
   const updateFn = useServerFn(updateClub);
 
   const [tab, setTab] = useState<"chat" | "info" | "board">("chat");
-  const [text, setText] = useState("");
 
   const clubQ = useQuery({ queryKey: ["club", id, uid], queryFn: () => getFn({ data: { club_id: id } }), enabled: !!uid });
   const msgsQ = useQuery({
@@ -88,13 +92,10 @@ function ClubPage() {
   const myRole: "owner" | "moderator" | "member" = data.myRole;
   const isStaff = myRole === "owner" || myRole === "moderator";
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    const body = text.trim();
-    if (!body) return;
-    setText("");
+  async function send(body: string, media?: { url: string; type: "image" | "audio" | "video"; duration?: number | null } | null) {
+    if (!body.trim() && !media) return;
     try {
-      await postFn({ data: { club_id: id, body } });
+      await postFn({ data: { club_id: id, body, media: media ?? null } });
       await qc.invalidateQueries({ queryKey: ["club-msgs", id] });
     } catch (err: any) { toast.error(err?.message ?? "Lähetys epäonnistui"); }
   }
@@ -128,7 +129,10 @@ function ClubPage() {
             {(msgsQ.data ?? []).map((m: any) => (
               <div key={m.id} className="rounded border border-primary/20 p-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] uppercase tracking-widest text-primary">{m.display_name}</span>
+                  <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
+                    <Avatar url={m.avatar_url} name={m.display_name} size={22} />
+                    {m.display_name}
+                  </span>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground">{new Date(m.created_at).toLocaleString("fi-FI")}</span>
                     {(isStaff || m.user_id === uid) && (
@@ -137,7 +141,8 @@ function ClubPage() {
                     )}
                   </div>
                 </div>
-                <p className="text-sm whitespace-pre-wrap mt-1">{m.body}</p>
+                {m.body && <p className="text-sm whitespace-pre-wrap mt-1">{m.body}</p>}
+                <ClubMessageMedia url={m.media_url} type={m.media_type} duration={m.media_duration} />
                 <div className="flex gap-1 mt-2 flex-wrap">
                   {EMOJIS.map((e) => {
                     const hit = m.reactions.find((r: any) => r.emoji === e);
@@ -153,11 +158,7 @@ function ClubPage() {
             ))}
             {(msgsQ.data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Ei viestejä vielä.</p>}
           </div>
-          <form onSubmit={send} className="flex gap-2">
-            <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Kirjoita viesti… (tägää @nimellä)"
-              className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm" />
-            <button className="bg-primary text-primary-foreground rounded px-4 py-2 text-xs font-display uppercase tracking-widest">Lähetä</button>
-          </form>
+          <ClubComposer onSend={send} />
         </section>
       )}
 

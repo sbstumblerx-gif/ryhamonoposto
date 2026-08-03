@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { to: "/", label: "Etusivu" },
+  { to: "/profiili", label: "Profiili" },
   { to: "/kilpailut", label: "Kilpailut" },
   { to: "/kuljettajat", label: "Kuljettajat" },
   { to: "/tiimit", label: "Tiimit" },
