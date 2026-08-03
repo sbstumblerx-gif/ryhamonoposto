@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const UploadInput = z.object({
   filename: z.string().min(1).max(200),
@@ -41,7 +42,7 @@ const UserUploadInput = z.object({
 
 /** Upload for any signed-in user (avatars, club chat attachments, voice notes). */
 export const uploadUserMedia = createServerFn({ method: "POST" })
-  .middleware([(await import("@/integrations/supabase/auth-middleware")).requireSupabaseAuth])
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => UserUploadInput.parse(d))
   .handler(async ({ data, context }) => {
     const ok = /^(image|audio|video)\//.test(data.contentType);
