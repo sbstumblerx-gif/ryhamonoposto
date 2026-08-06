@@ -193,7 +193,7 @@ export async function postMessage(
   // @mentions -> notifications for tagged members
   const { data: members } = await db.from("club_members").select("user_id").eq("club_id", clubId);
   const profiles = await profileMap(db, (members ?? []).map(m => m.user_id));
-  const { data: club } = await db.from("clubs").select("name").eq("id", clubId).maybeSingle();
+  const { data: club } = await db.from("clubs").select("name, ai_enabled").eq("id", clubId).maybeSingle();
   const me = profiles.get(userId)?.display_name ?? "Joku";
   const lower = body.toLowerCase();
   const targets: string[] = [];
@@ -204,6 +204,23 @@ export async function postMessage(
   await notify(db, targets.map(t => ({
     user_id: t, type: "mention", title: `${me} mainitsi sinut`, body: `${club?.name ?? "Klubi"}: ${body.slice(0, 120)}`, club_id: clubId,
   })));
+
+  // ---- AI participant: @ai invites it, @aioff removes it ----
+  const ai = await import("./club-ai.server");
+  let aiEnabled = !!club?.ai_enabled;
+  if (ai.mentionsAiOff(body)) {
+    if (aiEnabled) await db.from("clubs").update({ ai_enabled: false }).eq("id", clubId);
+    await ai.postAiSystemLine(db, clubId, "🤖 RyhäAI poistui keskustelusta. Kutsu takaisin tagaamalla @ai.");
+    return msg;
+  }
+  if (ai.mentionsAiOn(body) && !aiEnabled) {
+    await db.from("clubs").update({ ai_enabled: true }).eq("id", clubId);
+    await ai.postAiSystemLine(db, clubId, "🤖 RyhäAI liittyi keskusteluun. Vastaan nyt jokaiseen viestiin — poista tagaamalla @aioff.");
+    aiEnabled = true;
+  }
+  if (aiEnabled) {
+    try { await ai.replyInClub(db, clubId); } catch { /* chat must not break if the AI fails */ }
+  }
   return msg;
 }
 
