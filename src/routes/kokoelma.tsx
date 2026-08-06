@@ -235,7 +235,18 @@ function CollectionPage() {
         <Link to="/" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">← Etusivulle</Link>
       </div>
 
-      {viewer && <CardViewer url={viewer.url} label={viewer.label} onClose={() => setViewer(null)} />}
+      {viewer && (
+        <div className="relative">
+          <button
+            onClick={() => setViewer(null)}
+            className="fixed top-4 right-4 z-[100] flex h-10 w-10 items-center justify-center rounded-full bg-black/80 text-white border border-white/20 hover:bg-black font-bold text-xl shadow-lg transition-transform hover:scale-105"
+            aria-label="Sulje katselu"
+          >
+            ✕
+          </button>
+          <CardViewer url={viewer.url} label={viewer.label} onClose={() => setViewer(null)} />
+        </div>
+      )}
 
       {packResults && (
         <PackOpening
@@ -273,105 +284,7 @@ function CollectionPage() {
       )}
     </div>
   );
-}
-
-function CardGrid({
-  title, cards, owned, driverName, teamName, onView, onShare,
-}: {
-  title: string; cards: any[]; owned?: boolean;
-  driverName: Map<string, string>; teamName: Map<string, string>;
-  onView: (v: { url: string; label: string }) => void;
-  onShare?: (card: any) => void;
-}) {
-  if (cards.length === 0) return null;
-  return (
-    <div className="mt-4">
-      <h3 className="font-display uppercase tracking-widest text-xs text-muted-foreground mb-2">{title}</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {cards.map((c) => {
-          const label = `${c.serial_number} · ${c.card_type} · ${c.is_booster ? "Team booster" : (driverName.get(c.driver_slug) ?? c.driver_slug ?? "")}`;
-          return (
-            <div key={c.id} className={`card-dark p-2 ${owned ? "" : "opacity-60"}`}>
-              <div className="relative">
-                <img src={c.image_url} alt={label} loading="lazy"
-                  className={`w-full aspect-[3/4] object-cover rounded ${owned ? "" : "grayscale"}`} />
-                {!owned && <span className="absolute top-2 left-2 text-lg">🔒</span>}
-                {owned && c.copies > 1 && (
-                  <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-[10px] font-display rounded px-1.5 py-0.5">x{c.copies}</span>
-                )}
-              </div>
-              <div className="mt-2 text-[10px] font-display uppercase tracking-widest text-primary">{c.serial_number} · {c.card_type}</div>
-              <div className="text-[10px] text-muted-foreground truncate">
-                {c.is_booster ? "Team booster" : (driverName.get(c.driver_slug) ?? "—")} · {teamName.get(c.team_slug) ?? "—"}
-              </div>
-              <div className="text-[10px] text-muted-foreground">
-                {c.is_booster ? `Boost ${c.boost ?? 0}` : `H ${c.attack ?? 0} · P ${c.defense ?? 0} · Σ ${cardTotal(c)}`}
-              </div>
-              {c.race_name && <div className="text-[10px] text-muted-foreground truncate">{c.race_flag} {c.race_name} {c.race_position}</div>}
-              <div className="mt-2 flex gap-1">
-                <button onClick={() => onView({ url: c.image_url, label })}
-                  className="flex-1 text-[10px] uppercase tracking-widest border border-primary/40 rounded px-2 py-1 hover:border-primary">Fullscreen</button>
-                {owned && onShare && (
-                  <button onClick={() => onShare(c)}
-                    className="text-[10px] uppercase tracking-widest border border-primary/40 rounded px-2 py-1 hover:border-primary">Jaa</button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function PackOpening({ results, index, onNext, onClose }: { results: any[]; index: number; onNext: () => void; onClose: () => void }) {
-  const item = results[index];
-  const done = !item;
-  const totalVp = results.reduce((s, r) => s + (r.vp ?? 0), 0);
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/95" />
-      <div className="relative w-full max-w-sm text-center space-y-4">
-        {done ? (
-          <>
-            <div className="font-display uppercase tracking-widest text-primary text-lg">Pakka avattu!</div>
-            <p className="text-sm text-muted-foreground">{results.length} korttia{totalVp > 0 ? ` · +${totalVp} varastopistettä` : ""}</p>
-            <button onClick={onClose} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">Valmis</button>
-          </>
-        ) : (
-          <>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Kortti {index + 1}/{results.length}</div>
-            <img src={item.card.image_url} alt={item.card.serial_number} className="mx-auto max-h-[55vh] rounded border border-primary/50" />
-            <div className={`font-display uppercase tracking-widest ${item.duplicate ? "text-yellow-400" : "text-primary"}`}>
-              {item.duplicate ? `Duplikaatti — +${item.vp} varastopistettä` : "Uusi kortti!"}
-            </div>
-            <div className="text-xs text-muted-foreground">{item.card.serial_number} · {item.card.card_type}</div>
-            <button onClick={onNext} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">
-              {index + 1 < results.length ? "Seuraava" : "Näytä yhteenveto"}
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const EMPTY = {
-  id: undefined as string | undefined,
-  image_url: "",
-  serial_number: "",
-  team_slug: "",
-  driver_slug: "",
-  card_type: "Tavallinen" as string,
-  driver_number: "",
-  race_name: "",
-  race_flag: "",
-  race_position: "",
-  season_slug: "",
-  attack: "",
-  defense: "",
-  boost: "",
-};
+    }
 
 function AdminCards() {
   const qc = useQueryClient();
@@ -411,7 +324,7 @@ function AdminCards() {
           driver_slug: f.driver_slug || null,
           is_booster: isBooster,
           card_type: f.card_type as any,
-          driver_number: f.driver_number === "" ? null : Number(f.driver_number),
+          driver_number: isBooster || f.driver_number === "" ? null : Number(f.driver_number),
           race_name: needsRace && f.race_name ? f.race_name : null,
           race_flag: needsRace && f.race_flag ? f.race_flag : null,
           race_position: needsRace && f.race_position ? (f.race_position as any) : null,
@@ -464,10 +377,14 @@ function AdminCards() {
             {CARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
-        <label className="block">
-          <span className={lbl}>Kuljettajan numero</span>
-          <input type="number" className={input} value={f.driver_number} onChange={(e) => set("driver_number", e.target.value)} />
-        </label>
+        
+        {!isBooster && (
+          <label className="block">
+            <span className={lbl}>Kuljettajan numero</span>
+            <input type="number" className={input} value={f.driver_number} onChange={(e) => set("driver_number", e.target.value)} />
+          </label>
+        )}
+
         <label className="block">
           <span className={lbl}>Kausi</span>
           <select className={input} value={f.season_slug} onChange={(e) => set("season_slug", e.target.value)}>
@@ -565,4 +482,6 @@ function AdminCards() {
       </div>
     </section>
   );
-}
+              }
+
+                                              
