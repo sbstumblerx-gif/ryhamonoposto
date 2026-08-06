@@ -154,7 +154,7 @@ export async function updateClub(userId: string, clubId: string, patch: { name?:
 export async function listMessages(userId: string, clubId: string) {
   const db = await admin();
   await requireRole(db, clubId, userId, ["owner", "moderator", "member"]);
-  const { data: msgs } = await db.from("club_messages").select("id, user_id, body, created_at, media_url, media_type, media_duration").eq("club_id", clubId).order("created_at", { ascending: true }).limit(300);
+  const { data: msgs } = await db.from("club_messages").select("id, user_id, body, created_at, media_url, media_type, media_duration, is_ai").eq("club_id", clubId).order("created_at", { ascending: true }).limit(300);
   const ids = [...new Set((msgs ?? []).map(m => m.user_id))];
   const profiles = await profileMap(db, ids);
   const { data: reactions } = await db.from("club_message_reactions").select("message_id, emoji, user_id").in("message_id", (msgs ?? []).map(m => m.id));
