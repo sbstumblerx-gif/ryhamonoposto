@@ -168,8 +168,8 @@ export async function listMessages(userId: string, clubId: string) {
   }
   return (msgs ?? []).map(m => ({
     ...m,
-    display_name: profiles.get(m.user_id)?.display_name ?? "Vierailija",
-    avatar_url: profiles.get(m.user_id)?.avatar_url ?? null,
+    display_name: m.is_ai ? "RyhäAI" : (profiles.get(m.user_id)?.display_name ?? "Vierailija"),
+    avatar_url: m.is_ai ? "emoji:🤖" : (profiles.get(m.user_id)?.avatar_url ?? null),
     reactions: byMsg.get(m.id) ?? [],
   }));
 }
