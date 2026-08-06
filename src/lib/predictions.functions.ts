@@ -166,6 +166,8 @@ export const adminFinalizeSession = createServerFn({ method: "POST" })
       const pts = scorePrediction(top3, data.top3);
       await supabaseAdmin.from("predictions").update({ points: pts }).eq("id", p.id);
     }
+    // Every participant earns a card pack sized by their score.
+    await (await import("./cards.server")).grantPacksForSession(data.id);
     return { ok: true, updated: preds?.length ?? 0 };
   });
 
