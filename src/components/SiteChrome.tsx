@@ -18,6 +18,7 @@ const NAV = [
   { to: "/uutiset", label: "Uutiset" },
   { to: "/veikkaa", label: "Veikkaa" },
   { to: "/klubit", label: "Klubit" },
+  { to: "/kokoelma", label: "Kokoelma" },
   { to: "/ilmoitukset", label: "Ilmoitukset" },
   { to: "/tekoalytila", label: "Tekoälytila" },
 ] as const;
