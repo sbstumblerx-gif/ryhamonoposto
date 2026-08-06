@@ -235,18 +235,7 @@ function CollectionPage() {
         <Link to="/" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">← Etusivulle</Link>
       </div>
 
-      {viewer && (
-        <div className="relative">
-          <button
-            onClick={() => setViewer(null)}
-            className="fixed top-4 right-4 z-[100] flex h-10 w-10 items-center justify-center rounded-full bg-black/80 text-white border border-white/20 hover:bg-black font-bold text-xl shadow-lg transition-transform hover:scale-105"
-            aria-label="Sulje katselu"
-          >
-            ✕
-          </button>
-          <CardViewer url={viewer.url} label={viewer.label} onClose={() => setViewer(null)} />
-        </div>
-      )}
+      {viewer && <CardViewer url={viewer.url} label={viewer.label} onClose={() => setViewer(null)} />}
 
       {packResults && (
         <PackOpening
@@ -422,7 +411,7 @@ function AdminCards() {
           driver_slug: f.driver_slug || null,
           is_booster: isBooster,
           card_type: f.card_type as any,
-          driver_number: isBooster || f.driver_number === "" ? null : Number(f.driver_number),
+          driver_number: f.driver_number === "" ? null : Number(f.driver_number),
           race_name: needsRace && f.race_name ? f.race_name : null,
           race_flag: needsRace && f.race_flag ? f.race_flag : null,
           race_position: needsRace && f.race_position ? (f.race_position as any) : null,
@@ -475,14 +464,10 @@ function AdminCards() {
             {CARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
-        
-        {!isBooster && (
-          <label className="block">
-            <span className={lbl}>Kuljettajan numero</span>
-            <input type="number" className={input} value={f.driver_number} onChange={(e) => set("driver_number", e.target.value)} />
-          </label>
-        )}
-
+        <label className="block">
+          <span className={lbl}>Kuljettajan numero</span>
+          <input type="number" className={input} value={f.driver_number} onChange={(e) => set("driver_number", e.target.value)} />
+        </label>
         <label className="block">
           <span className={lbl}>Kausi</span>
           <select className={input} value={f.season_slug} onChange={(e) => set("season_slug", e.target.value)}>
@@ -580,4 +565,4 @@ function AdminCards() {
       </div>
     </section>
   );
-        }
+}
