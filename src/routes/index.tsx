@@ -26,6 +26,7 @@ const TILES = [
   { to: "/tilastot", label: "Tilastot" },
   { to: "/veikkaa", label: "Veikkaa" },
   { to: "/klubit", label: "Klubit" },
+  { to: "/kokoelma", label: "Kokoelma" },
 ] as const;
 
 
