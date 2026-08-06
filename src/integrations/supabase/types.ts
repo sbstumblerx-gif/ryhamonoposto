@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      card_packs: {
+        Row: {
+          card_count: number
+          created_at: string
+          id: string
+          opened: boolean
+          result: Json | null
+          session_id: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_count?: number
+          created_at?: string
+          id?: string
+          opened?: boolean
+          result?: Json | null
+          session_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_count?: number
+          created_at?: string
+          id?: string
+          opened?: boolean
+          result?: Json | null
+          session_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_packs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cards: {
+        Row: {
+          attack: number | null
+          boost: number | null
+          card_type: string
+          created_at: string
+          defense: number | null
+          driver_number: number | null
+          driver_slug: string | null
+          id: string
+          image_url: string
+          is_booster: boolean
+          race_flag: string | null
+          race_name: string | null
+          race_position: string | null
+          season_slug: string | null
+          serial_number: string
+          team_slug: string | null
+          updated_at: string
+        }
+        Insert: {
+          attack?: number | null
+          boost?: number | null
+          card_type?: string
+          created_at?: string
+          defense?: number | null
+          driver_number?: number | null
+          driver_slug?: string | null
+          id?: string
+          image_url: string
+          is_booster?: boolean
+          race_flag?: string | null
+          race_name?: string | null
+          race_position?: string | null
+          season_slug?: string | null
+          serial_number: string
+          team_slug?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attack?: number | null
+          boost?: number | null
+          card_type?: string
+          created_at?: string
+          defense?: number | null
+          driver_number?: number | null
+          driver_slug?: string | null
+          id?: string
+          image_url?: string
+          is_booster?: boolean
+          race_flag?: string | null
+          race_name?: string | null
+          race_position?: string | null
+          season_slug?: string | null
+          serial_number?: string
+          team_slug?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       club_join_requests: {
         Row: {
           club_id: string
@@ -116,30 +220,33 @@ export type Database = {
           club_id: string
           created_at: string
           id: string
+          is_ai: boolean
           media_duration: number | null
           media_type: string | null
           media_url: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           body?: string
           club_id: string
           created_at?: string
           id?: string
+          is_ai?: boolean
           media_duration?: number | null
           media_type?: string | null
           media_url?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           body?: string
           club_id?: string
           created_at?: string
           id?: string
+          is_ai?: boolean
           media_duration?: number | null
           media_type?: string | null
           media_url?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -153,6 +260,7 @@ export type Database = {
       }
       clubs: {
         Row: {
+          ai_enabled: boolean
           code: string
           created_at: string
           description: string
@@ -164,6 +272,7 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          ai_enabled?: boolean
           code: string
           created_at?: string
           description?: string
@@ -175,6 +284,7 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          ai_enabled?: boolean
           code?: string
           created_at?: string
           description?: string
@@ -628,6 +738,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_cards: {
+        Row: {
+          card_id: string
+          copies: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          copies?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          copies?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cards_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -642,6 +787,27 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_vault: {
+        Row: {
+          created_at: string
+          points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          points?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
