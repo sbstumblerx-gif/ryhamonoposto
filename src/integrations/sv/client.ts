@@ -24,7 +24,9 @@ function svFetch(key: string): typeof fetch {
   };
 }
 
-let _sv: ReturnType<typeof createClient> | undefined;
+type SvClient = ReturnType<typeof create>;
+
+let _sv: SvClient | undefined;
 
 function create() {
   return createClient(SV_URL, SV_PUBLISHABLE_KEY, {
@@ -39,7 +41,7 @@ function create() {
 }
 
 /** SV Account -asiakas (erillinen sessio sovelluksen omasta kirjautumisesta). */
-export const sv = new Proxy({} as ReturnType<typeof createClient>, {
+export const sv = new Proxy({} as SvClient, {
   get(_t, prop, receiver) {
     if (!_sv) _sv = create();
     return Reflect.get(_sv, prop, receiver);
