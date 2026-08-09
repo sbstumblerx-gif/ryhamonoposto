@@ -7,6 +7,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { uploadUserMedia } from "@/lib/upload.functions";
 import { Avatar, AVATAR_PRESETS } from "@/components/Avatar";
 import { fileToBase64 } from "@/lib/file-base64";
+import { SvAccountPanel } from "@/components/SvAccountPanel";
 
 export const Route = createFileRoute("/profiili")({
   head: () => ({
@@ -168,6 +169,8 @@ function ProfilePage() {
           )}
         </div>
       </section>
+
+      <SvAccountPanel />
     </div>
   );
 }
