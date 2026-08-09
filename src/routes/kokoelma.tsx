@@ -143,6 +143,13 @@ function CollectionPage() {
     finally { setBusy(false); }
   }
 
+  const ownedCards = useMemo(() => cards.filter((c) => c.copies > 0), [cards]);
+  const playableAll = ownedCards.length;
+  const playable2026 = useMemo(
+    () => ownedCards.filter((c) => String(c.season_slug ?? "").includes("2026")).length,
+    [ownedCards],
+  );
+
   const alerts = packs.length + (vault.redeemable ?? 0);
 
   return (
@@ -182,6 +189,44 @@ function CollectionPage() {
             Kirjaudu
           </button>
         </div>
+      )}
+
+      {uid && (
+        <section className="card-dark p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display uppercase tracking-widest text-sm text-primary">Pelaa</h2>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Tulossa pian</span>
+          </div>
+          <p className="text-xs text-muted-foreground max-w-2xl">
+            Ottele korteillasi. Osallistuaksesi tarvitset vähintään 6 korttia. 2026 Season -muodossa pelataan
+            palkinnoista ja siinä kelpaavat vain kauden 2026 kortit. All Time -muoto on palkinnoton ja siinä voit
+            käyttää mitä tahansa kortteja.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { key: "2026", title: "2026 Season", need: playable2026, desc: "Palkinnolliset ottelut · vain kauden 2026 kortit" },
+              { key: "all", title: "All Time", need: playableAll, desc: "Palkinnoton harjoitusmuoto · kaikki kortit käyvät" },
+            ].map((m) => {
+              const ok = m.need >= 6;
+              return (
+                <div key={m.key} className={`rounded border p-3 ${ok ? "border-primary/60" : "border-primary/20 opacity-70"}`}>
+                  <div className="font-display uppercase tracking-widest text-sm">{m.title}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1">{m.desc}</div>
+                  <div className="text-xs mt-2">
+                    Kelpaavat kortit: <span className={ok ? "text-primary" : "text-muted-foreground"}>{m.need}/6</span>
+                  </div>
+                  <button
+                    disabled={!ok}
+                    onClick={() => toast.info("Ottelut avautuvat pian — kokoonpanosi on jo valmis.")}
+                    className="mt-3 w-full rounded bg-primary text-primary-foreground text-xs font-display uppercase tracking-widest px-3 py-2 disabled:opacity-40"
+                  >
+                    {ok ? "Pelaa" : "Tarvitset 6 korttia"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {uid && packs.length > 0 && (
