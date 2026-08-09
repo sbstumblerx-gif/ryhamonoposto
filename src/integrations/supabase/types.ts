@@ -564,18 +564,27 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          sv_linked_at: string | null
+          sv_reward_claimed: boolean
+          sv_user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          sv_linked_at?: string | null
+          sv_reward_claimed?: boolean
+          sv_user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          sv_linked_at?: string | null
+          sv_reward_claimed?: boolean
+          sv_user_id?: string | null
         }
         Relationships: []
       }
