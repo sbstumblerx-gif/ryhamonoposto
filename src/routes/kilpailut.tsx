@@ -75,8 +75,22 @@ export function RacesIndex() {
         </div>
       )}
 
+      <div className="flex flex-wrap gap-2 mb-4">
+        <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
+          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+          <option value="all">Kaikki kaudet</option>
+          {seasonOptions.map(y => <option key={y} value={String(y)}>{y}</option>)}
+        </select>
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+          <option value="all">Kaikki radat / maat</option>
+          {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
       <ul className="space-y-2">
-        {(q.data ?? []).map(r => (
+        {filtered.map(r => (
+
           <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
             <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
               <span className="text-2xl">{r.flag}</span>
