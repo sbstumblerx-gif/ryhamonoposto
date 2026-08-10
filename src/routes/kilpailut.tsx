@@ -105,7 +105,7 @@ export function RacesIndex() {
             )}
           </li>
         ))}
-        {(q.data ?? []).length === 0 && <li className="text-sm text-muted-foreground italic">Ei kilpailuja vielä.</li>}
+        {filtered.length === 0 && <li className="text-sm text-muted-foreground italic">Ei kilpailuja.</li>}
       </ul>
     </div>
   );
