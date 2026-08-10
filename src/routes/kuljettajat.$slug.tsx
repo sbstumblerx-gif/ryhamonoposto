@@ -80,9 +80,12 @@ function DriverPage() {
 
         {tab === "info" ? (
           <DriverInfoCard driver={d as never} isAdmin={admin.isAdmin} />
+        ) : tab === "stats" ? (
+          <EntityStats kind="drivers" slug={slug} />
         ) : (
-          <MediaGallery scope={`driver:${slug}:${tab}`} title={tab === "stats" ? "Tilastot" : "Kisahistoria"} />
+          <MediaGallery scope={`driver:${slug}:${tab}`} title="Kisahistoria" />
         )}
+
 
         <Comments entityType="driver" entityId={d.id} />
       </div>

@@ -80,9 +80,12 @@ function TeamPage() {
 
         {tab === "info" ? (
           <TeamInfoCard team={t as never} isAdmin={admin.isAdmin} />
+        ) : tab === "stats" ? (
+          <EntityStats kind="teams" slug={slug} />
         ) : (
-          <MediaGallery scope={`team:${slug}:${tab}`} title={tab === "stats" ? "Tilastot" : "Kisahistoria"} />
+          <MediaGallery scope={`team:${slug}:${tab}`} title="Kisahistoria" />
         )}
+
 
         <Comments entityType="team" entityId={t.id} />
       </div>
