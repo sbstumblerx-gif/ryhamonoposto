@@ -26,6 +26,15 @@ export function RacesIndex() {
   const [name, setName] = useState("");
   const [flag, setFlag] = useState("");
   const [round, setRound] = useState("");
+  const [seasonFilter, setSeasonFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+
+  const races = q.data ?? [];
+  const seasonOptions = [...new Set(races.map(r => seasonYearFromName(r.name)).filter((y): y is number => y != null))].sort((a, b) => b - a);
+  const countryOptions = [...new Set(races.map(r => countryFromRaceName(r.name)).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const filtered = races.filter(r =>
+    (seasonFilter === "all" || String(seasonYearFromName(r.name)) === seasonFilter)
+    && (countryFilter === "all" || countryFromRaceName(r.name) === countryFilter));
 
   async function add() {
     if (!name.trim()) return;
@@ -43,6 +52,7 @@ export function RacesIndex() {
     await del({ data: { id } });
     await qc.invalidateQueries({ queryKey: ["races"] });
   }
+
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
