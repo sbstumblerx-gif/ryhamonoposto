@@ -74,6 +74,7 @@ function RaceDetail() {
       race_youtube_url: partial.race_youtube_url ?? r.race_youtube_url ?? null,
     }});
     await qc.invalidateQueries({ queryKey: ["race", slug] });
+    await qc.invalidateQueries({ queryKey: ["standings"] });
     toast.success("Tallennettu");
   }
 

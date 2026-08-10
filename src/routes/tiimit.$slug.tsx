@@ -8,6 +8,8 @@ import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
 import { MediaGallery } from "@/components/MediaGallery";
+import { EntityStats } from "@/components/EntityStats";
+
 import { TeamInfoCard } from "@/components/TeamInfoCard";
 import { useAdmin } from "@/components/admin-store";
 import { gradientFor } from "@/lib/team-colors";
@@ -80,9 +82,12 @@ function TeamPage() {
 
         {tab === "info" ? (
           <TeamInfoCard team={t as never} isAdmin={admin.isAdmin} />
+        ) : tab === "stats" ? (
+          <EntityStats kind="teams" slug={slug} />
         ) : (
-          <MediaGallery scope={`team:${slug}:${tab}`} title={tab === "stats" ? "Tilastot" : "Kisahistoria"} />
+          <MediaGallery scope={`team:${slug}:${tab}`} title="Kisahistoria" />
         )}
+
 
         <Comments entityType="team" entityId={t.id} />
       </div>

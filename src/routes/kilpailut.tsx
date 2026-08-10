@@ -2,7 +2,9 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listRaces, upsertRace, deleteRace } from "@/lib/content.functions";
+import { seasonYearFromName, countryFromRaceName } from "@/lib/stats-compute";
 import { useAdmin } from "@/components/admin-store";
+
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -26,6 +28,15 @@ export function RacesIndex() {
   const [name, setName] = useState("");
   const [flag, setFlag] = useState("");
   const [round, setRound] = useState("");
+  const [seasonFilter, setSeasonFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+
+  const races = q.data ?? [];
+  const seasonOptions = [...new Set(races.map(r => seasonYearFromName(r.name)).filter((y): y is number => y != null))].sort((a, b) => b - a);
+  const countryOptions = [...new Set(races.map(r => countryFromRaceName(r.name)).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const filtered = races.filter(r =>
+    (seasonFilter === "all" || String(seasonYearFromName(r.name)) === seasonFilter)
+    && (countryFilter === "all" || countryFromRaceName(r.name) === countryFilter));
 
   async function add() {
     if (!name.trim()) return;
@@ -43,6 +54,7 @@ export function RacesIndex() {
     await del({ data: { id } });
     await qc.invalidateQueries({ queryKey: ["races"] });
   }
+
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -63,8 +75,22 @@ export function RacesIndex() {
         </div>
       )}
 
+      <div className="flex flex-wrap gap-2 mb-4">
+        <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
+          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+          <option value="all">Kaikki kaudet</option>
+          {seasonOptions.map(y => <option key={y} value={String(y)}>{y}</option>)}
+        </select>
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+          <option value="all">Kaikki radat / maat</option>
+          {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
       <ul className="space-y-2">
-        {(q.data ?? []).map(r => (
+        {filtered.map(r => (
+
           <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
             <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
               <span className="text-2xl">{r.flag}</span>
@@ -79,7 +105,7 @@ export function RacesIndex() {
             )}
           </li>
         ))}
-        {(q.data ?? []).length === 0 && <li className="text-sm text-muted-foreground italic">Ei kilpailuja vielä.</li>}
+        {filtered.length === 0 && <li className="text-sm text-muted-foreground italic">Ei kilpailuja.</li>}
       </ul>
     </div>
   );
