@@ -2,7 +2,9 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listRaces, upsertRace, deleteRace } from "@/lib/content.functions";
+import { seasonYearFromName, countryFromRaceName } from "@/lib/stats-compute";
 import { useAdmin } from "@/components/admin-store";
+
 import { useState } from "react";
 import { toast } from "sonner";
 
