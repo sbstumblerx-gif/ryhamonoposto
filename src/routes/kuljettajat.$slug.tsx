@@ -8,6 +8,8 @@ import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
 import { MediaGallery } from "@/components/MediaGallery";
+import { EntityStats } from "@/components/EntityStats";
+
 import { DriverInfoCard } from "@/components/DriverInfoCard";
 import { useAdmin } from "@/components/admin-store";
 import { gradientFor } from "@/lib/team-colors";
