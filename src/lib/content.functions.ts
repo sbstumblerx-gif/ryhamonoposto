@@ -429,3 +429,20 @@ export const deleteDriver = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+// Admin picks the single "käynnissä" (live) race shown at the top of the Kilpailut
+// page. Passing null just clears it. The DB's partial unique index only allows one
+// row to be live at once, so the previous one is unset first.
+export const setLiveRace = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid().nullable() }).parse(d))
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: clearError } = await supabaseAdmin.from("races").update({ is_live: false }).eq("is_live", true);
+    if (clearError) throw clearError;
+    if (data.id) {
+      const { error } = await supabaseAdmin.from("races").update({ is_live: true }).eq("id", data.id);
+      if (error) throw error;
+    }
+    return { ok: true };
+  });
