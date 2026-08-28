@@ -63,9 +63,14 @@ export const listRaces = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("races")
-    .select("id, slug, name, flag, race_date, round_number, created_at, is_live, qualifying_content, race_content")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
+    .select("*");
+  
+  if (error) {
+    console.error("listRaces error:", error);
+    throw error;
+  }
+  
+  console.log("listRaces returned:", data?.length ?? 0, "races");
   return data ?? [];
 });
 
