@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listRaces, upsertRace, deleteRace, setLiveRace } from "@/lib/content.functions";
@@ -30,6 +30,8 @@ type RaceListItem = {
   is_live: boolean;
 };
 
+type LiveValue = string | null | "kesätauko" | "talvitauko";
+
 function hasContent(v: string | null | undefined): boolean {
   return !!v && v.trim().length > 0;
 }
@@ -59,13 +61,26 @@ function LiveBanner({
   race, allRaces, isAdmin, busy, onChange,
 }: {
   race: RaceListItem | undefined;
+  liveStatus: LiveValue;
   allRaces: RaceListItem[];
   isAdmin: boolean;
   busy: boolean;
-  onChange: (id: string | null) => void;
+  onChange: (value: LiveValue) => void;
 }) {
+  const navigate = useNavigate();
+
+  // Determine the display label for the current live status
+  let displayLabel = "Ei valittua kilpailua.";
+  if (race) {
+    displayLabel = `${race.flag} ${race.round_number != null ? `R${race.round_number} — ` : ""}${race.name}`;
+  } else if (liveStatus === "kesätauko") {
+    displayLabel = "☀️ Kesätauko";
+  } else if (liveStatus === "talvitauko") {
+    displayLabel = "❄️ Talvitauko";
+  }
+
   // Nothing live and no admin controls to show for it — stay out of the way.
-  if (!race && !isAdmin) return null;
+  if (!race && !isAdmin && liveStatus !== "kesätauko" && liveStatus !== "talvitauko") return null;
 
   return (
     <div className="card-dark p-4 mb-6">
@@ -88,6 +103,24 @@ function LiveBanner({
             <LiveStatusLabel race={race} />
           </span>
         </Link>
+      ) : liveStatus === "kesätauko" ? (
+        <button
+          onClick={() => navigate({ to: "/tilastot/$season", params: { season: new Date().getFullYear().toString() } })}
+          className="w-full text-left flex items-center gap-3 hover:opacity-80 transition"
+        >
+          <span className="text-2xl">☀️</span>
+          <span className="font-display uppercase tracking-widest">Kesätauko</span>
+          <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right">→ Tilastot</span>
+        </button>
+      ) : liveStatus === "talvitauko" ? (
+        <button
+          onClick={() => navigate({ to: "/tilastot/$season", params: { season: new Date().getFullYear().toString() } })}
+          className="w-full text-left flex items-center gap-3 hover:opacity-80 transition"
+        >
+          <span className="text-2xl">❄️</span>
+          <span className="font-display uppercase tracking-widest">Talvitauko</span>
+          <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right">→ Tilastot</span>
+        </button>
       ) : (
         <p className="text-sm text-muted-foreground italic">Ei valittua kilpailua.</p>
       )}
@@ -95,20 +128,24 @@ function LiveBanner({
       {isAdmin && (
         <div className="mt-3 pt-3 border-t border-primary/20">
           <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-display mb-1">
-            Admin: valitse käynnissä oleva kilpailu
+            Admin: valitse käynnissä oleva kilpailu tai tauko
           </label>
           <select
-            value={race?.id ?? ""}
+            value={liveStatus ?? ""}
             disabled={busy}
-            onChange={e => onChange(e.target.value || null)}
+            onChange={e => onChange(e.target.value as LiveValue)}
             className="w-full bg-black/70 border border-primary/40 rounded p-2 text-sm disabled:opacity-60"
           >
             <option value="">— Ei käynnissä —</option>
-            {allRaces.map(r => (
-              <option key={r.id} value={r.id}>
-                {r.round_number != null ? `R${r.round_number} — ` : ""}{r.name}
-              </option>
-            ))}
+            <option value="kesätauko">☀️ Kesätauko</option>
+            <option value="talvitauko">❄️ Talvitauko</option>
+            <optgroup label="Kilpailut">
+              {allRaces.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.round_number != null ? `R${r.round_number} — ` : ""}{r.name}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
       )}
@@ -135,6 +172,8 @@ export function RacesIndex() {
 
   const races = q.data ?? [];
   const liveRace = races.find(r => r.is_live);
+  const liveStatus = liveRace ? liveRace.id : (localStorage.getItem("live-status") as LiveValue ?? null);
+  
   // Past = has a result list (race_content). Everything else — including races
   // where only aika-ajot have been entered — counts as upcoming.
   const pastRaces = races.filter(r => hasContent(r.race_content));
@@ -165,10 +204,22 @@ export function RacesIndex() {
     await qc.invalidateQueries({ queryKey: ["races"] });
   }
 
-  async function changeLive(id: string | null) {
+  async function changeLive(value: LiveValue) {
     setLiveBusy(true);
     try {
-      await setLive({ data: { id } });
+      if (value === "kesätauko" || value === "talvitauko") {
+        // Save to localStorage and clear database live status
+        localStorage.setItem("live-status", value);
+        await setLive({ data: { id: null } });
+      } else if (value) {
+        // It's a race ID
+        localStorage.removeItem("live-status");
+        await setLive({ data: { id: value as string } });
+      } else {
+        // Clear everything
+        localStorage.removeItem("live-status");
+        await setLive({ data: { id: null } });
+      }
       await qc.invalidateQueries({ queryKey: ["races"] });
     } catch (e: any) {
       toast.error(e.message);
@@ -182,7 +233,7 @@ export function RacesIndex() {
       <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Kilpailut</h1>
       <div className="hairline-red mt-3 mb-6" />
 
-      <LiveBanner race={liveRace} allRaces={pickerRaces} isAdmin={admin.isAdmin} busy={liveBusy} onChange={changeLive} />
+      <LiveBanner race={liveRace} liveStatus={liveStatus} allRaces={pickerRaces} isAdmin={admin.isAdmin} busy={liveBusy} onChange={changeLive} />
 
       {admin.isAdmin && (
         <div className="card-dark p-3 mb-6 flex flex-col md:flex-row gap-2">
@@ -201,7 +252,8 @@ export function RacesIndex() {
       <div className="flex gap-2 mb-4">
         {(["past", "upcoming"] as const).map(v => (
           <button key={v} onClick={() => setView(v)}
-            className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${view === v ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
+            className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${view === v ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary/60"}`}
+          >
             {v === "past" ? "Menneet" : "Tulevat"}
           </button>
         ))}
@@ -244,4 +296,4 @@ export function RacesIndex() {
       </ul>
     </div>
   );
-              }
+}
