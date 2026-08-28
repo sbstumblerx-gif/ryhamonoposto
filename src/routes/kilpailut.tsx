@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listRaces, upsertRace, deleteRace, setLiveRace } from "@/lib/content.functions";
@@ -67,17 +67,7 @@ function LiveBanner({
   busy: boolean;
   onChange: (value: LiveValue) => void;
 }) {
-  const navigate = useNavigate();
-
-  // Determine the display label for the current live status
-  let displayLabel = "Ei valittua kilpailua.";
-  if (race) {
-    displayLabel = `${race.flag} ${race.round_number != null ? `R${race.round_number} — ` : ""}${race.name}`;
-  } else if (liveStatus === "kesätauko") {
-    displayLabel = "☀️ Kesätauko";
-  } else if (liveStatus === "talvitauko") {
-    displayLabel = "❄️ Talvitauko";
-  }
+  const currentYear = new Date().getFullYear().toString();
 
   // Nothing live and no admin controls to show for it — stay out of the way.
   if (!race && !isAdmin && liveStatus !== "kesätauko" && liveStatus !== "talvitauko") return null;
@@ -104,23 +94,17 @@ function LiveBanner({
           </span>
         </Link>
       ) : liveStatus === "kesätauko" ? (
-        <button
-          onClick={() => navigate({ to: "/tilastot/$season", params: { season: new Date().getFullYear().toString() } })}
-          className="w-full text-left flex items-center gap-3 hover:opacity-80 transition"
-        >
+        <Link to="/tilastot/$season" params={{ season: currentYear }} className="flex items-center gap-3 hover:opacity-80 transition">
           <span className="text-2xl">☀️</span>
           <span className="font-display uppercase tracking-widest">Kesätauko</span>
           <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right">→ Tilastot</span>
-        </button>
+        </Link>
       ) : liveStatus === "talvitauko" ? (
-        <button
-          onClick={() => navigate({ to: "/tilastot/$season", params: { season: new Date().getFullYear().toString() } })}
-          className="w-full text-left flex items-center gap-3 hover:opacity-80 transition"
-        >
+        <Link to="/tilastot/$season" params={{ season: currentYear }} className="flex items-center gap-3 hover:opacity-80 transition">
           <span className="text-2xl">❄️</span>
           <span className="font-display uppercase tracking-widest">Talvitauko</span>
           <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right">→ Tilastot</span>
-        </button>
+        </Link>
       ) : (
         <p className="text-sm text-muted-foreground italic">Ei valittua kilpailua.</p>
       )}
@@ -172,7 +156,7 @@ export function RacesIndex() {
 
   const races = q.data ?? [];
   const liveRace = races.find(r => r.is_live);
-  const liveStatus = liveRace ? liveRace.id : (localStorage.getItem("live-status") as LiveValue ?? null);
+  const liveStatus = liveRace ? liveRace.id : (typeof window !== 'undefined' ? localStorage.getItem("live-status") : null) as LiveValue ?? null;
   
   // Past = has a result list (race_content). Everything else — including races
   // where only aika-ajot have been entered — counts as upcoming.
@@ -209,15 +193,21 @@ export function RacesIndex() {
     try {
       if (value === "kesätauko" || value === "talvitauko") {
         // Save to localStorage and clear database live status
-        localStorage.setItem("live-status", value);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem("live-status", value);
+        }
         await setLive({ data: { id: null } });
       } else if (value) {
         // It's a race ID
-        localStorage.removeItem("live-status");
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("live-status");
+        }
         await setLive({ data: { id: value as string } });
       } else {
         // Clear everything
-        localStorage.removeItem("live-status");
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("live-status");
+        }
         await setLive({ data: { id: null } });
       }
       await qc.invalidateQueries({ queryKey: ["races"] });
