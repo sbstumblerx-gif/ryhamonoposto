@@ -1,11 +1,11 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listRaces, upsertRace, deleteRace, setLiveRace } from "@/lib/content.functions";
+import { listRaces, upsertRace, deleteRace } from "@/lib/content.functions";
 import { seasonYearFromName, countryFromRaceName } from "@/lib/stats-compute";
 import { useAdmin } from "@/components/admin-store";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/kilpailut")({
@@ -27,7 +27,6 @@ type RaceListItem = {
   created_at: string;
   qualifying_content: string | null;
   race_content: string | null;
-  is_live: boolean;
 };
 
 function hasContent(v: string | null | undefined): boolean {
@@ -65,18 +64,16 @@ function LiveStatusLabel({ race }: { race: RaceListItem }) {
 }
 
 function LiveBanner({
-  race, allRaces, isAdmin, busy, onChange, liveStatus,
+  race, allRaces, isAdmin, onChange, liveStatus,
 }: {
   race: RaceListItem | undefined;
   liveStatus: string | null;
   allRaces: RaceListItem[];
   isAdmin: boolean;
-  busy: boolean;
   onChange: (value: string | null) => void;
 }) {
   const currentYear = new Date().getFullYear().toString();
 
-  // Nothing live and no admin controls to show for it — stay out of the way.
   if (!race && !isAdmin && liveStatus !== "kesätauko" && liveStatus !== "talvitauko") return null;
 
   return (
@@ -123,7 +120,6 @@ function LiveBanner({
           </label>
           <select
             value={liveStatus ?? ""}
-            disabled={busy}
             onChange={e => onChange(e.target.value || null)}
             className="w-full bg-black/70 border border-primary/40 rounded p-2 text-sm disabled:opacity-60"
           >
@@ -148,7 +144,6 @@ export function RacesIndex() {
   const list = useServerFn(listRaces);
   const create = useServerFn(upsertRace);
   const del = useServerFn(deleteRace);
-  const setLive = useServerFn(setLiveRace);
   const qc = useQueryClient();
   const admin = useAdmin();
   const q = useQuery({ queryKey: ["races"], queryFn: () => list() });
@@ -159,37 +154,29 @@ export function RacesIndex() {
   const [seasonFilter, setSeasonFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
   const [view, setView] = useState<"past" | "upcoming">("past");
-  const [liveBusy, setLiveBusy] = useState(false);
+  
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setLiveStatus(localStorage.getItem("live-status"));
+    }
+  }, []);
 
   const races = q.data ?? [];
-  const liveRace = races.find(r => r.is_live);
-  
-  // Determine current live status: race ID, kesätauko, talvitauko, or null
-  let liveStatus: string | null = null;
-  if (liveRace) {
-    liveStatus = liveRace.id;
-  } else if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem("live-status");
-    if (stored === "kesätauko" || stored === "talvitauko") {
-      liveStatus = stored;
-    }
-  }
-  
-  // Past = has a result list (race_content). Everything else — including races
-  // where only aika-ajot have been entered — counts as upcoming.
+  const liveRace = races.find(r => r.id === liveStatus);
+
   const pastRaces = races.filter(r => hasContent(r.race_content)).sort(comparePast);
   const upcomingRaces = races.filter(r => !hasContent(r.race_content)).sort(compareUpcoming);
   const pickerRaces = [...races].sort((a, b) => {
-    // Show all races, sorted by: upcoming first (soonest), then past (newest)
     const aHasRaceContent = hasContent(a.race_content);
     const bHasRaceContent = hasContent(b.race_content);
     
-    if (!aHasRaceContent && bHasRaceContent) return -1; // a is upcoming, b is past
-    if (aHasRaceContent && !bHasRaceContent) return 1;  // a is past, b is upcoming
+    if (!aHasRaceContent && bHasRaceContent) return -1;
+    if (aHasRaceContent && !bHasRaceContent) return 1;
     
-    // Both same status, sort accordingly
-    if (!aHasRaceContent && !bHasRaceContent) return compareUpcoming(a, b); // both upcoming
-    return comparePast(a, b); // both past
+    if (!aHasRaceContent && !bHasRaceContent) return compareUpcoming(a, b);
+    return comparePast(a, b);
   });
 
   const seasonOptions = [...new Set(races.map(r => seasonYearFromName(r.name)).filter((y): y is number => y != null))].sort((a, b) => b - a);
@@ -216,34 +203,15 @@ export function RacesIndex() {
     await qc.invalidateQueries({ queryKey: ["races"] });
   }
 
-  async function changeLive(value: string | null) {
-    setLiveBusy(true);
-    try {
-      if (value === "kesätauko" || value === "talvitauko") {
-        // Save to localStorage and clear database live status
-        if (typeof window !== 'undefined') {
-          localStorage.setItem("live-status", value);
-        }
-        await setLive({ data: { id: null } });
-      } else if (value) {
-        // It's a race ID
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem("live-status");
-        }
-        await setLive({ data: { id: value } });
+  function changeLive(value: string | null) {
+    if (typeof window !== "undefined") {
+      if (value) {
+        localStorage.setItem("live-status", value);
       } else {
-        // Clear everything
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem("live-status");
-        }
-        await setLive({ data: { id: null } });
+        localStorage.removeItem("live-status");
       }
-      await qc.invalidateQueries({ queryKey: ["races"] });
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setLiveBusy(false);
     }
+    setLiveStatus(value);
   }
 
   return (
@@ -251,7 +219,7 @@ export function RacesIndex() {
       <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Kilpailut</h1>
       <div className="hairline-red mt-3 mb-6" />
 
-      <LiveBanner race={liveRace} liveStatus={liveStatus} allRaces={pickerRaces} isAdmin={admin.isAdmin} busy={liveBusy} onChange={changeLive} />
+      <LiveBanner race={liveRace} liveStatus={liveStatus} allRaces={pickerRaces} isAdmin={admin.isAdmin} onChange={changeLive} />
 
       {admin.isAdmin && (
         <div className="card-dark p-3 mb-6 flex flex-col md:flex-row gap-2">
