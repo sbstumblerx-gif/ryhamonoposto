@@ -19,7 +19,7 @@ export const listDrivers = createServerFn({ method: "GET" }).handler(async () =>
   const [{ data, error }, colors] = await Promise.all([
     supabaseAdmin
       .from("drivers")
-      .select("id, slug, name, flag, number, color_key, team_slug, current_team_slug, current_team_since, former_teams, content, hero_media_url")
+      .select("id, slug, name, flag, race_date, round_number, created_at, qualifying_content, race_content, is_live")
       .order("number", { ascending: true }),
     teamColorMap(),
   ]);
