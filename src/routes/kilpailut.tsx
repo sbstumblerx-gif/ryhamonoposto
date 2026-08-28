@@ -30,8 +30,6 @@ type RaceListItem = {
   is_live: boolean;
 };
 
-type LiveValue = string | null | "kesätauko" | "talvitauko";
-
 function hasContent(v: string | null | undefined): boolean {
   return !!v && v.trim().length > 0;
 }
@@ -58,14 +56,14 @@ function LiveStatusLabel({ race }: { race: RaceListItem }) {
 }
 
 function LiveBanner({
-  race, allRaces, isAdmin, busy, onChange,
+  race, allRaces, isAdmin, busy, onChange, liveStatus,
 }: {
   race: RaceListItem | undefined;
-  liveStatus: LiveValue;
+  liveStatus: string | null;
   allRaces: RaceListItem[];
   isAdmin: boolean;
   busy: boolean;
-  onChange: (value: LiveValue) => void;
+  onChange: (value: string | null) => void;
 }) {
   const currentYear = new Date().getFullYear().toString();
 
@@ -117,7 +115,7 @@ function LiveBanner({
           <select
             value={liveStatus ?? ""}
             disabled={busy}
-            onChange={e => onChange(e.target.value as LiveValue)}
+            onChange={e => onChange(e.target.value || null)}
             className="w-full bg-black/70 border border-primary/40 rounded p-2 text-sm disabled:opacity-60"
           >
             <option value="">— Ei käynnissä —</option>
@@ -156,7 +154,17 @@ export function RacesIndex() {
 
   const races = q.data ?? [];
   const liveRace = races.find(r => r.is_live);
-  const liveStatus = liveRace ? liveRace.id : (typeof window !== 'undefined' ? localStorage.getItem("live-status") : null) as LiveValue ?? null;
+  
+  // Determine current live status: race ID, kesätauko, talvitauko, or null
+  let liveStatus: string | null = null;
+  if (liveRace) {
+    liveStatus = liveRace.id;
+  } else if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem("live-status");
+    if (stored === "kesätauko" || stored === "talvitauko") {
+      liveStatus = stored;
+    }
+  }
   
   // Past = has a result list (race_content). Everything else — including races
   // where only aika-ajot have been entered — counts as upcoming.
@@ -188,7 +196,7 @@ export function RacesIndex() {
     await qc.invalidateQueries({ queryKey: ["races"] });
   }
 
-  async function changeLive(value: LiveValue) {
+  async function changeLive(value: string | null) {
     setLiveBusy(true);
     try {
       if (value === "kesätauko" || value === "talvitauko") {
@@ -202,7 +210,7 @@ export function RacesIndex() {
         if (typeof window !== 'undefined') {
           localStorage.removeItem("live-status");
         }
-        await setLive({ data: { id: value as string } });
+        await setLive({ data: { id: value } });
       } else {
         // Clear everything
         if (typeof window !== 'undefined') {
