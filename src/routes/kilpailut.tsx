@@ -34,9 +34,7 @@ function hasContent(v: string | null | undefined): boolean {
   return !!v && v.trim().length > 0;
 }
 
-// Soonest first: smallest round number leads, which also tracks the calendar's
-// chronological order. Races without a round number yet fall back to their date,
-// then to creation order, so nothing gets lost just because R# hasn't been set.
+// Sort upcoming races by soonest first (smallest round_number leads)
 function compareUpcoming(a: RaceListItem, b: RaceListItem): number {
   const ra = a.round_number ?? Infinity;
   const rb = b.round_number ?? Infinity;
@@ -45,6 +43,17 @@ function compareUpcoming(a: RaceListItem, b: RaceListItem): number {
   const db = b.race_date ? new Date(b.race_date).getTime() : Infinity;
   if (da !== db) return da - db;
   return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+}
+
+// Sort past races by newest first (largest round_number leads)
+function comparePast(a: RaceListItem, b: RaceListItem): number {
+  const ra = a.round_number ?? -Infinity;
+  const rb = b.round_number ?? -Infinity;
+  if (ra !== rb) return rb - ra;
+  const da = a.race_date ? new Date(a.race_date).getTime() : -Infinity;
+  const db = b.race_date ? new Date(b.race_date).getTime() : -Infinity;
+  if (da !== db) return db - da;
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
 }
 
 function LiveStatusLabel({ race }: { race: RaceListItem }) {
@@ -168,9 +177,20 @@ export function RacesIndex() {
   
   // Past = has a result list (race_content). Everything else — including races
   // where only aika-ajot have been entered — counts as upcoming.
-  const pastRaces = races.filter(r => hasContent(r.race_content));
-  const upcomingRaces = [...races.filter(r => !hasContent(r.race_content))].sort(compareUpcoming);
-  const pickerRaces = [...races].sort(compareUpcoming);
+  const pastRaces = races.filter(r => hasContent(r.race_content)).sort(comparePast);
+  const upcomingRaces = races.filter(r => !hasContent(r.race_content)).sort(compareUpcoming);
+  const pickerRaces = [...races].sort((a, b) => {
+    // Show all races, sorted by: upcoming first (soonest), then past (newest)
+    const aHasRaceContent = hasContent(a.race_content);
+    const bHasRaceContent = hasContent(b.race_content);
+    
+    if (!aHasRaceContent && bHasRaceContent) return -1; // a is upcoming, b is past
+    if (aHasRaceContent && !bHasRaceContent) return 1;  // a is past, b is upcoming
+    
+    // Both same status, sort accordingly
+    if (!aHasRaceContent && !bHasRaceContent) return compareUpcoming(a, b); // both upcoming
+    return comparePast(a, b); // both past
+  });
 
   const seasonOptions = [...new Set(races.map(r => seasonYearFromName(r.name)).filter((y): y is number => y != null))].sort((a, b) => b - a);
   const countryOptions = [...new Set(races.map(r => countryFromRaceName(r.name)).filter(Boolean))].sort((a, b) => a.localeCompare(b));
