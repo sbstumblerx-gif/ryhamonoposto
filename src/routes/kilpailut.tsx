@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listRaces, upsertRace, deleteRace } from "@/lib/content.functions";
+import { listRaces, upsertRace, deleteRace, setLiveRace } from "@/lib/content.functions";
 import { seasonYearFromName, countryFromRaceName } from "@/lib/stats-compute";
 import { useAdmin } from "@/components/admin-store";
 
@@ -17,10 +17,110 @@ function RacesLayout() {
   return <Outlet />;
 }
 
+type RaceListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  flag: string;
+  race_date: string | null;
+  round_number: number | null;
+  created_at: string;
+  qualifying_content: string | null;
+  race_content: string | null;
+  is_live: boolean;
+};
+
+function hasContent(v: string | null | undefined): boolean {
+  return !!v && v.trim().length > 0;
+}
+
+// Soonest first: smallest round number leads, which also tracks the calendar's
+// chronological order. Races without a round number yet fall back to their date,
+// then to creation order, so nothing gets lost just because R# hasn't been set.
+function compareUpcoming(a: RaceListItem, b: RaceListItem): number {
+  const ra = a.round_number ?? Infinity;
+  const rb = b.round_number ?? Infinity;
+  if (ra !== rb) return ra - rb;
+  const da = a.race_date ? new Date(a.race_date).getTime() : Infinity;
+  const db = b.race_date ? new Date(b.race_date).getTime() : Infinity;
+  if (da !== db) return da - db;
+  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+}
+
+function LiveStatusLabel({ race }: { race: RaceListItem }) {
+  const qualifyingDone = hasContent(race.qualifying_content);
+  const raceDone = hasContent(race.race_content);
+  if (!qualifyingDone) return <>Aika-ajot tulossa</>;
+  if (!raceDone) return <>Aika-ajot suoritettu<br />Kilpailu tulossa</>;
+  return <>Tulokset</>;
+}
+
+function LiveBanner({
+  race, allRaces, isAdmin, busy, onChange,
+}: {
+  race: RaceListItem | undefined;
+  allRaces: RaceListItem[];
+  isAdmin: boolean;
+  busy: boolean;
+  onChange: (id: string | null) => void;
+}) {
+  // Nothing live and no admin controls to show for it — stay out of the way.
+  if (!race && !isAdmin) return null;
+
+  return (
+    <div className="card-dark p-4 mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+        </span>
+        <span className="font-display text-[10px] uppercase tracking-widest text-primary">Käynnissä</span>
+      </div>
+
+      {race ? (
+        <Link to="/kilpailut/$slug" params={{ slug: race.slug }} className="flex items-center gap-3 hover:opacity-80 transition">
+          <span className="text-2xl">{race.flag}</span>
+          {race.round_number != null && (
+            <span className="font-display text-[10px] px-1.5 py-0.5 rounded border border-primary/60 text-primary">R{race.round_number}</span>
+          )}
+          <span className="font-display uppercase tracking-widest">{race.name}</span>
+          <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right leading-tight">
+            <LiveStatusLabel race={race} />
+          </span>
+        </Link>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">Ei valittua kilpailua.</p>
+      )}
+
+      {isAdmin && (
+        <div className="mt-3 pt-3 border-t border-primary/20">
+          <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-display mb-1">
+            Admin: valitse käynnissä oleva kilpailu
+          </label>
+          <select
+            value={race?.id ?? ""}
+            disabled={busy}
+            onChange={e => onChange(e.target.value || null)}
+            className="w-full bg-black/70 border border-primary/40 rounded p-2 text-sm disabled:opacity-60"
+          >
+            <option value="">— Ei käynnissä —</option>
+            {allRaces.map(r => (
+              <option key={r.id} value={r.id}>
+                {r.round_number != null ? `R${r.round_number} — ` : ""}{r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RacesIndex() {
   const list = useServerFn(listRaces);
   const create = useServerFn(upsertRace);
   const del = useServerFn(deleteRace);
+  const setLive = useServerFn(setLiveRace);
   const qc = useQueryClient();
   const admin = useAdmin();
   const q = useQuery({ queryKey: ["races"], queryFn: () => list() });
@@ -30,11 +130,21 @@ export function RacesIndex() {
   const [round, setRound] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
+  const [view, setView] = useState<"past" | "upcoming">("past");
+  const [liveBusy, setLiveBusy] = useState(false);
 
   const races = q.data ?? [];
+  const liveRace = races.find(r => r.is_live);
+  // Past = has a result list (race_content). Everything else — including races
+  // where only aika-ajot have been entered — counts as upcoming.
+  const pastRaces = races.filter(r => hasContent(r.race_content));
+  const upcomingRaces = [...races.filter(r => !hasContent(r.race_content))].sort(compareUpcoming);
+  const pickerRaces = [...races].sort(compareUpcoming);
+
   const seasonOptions = [...new Set(races.map(r => seasonYearFromName(r.name)).filter((y): y is number => y != null))].sort((a, b) => b - a);
   const countryOptions = [...new Set(races.map(r => countryFromRaceName(r.name)).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  const filtered = races.filter(r =>
+  const base = view === "past" ? pastRaces : upcomingRaces;
+  const filtered = base.filter(r =>
     (seasonFilter === "all" || String(seasonYearFromName(r.name)) === seasonFilter)
     && (countryFilter === "all" || countryFromRaceName(r.name) === countryFilter));
 
@@ -55,11 +165,24 @@ export function RacesIndex() {
     await qc.invalidateQueries({ queryKey: ["races"] });
   }
 
+  async function changeLive(id: string | null) {
+    setLiveBusy(true);
+    try {
+      await setLive({ data: { id } });
+      await qc.invalidateQueries({ queryKey: ["races"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLiveBusy(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Kilpailut</h1>
       <div className="hairline-red mt-3 mb-6" />
+
+      <LiveBanner race={liveRace} allRaces={pickerRaces} isAdmin={admin.isAdmin} busy={liveBusy} onChange={changeLive} />
 
       {admin.isAdmin && (
         <div className="card-dark p-3 mb-6 flex flex-col md:flex-row gap-2">
@@ -74,6 +197,15 @@ export function RacesIndex() {
           </button>
         </div>
       )}
+
+      <div className="flex gap-2 mb-4">
+        {(["past", "upcoming"] as const).map(v => (
+          <button key={v} onClick={() => setView(v)}
+            className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${view === v ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
+            {v === "past" ? "Menneet" : "Tulevat"}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
         <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
@@ -90,7 +222,6 @@ export function RacesIndex() {
 
       <ul className="space-y-2">
         {filtered.map(r => (
-
           <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
             <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
               <span className="text-2xl">{r.flag}</span>
@@ -105,8 +236,12 @@ export function RacesIndex() {
             )}
           </li>
         ))}
-        {filtered.length === 0 && <li className="text-sm text-muted-foreground italic">Ei kilpailuja.</li>}
+        {filtered.length === 0 && (
+          <li className="text-sm text-muted-foreground italic">
+            {view === "past" ? "Ei menneitä kilpailuja." : "Ei tulevia kilpailuja."}
+          </li>
+        )}
       </ul>
     </div>
   );
-}
+              }
