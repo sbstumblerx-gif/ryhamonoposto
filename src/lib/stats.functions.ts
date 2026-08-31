@@ -19,7 +19,7 @@ export const getStandings = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<StandingsResult> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: races }, { data: drivers }, { data: teams }] = await Promise.all([
-      supabaseAdmin.from("races").select("name, qualifying_content, race_content"),
+      supabaseAdmin.from("races").select("name, round_number, qualifying_content, race_content"),
       supabaseAdmin.from("drivers").select("slug, name, flag, current_team_slug, team_slug"),
       supabaseAdmin.from("teams").select("slug, name, flag"),
     ]);
@@ -34,6 +34,9 @@ export const getStandings = createServerFn({ method: "GET" })
     let sessionCount = 0;
 
     for (const race of races ?? []) {
+      // Winter testing (round 0) is unofficial: it never contributes points,
+      // poles, wins or any other stat, only its own history entry on /kilpailut.
+      if (race.round_number === 0) continue;
       const year = seasonYearFromName(race.name);
       if (year) seasons.add(year);
       if (data.year != null && year !== data.year) continue;
