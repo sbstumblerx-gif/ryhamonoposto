@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDriver, updateDriver } from "@/lib/content.functions";
+import { getDriver, updateDriver, deleteDriver } from "@/lib/content.functions";
 import { useEntityIndex } from "@/components/useEntityIndex";
 import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
@@ -31,9 +31,11 @@ function DriverPage() {
   const { slug } = Route.useParams();
   const get = useServerFn(getDriver);
   const save = useServerFn(updateDriver);
+  const del = useServerFn(deleteDriver);
   const qc = useQueryClient();
   const admin = useAdmin();
   const entities = useEntityIndex();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("info");
 
   const q = useQuery({ queryKey: ["driver", slug], queryFn: () => get({ data: { slug } }) });
@@ -45,6 +47,15 @@ function DriverPage() {
     await save({ data: { slug, ...p } });
     await qc.invalidateQueries({ queryKey: ["driver", slug] });
     toast.success("Tallennettu");
+  }
+
+  async function removeDriver() {
+    if (!d) return;
+    if (!confirm(`Poistetaanko ${d.name} kokonaan? Tätä ei voi perua.`)) return;
+    await del({ data: { id: d.id } });
+    await qc.invalidateQueries({ queryKey: ["drivers"] });
+    toast.success("Kuljettaja poistettu");
+    navigate({ to: "/kuljettajat" });
   }
 
   return (
@@ -66,6 +77,12 @@ function DriverPage() {
           <div className="card-dark p-3 mb-4 space-y-3">
             <MediaUpload currentUrl={d.hero_media_url} onUploaded={(url) => patch({ hero_media_url: url })} label="Pääkuva" />
             <EditableText value={d.content ?? ""} multiline placeholder="Kuljettajan esittely…" onSave={(v) => patch({ content: v })} />
+            <div className="pt-2 border-t border-primary/20">
+              <button onClick={removeDriver}
+                className="text-xs border border-primary/60 rounded px-3 py-1.5 font-display uppercase tracking-widest text-primary hover:bg-primary/20">
+                Poista kuljettaja kokonaan
+              </button>
+            </div>
           </div>
         )}
 
@@ -93,4 +110,4 @@ function DriverPage() {
       </div>
     </div>
   );
-}
+        }
