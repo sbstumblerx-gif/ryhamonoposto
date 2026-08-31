@@ -61,6 +61,11 @@ function RaceDetail() {
   const r = q.data;
   if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
 
+  // Round 0 = talvitestit: a single result sheet only, no qualifying session,
+  // no points and no official stats (excluded in getStandings).
+  const isWinterTest = r.round_number === 0;
+  const effectiveTab = isWinterTest ? "race" : tab;
+
   async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null; qualifying_youtube_url: string | null; race_youtube_url: string | null; round_number: number | null }>) {
     if (!r) return;
     await save({ data: { id: r.id, name: r.name, flag: r.flag, race_date: r.race_date,
@@ -78,9 +83,9 @@ function RaceDetail() {
     toast.success("Tallennettu");
   }
 
-  const activeContent = tab === "qualifying" ? (r.qualifying_content ?? "") : (r.race_content ?? "");
-  const activeMedia = tab === "qualifying" ? r.qualifying_media_url : r.race_media_url;
-  const activeYoutube = tab === "qualifying" ? (r.qualifying_youtube_url ?? r.youtube_url) : (r.race_youtube_url ?? r.youtube_url);
+  const activeContent = effectiveTab === "qualifying" ? (r.qualifying_content ?? "") : (r.race_content ?? "");
+  const activeMedia = effectiveTab === "qualifying" ? r.qualifying_media_url : r.race_media_url;
+  const activeYoutube = effectiveTab === "qualifying" ? (r.qualifying_youtube_url ?? r.youtube_url) : (r.race_youtube_url ?? r.youtube_url);
   const embed = youtubeEmbedUrl(activeYoutube);
 
   return (
@@ -88,7 +93,9 @@ function RaceDetail() {
       <div className="flex items-center gap-3">
         <span className="text-3xl">{r.flag}</span>
         {r.round_number != null && (
-          <span className="font-display text-sm px-2 py-1 rounded border border-primary/60 text-primary">R{r.round_number}</span>
+          <span className="font-display text-sm px-2 py-1 rounded border border-primary/60 text-primary">
+            {isWinterTest ? "TALVITESTIT" : `R${r.round_number}`}
+          </span>
         )}
         <h1 className="font-display uppercase tracking-widest text-2xl md:text-3xl">{r.name}</h1>
       </div>
@@ -100,14 +107,16 @@ function RaceDetail() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-4">
-        {(["qualifying", "race"] as const).map(k => (
-          <button key={k} onClick={() => setTab(k)}
-            className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
-            {k === "qualifying" ? "Aika-ajo" : "Kisa"}
-          </button>
-        ))}
-      </div>
+      {!isWinterTest && (
+        <div className="flex gap-2 mb-4">
+          {(["qualifying", "race"] as const).map(k => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
+              {k === "qualifying" ? "Aika-ajo" : "Kisa"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {activeMedia && (
         <img src={activeMedia} alt="" className="w-full rounded border border-primary/30 mb-4" />
@@ -115,46 +124,51 @@ function RaceDetail() {
 
       {admin.isAdmin && (
         <div className="card-dark p-3 mb-4 space-y-3">
+          {isWinterTest && (
+            <p className="text-xs text-muted-foreground italic">
+              Talvitestit — vain tulosliuska, ei aika-ajoa. Ei tuota pisteitä eikä virallista dataa tilastoihin, mutta jää historiaan omana sessionaan.
+            </p>
+          )}
           <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">{tab === "qualifying" ? "Aika-ajon YouTube-linkki" : "Kisan YouTube-linkki"}</span>
-            <input key={`${tab}-youtube-${activeYoutube ?? ""}`} defaultValue={activeYoutube ?? ""} onBlur={(e) => {
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">{isWinterTest ? "Testien YouTube-linkki" : effectiveTab === "qualifying" ? "Aika-ajon YouTube-linkki" : "Kisan YouTube-linkki"}</span>
+            <input key={`${effectiveTab}-youtube-${activeYoutube ?? ""}`} defaultValue={activeYoutube ?? ""} onBlur={(e) => {
               const v = e.target.value.trim();
               const old = activeYoutube ?? null;
-              if ((v || null) !== old) void patch(tab === "qualifying" ? { qualifying_youtube_url: v || null } : { race_youtube_url: v || null });
+              if ((v || null) !== old) void patch(effectiveTab === "qualifying" ? { qualifying_youtube_url: v || null } : { race_youtube_url: v || null });
             }} placeholder="https://youtu.be/…" className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm" />
           </div>
           <YouTubePreview url={activeYoutube} />
           <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Kilpailun järjestysnumero (R1–R50)</span>
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Kilpailun järjestysnumero (0 = talvitestit, R1–R50)</span>
             <input
               key={`round-${r.round_number ?? ""}`}
               type="number"
-              min={1}
+              min={0}
               max={50}
               defaultValue={r.round_number ?? ""}
               onBlur={(e) => {
                 const raw = e.target.value.trim();
-                const v = raw ? Math.min(50, Math.max(1, Number(raw))) : null;
+                const v = raw ? Math.min(50, Math.max(0, Number(raw))) : null;
                 if (v !== (r.round_number ?? null)) void patch({ round_number: v });
               }}
               className="w-24 bg-black/70 border border-primary/30 rounded p-2 text-sm"
             />
           </div>
           <MediaUpload
-            label={tab === "qualifying" ? "Aika-ajokuva" : "Kisakuva"}
+            label={isWinterTest ? "Testikuva" : effectiveTab === "qualifying" ? "Aika-ajokuva" : "Kisakuva"}
             currentUrl={activeMedia}
             onUploaded={async (url) => {
-              await patch(tab === "qualifying" ? { qualifying_media_url: url } : { race_media_url: url });
+              await patch(effectiveTab === "qualifying" ? { qualifying_media_url: url } : { race_media_url: url });
               setAiBusy(true);
               try {
                 const yearMatch = r.name.match(/(20\d\d)/);
                 const res = await genResults({ data: {
                   image_url: url,
-                  session_label: `${r.name} ${tab === "qualifying" ? "aika-ajot" : "kisa"}`,
+                  session_label: `${r.name} ${isWinterTest ? "talvitestit" : effectiveTab === "qualifying" ? "aika-ajot" : "kisa"}`,
                   year: yearMatch ? Number(yearMatch[1]) : null,
                 }});
                 if (res.text.trim()) {
-                  await patch(tab === "qualifying" ? { qualifying_content: res.text } : { race_content: res.text });
+                  await patch(effectiveTab === "qualifying" ? { qualifying_content: res.text } : { race_content: res.text });
                   toast.success("Tekoäly loi tuloslistan — voit muokata sitä");
                 }
               } catch (e: any) {
@@ -168,15 +182,15 @@ function RaceDetail() {
           <EditableText
             value={activeContent}
             multiline
-            placeholder="Kirjoita tulostiedot… nimet linkittyvät automaattisesti."
-            onSave={(v) => patch(tab === "qualifying" ? { qualifying_content: v } : { race_content: v })}
+            placeholder={isWinterTest ? "Kirjoita talvitestien tulosliuska… nimet linkittyvät automaattisesti." : "Kirjoita tulostiedot… nimet linkittyvät automaattisesti."}
+            onSave={(v) => patch(effectiveTab === "qualifying" ? { qualifying_content: v } : { race_content: v })}
           />
         </div>
       )}
 
       <SmartText text={activeContent} entities={entities} className="text-sm leading-6" />
 
-      <Comments entityType={`race:${tab}`} entityId={r.id} />
+      <Comments entityType={`race:${effectiveTab}`} entityId={r.id} />
     </div>
   );
-}
+                    }
