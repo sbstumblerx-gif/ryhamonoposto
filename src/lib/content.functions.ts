@@ -169,7 +169,7 @@ function slugify(s: string): string {
 const RaceInput = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1).max(200),
-  round_number: z.number().int().min(1).max(50).nullable().optional(),
+  round_number: z.number().int().min(0).max(50).nullable().optional(),
   flag: z.string().max(20).default(""),
   race_date: z.string().nullable().optional(),
   qualifying_content: z.string().default(""),
@@ -451,4 +451,3 @@ export const setLiveRace = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
-    
