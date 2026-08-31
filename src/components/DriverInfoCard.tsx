@@ -33,9 +33,13 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
   const former: FormerTeam[] = Array.isArray(driver.former_teams) ? driver.former_teams : [];
 
   async function patch(p: Partial<Pick<Driver, "info_card" | "current_team_slug" | "current_team_since" | "current_team_is_reserve" | "number" | "flag"> & { former_teams: FormerTeam[] }>) {
-    await save({ data: { slug: driver.slug, ...p } });
-    await qc.invalidateQueries({ queryKey: ["driver", driver.slug] });
-    toast.success("Tallennettu");
+    try {
+      await save({ data: { slug: driver.slug, ...p } });
+      await qc.invalidateQueries({ queryKey: ["driver", driver.slug] });
+      toast.success("Tallennettu");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Tallennus epäonnistui");
+    }
   }
 
   const currentTeam = driver.current_team_slug ? teamBySlug.get(driver.current_team_slug) : null;
@@ -169,4 +173,4 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
 // small helper so we don't call useServerFn inside useQuery inline
 function useServerFnListTeams() {
   return listTeams();
-                                                                                                                               }
+                                       }
