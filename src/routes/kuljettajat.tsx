@@ -52,6 +52,15 @@ export function DriversList() {
 
   function isActive(d: any) { return !!d.current_team_slug; }
 
+  // A driver counts as a "reserve" for badge/sorting purposes either through
+  // their current team assignment, or — once they've moved on — through the
+  // most recent former-team stint that's flagged as a reserve spell.
+  function isReserveDisplay(d: any): boolean {
+    if (d.current_team_slug) return !!d.current_team_is_reserve;
+    const former = Array.isArray(d.former_teams) ? d.former_teams : [];
+    return !!(former[0] as any)?.is_reserve;
+  }
+
   function sortWithin(rows: any[]): any[] {
     const arr = [...rows];
     if (filter === "number") arr.sort((a, b) => (a.number ?? 999) - (b.number ?? 999));
@@ -61,39 +70,51 @@ export function DriversList() {
   }
 
   // Grouped view (default = team). Active teams first, then inactive teams, then "Ei tiimiä".
+  // Within each team, drivers are ordered: active seat drivers, then reserve
+  // drivers (current or former reserve stint for that team), then the rest
+  // of the team's former (non-reserve) drivers.
   const teamGroups = useMemo(() => {
     if (filter !== "team") return null;
     const activeMap = new Map<string, any[]>();
+    const reserveMap = new Map<string, any[]>();
     const formerMap = new Map<string, any[]>();
     const noTeam: any[] = [];
     for (const d of drivers) {
       if (d.current_team_slug) {
-        const arr = activeMap.get(d.current_team_slug) ?? [];
+        const map = d.current_team_is_reserve ? reserveMap : activeMap;
+        const arr = map.get(d.current_team_slug) ?? [];
         arr.push(d);
-        activeMap.set(d.current_team_slug, arr);
+        map.set(d.current_team_slug, arr);
       } else {
         // Attach to first former team if any, else "no team"
         const former = Array.isArray(d.former_teams) ? (d.former_teams as any[]) : [];
-        const slug = typeof former[0] === "object" && former[0] ? (former[0] as any).slug : undefined;
+        const first = former[0] as any;
+        const slug = typeof first === "object" && first ? first.slug : undefined;
         if (slug) {
-          const arr = formerMap.get(slug) ?? [];
+          const map = first.is_reserve ? reserveMap : formerMap;
+          const arr = map.get(slug) ?? [];
           arr.push(d);
-          formerMap.set(slug, arr);
+          map.set(slug, arr);
         } else {
           noTeam.push(d);
         }
       }
     }
     const sections: { label: string; color: string | null; drivers: any[] }[] = [];
-    // Active teams (any team that has at least 1 active driver)
+    // Active teams (any team that has at least 1 active/reserve/former driver)
     for (const t of teams) {
       const active = activeMap.get(t.slug) ?? [];
+      const reserve = reserveMap.get(t.slug) ?? [];
       const former = formerMap.get(t.slug) ?? [];
-      if (active.length === 0 && former.length === 0) continue;
+      if (active.length === 0 && reserve.length === 0 && former.length === 0) continue;
       sections.push({
         label: t.name,
         color: t.color_key,
-        drivers: [...active.sort((a, b) => a.name.localeCompare(b.name, "fi")), ...former.sort((a, b) => a.name.localeCompare(b.name, "fi"))],
+        drivers: [
+          ...active.sort((a, b) => a.name.localeCompare(b.name, "fi")),
+          ...reserve.sort((a, b) => a.name.localeCompare(b.name, "fi")),
+          ...former.sort((a, b) => a.name.localeCompare(b.name, "fi")),
+        ],
       });
     }
     // Sort sections: those with any active first
@@ -126,7 +147,11 @@ export function DriversList() {
           </div>
           <div className="font-display uppercase tracking-widest text-sm mt-2">
             {d.name}
-            {!isActive(d) && <span className="ml-2 text-[10px] text-muted-foreground">(ei aktiivinen)</span>}
+            {isReserveDisplay(d) ? (
+              <span className="ml-2 text-[10px] text-muted-foreground">(varakuljettaja)</span>
+            ) : !isActive(d) ? (
+              <span className="ml-2 text-[10px] text-muted-foreground">(ei aktiivinen)</span>
+            ) : null}
           </div>
         </Link>
         {admin.isAdmin && (
