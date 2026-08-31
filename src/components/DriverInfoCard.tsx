@@ -8,7 +8,7 @@ import { SmartText } from "@/components/SmartText";
 import { useEntityIndex } from "@/components/useEntityIndex";
 import { toast } from "sonner";
 
-type FormerTeam = { slug: string; from: number; to: number };
+type FormerTeam = { slug: string; from: number; to: number; is_reserve?: boolean };
 type Driver = {
   slug: string;
   name: string;
@@ -17,6 +17,7 @@ type Driver = {
   info_card: string | null;
   current_team_slug: string | null;
   current_team_since: number | null;
+  current_team_is_reserve?: boolean | null;
   former_teams: FormerTeam[] | null;
 };
 
@@ -31,7 +32,7 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
   const entities = useEntityIndex();
   const former: FormerTeam[] = Array.isArray(driver.former_teams) ? driver.former_teams : [];
 
-  async function patch(p: Partial<Pick<Driver, "info_card" | "current_team_slug" | "current_team_since" | "number" | "flag"> & { former_teams: FormerTeam[] }>) {
+  async function patch(p: Partial<Pick<Driver, "info_card" | "current_team_slug" | "current_team_since" | "current_team_is_reserve" | "number" | "flag"> & { former_teams: FormerTeam[] }>) {
     await save({ data: { slug: driver.slug, ...p } });
     await qc.invalidateQueries({ queryKey: ["driver", driver.slug] });
     toast.success("Tallennettu");
@@ -64,7 +65,7 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
       <div>
         <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-display">Nykyinen tiimi</div>
         {isAdmin ? (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <select value={driver.current_team_slug ?? ""} onChange={e => patch({ current_team_slug: e.target.value || null })}
               className="bg-black/70 border border-primary/30 rounded p-2 font-display flex-1 min-w-[180px]">
               <option value="">Ei aktiivinen</option>
@@ -75,11 +76,17 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
               <option value="">— vuosi —</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
+            <label className="flex items-center gap-2 text-xs font-display uppercase tracking-widest text-muted-foreground">
+              <input type="checkbox" checked={!!driver.current_team_is_reserve}
+                onChange={e => patch({ current_team_is_reserve: e.target.checked })} />
+              Varakuljettaja
+            </label>
           </div>
         ) : currentTeam ? (
           <Link to="/tiimit/$slug" params={{ slug: currentTeam.slug }} className="inline-flex items-center gap-3 card-dark p-3 hover:border-primary transition">
             <span className="font-display uppercase tracking-widest text-primary">{currentTeam.name}</span>
             {driver.current_team_since && <span className="text-xs text-muted-foreground">alkaen {driver.current_team_since}</span>}
+            {driver.current_team_is_reserve && <span className="text-xs text-muted-foreground">(varakuljettaja)</span>}
           </Link>
         ) : <div className="italic text-muted-foreground text-sm">Ei asetettu.</div>}
       </div>
@@ -115,6 +122,11 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
                       className="bg-black/70 border border-primary/30 rounded p-2 font-display">
                       {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
+                    <label className="flex items-center gap-2 text-xs font-display uppercase tracking-widest text-muted-foreground">
+                      <input type="checkbox" checked={!!ft.is_reserve}
+                        onChange={e => { const next = [...former]; next[i] = { ...ft, is_reserve: e.target.checked }; patch({ former_teams: next }); }} />
+                      Varakuljettaja
+                    </label>
                     <button onClick={() => patch({ former_teams: former.filter((_, j) => j !== i) })}
                       className="text-xs border border-primary/50 rounded px-2 py-1 hover:bg-primary/20">Poista</button>
                   </>
@@ -122,6 +134,7 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
                   <>
                     <Link to="/tiimit/$slug" params={{ slug: team.slug }} className="font-display uppercase tracking-widest text-primary hover:underline">{team.name}</Link>
                     <span className="text-xs text-muted-foreground">{ft.from}{ft.from !== ft.to ? `–${ft.to}` : ""}</span>
+                    {ft.is_reserve && <span className="text-xs text-muted-foreground">(varakuljettaja)</span>}
                   </>
                 ) : null}
               </li>
@@ -156,4 +169,4 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
 // small helper so we don't call useServerFn inside useQuery inline
 function useServerFnListTeams() {
   return listTeams();
-}
+                                                                                                                               }
