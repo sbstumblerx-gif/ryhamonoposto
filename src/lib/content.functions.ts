@@ -19,7 +19,7 @@ export const listDrivers = createServerFn({ method: "GET" }).handler(async () =>
   const [{ data, error }, colors] = await Promise.all([
     supabaseAdmin
       .from("drivers")
-      .select("id, slug, name, flag, number, color_key, team_slug, current_team_slug, current_team_since, former_teams, content, hero_media_url, info_card, created_at, updated_at")
+      .select("id, slug, name, flag, number, color_key, team_slug, current_team_slug, current_team_since, current_team_is_reserve, former_teams, content, hero_media_url, info_card, created_at, updated_at")
       .order("number", { ascending: true }),
     teamColorMap(),
   ]);
@@ -251,6 +251,7 @@ const FormerTeam = z.object({
   slug: z.string().min(1),
   from: z.number().int().min(2025).max(2100),
   to: z.number().int().min(2025).max(2100),
+  is_reserve: z.boolean().optional().default(false),
 });
 
 const DriverPatch = z.object({
@@ -265,6 +266,7 @@ const DriverPatch = z.object({
   info_card: z.string().nullable().optional(),
   current_team_slug: z.string().nullable().optional(),
   current_team_since: z.number().int().min(2025).max(2100).nullable().optional(),
+  current_team_is_reserve: z.boolean().optional(),
   former_teams: z.array(FormerTeam).optional(),
 });
 
