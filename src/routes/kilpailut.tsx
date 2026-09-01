@@ -1,428 +1,292 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import {
-  listSessions,
-  listMyPredictions,
-  submitPrediction,
-  myTotalPoints,
-  myRank,
-  leaderboard,
-  adminCreateSession,
-  adminDeleteSession,
-  adminFinalizeSession,
-  adminReopenSession,
-  adminSetSessionStatus,
-} from "@/lib/predictions.functions";
-import { listDrivers } from "@/lib/content.functions";
+import { listRaces, upsertRace, deleteRace } from "@/lib/content.functions";
+import { seasonYearFromName, countryFromRaceName } from "@/lib/stats-compute";
 import { useAdmin } from "@/components/admin-store";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 
-export const Route = createFileRoute("/veikkaa")({
-  head: () => ({
-    meta: [
-      { title: "Veikkaa — RyhäMonoposto" },
-      { name: "description", content: "Veikkaa sessioiden kolme kärjessä ja kilpaile pisteistä." },
-      { property: "og:title", content: "Veikkaa — RyhäMonoposto" },
-      { property: "og:description", content: "Veikkaa sessioiden kolme kärjessä ja kilpaile pisteistä." },
-    ],
-  }),
-  component: VeikkaaPage,
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/kilpailut")({
+  head: () => ({ meta: [{ title: "Kilpailut — RyhäMonoposto" }, { name: "description", content: "Kaikki RyhäMonoposto-kilpailut uusiusjärjestyksessä." }] }),
+  component: RacesLayout,
 });
 
-function useUser() {
-  const [uid, setUid] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUid(data.user?.id ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUid(s?.user?.id ?? null));
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  return uid;
+function RacesLayout() {
+  return <Outlet />;
 }
 
-function VeikkaaPage() {
-  const uid = useUser();
-  const admin = useAdmin();
-  const qc = useQueryClient();
-  const sessionsFn = useServerFn(listSessions);
-  const driversFn = useServerFn(listDrivers);
-  const myPredsFn = useServerFn(listMyPredictions);
-  const submitFn = useServerFn(submitPrediction);
-  const totalFn = useServerFn(myTotalPoints);
-  const rankFn = useServerFn(myRank);
-  const lbFn = useServerFn(leaderboard);
-  const createFn = useServerFn(adminCreateSession);
-  const delFn = useServerFn(adminDeleteSession);
-  const finalizeFn = useServerFn(adminFinalizeSession);
-  const reopenFn = useServerFn(adminReopenSession);
-  const statusFn = useServerFn(adminSetSessionStatus);
+type RaceListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  flag: string;
+  race_date: string | null;
+  round_number: number | null;
+  created_at: string;
+  qualifying_content: string | null;
+  race_content: string | null;
+};
 
-  const [scope, setScope] = useState<"all" | "year">("year");
+function hasContent(v: string | null | undefined): boolean {
+  return !!v && v.trim().length > 0;
+}
 
-  const sessionsQ = useQuery({ queryKey: ["p-sessions"], queryFn: () => sessionsFn() });
-  const driversQ = useQuery({ queryKey: ["drivers"], queryFn: () => driversFn() });
-  const myPredsQ = useQuery({ queryKey: ["my-preds", uid], queryFn: () => myPredsFn(), enabled: !!uid });
-  const totalQ = useQuery({ queryKey: ["my-total", uid, scope], queryFn: () => totalFn({ data: { scope } }), enabled: !!uid });
-  const rankQ = useQuery({ queryKey: ["my-rank", uid, scope], queryFn: () => rankFn({ data: { scope } }), enabled: !!uid });
-  const lbQ = useQuery({ queryKey: ["p-leaderboard", scope], queryFn: () => lbFn({ data: { scope } }) });
+// Round 0 is reserved for winter testing: no points, not an official session,
+// but it still gets its own history entry once a result sheet is added.
+function roundLabel(n: number | null | undefined): string | null {
+  if (n == null) return null;
+  return n === 0 ? "TALVITESTIT" : `R${n}`;
+}
 
-  const [showAll, setShowAll] = useState(false);
-  const [newName, setNewName] = useState("");
+// Sort upcoming races by soonest first (smallest round_number leads)
+function compareUpcoming(a: RaceListItem, b: RaceListItem): number {
+  const ra = a.round_number ?? Infinity;
+  const rb = b.round_number ?? Infinity;
+  if (ra !== rb) return ra - rb;
+  const da = a.race_date ? new Date(a.race_date).getTime() : Infinity;
+  const db = b.race_date ? new Date(b.race_date).getTime() : Infinity;
+  if (da !== db) return da - db;
+  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+}
 
-  const drivers = driversQ.data ?? [];
-  const driverName = useMemo(() => new Map(drivers.map(d => [d.slug, d.name] as const)), [drivers]);
-  const myPredMap = useMemo(() => {
-    const m = new Map<string, { top3: string[]; points: number }>();
-    for (const p of myPredsQ.data ?? []) m.set(p.session_id, { top3: (p.top3 as any) ?? [], points: p.points });
-    return m;
-  }, [myPredsQ.data]);
+// Sort past races by newest first (largest round_number leads)
+function comparePast(a: RaceListItem, b: RaceListItem): number {
+  const ra = a.round_number ?? -Infinity;
+  const rb = b.round_number ?? -Infinity;
+  if (ra !== rb) return rb - ra;
+  const da = a.race_date ? new Date(a.race_date).getTime() : -Infinity;
+  const db = b.race_date ? new Date(b.race_date).getTime() : -Infinity;
+  if (da !== db) return db - da;
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+}
 
-  async function signIn() {
-    await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/veikkaa" });
-  }
+function LiveStatusLabel({ race }: { race: RaceListItem }) {
+  const qualifyingDone = hasContent(race.qualifying_content);
+  const raceDone = hasContent(race.race_content);
+  if (!qualifyingDone) return <>Aika-ajot tulossa</>;
+  if (!raceDone) return <>Aika-ajot suoritettu<br />Kilpailu tulossa</>;
+  return <>Tulokset</>;
+}
 
-  async function addSession() {
-    if (!newName.trim()) return;
-    await createFn({ data: { name: newName.trim() } });
-    setNewName("");
-    await qc.invalidateQueries({ queryKey: ["p-sessions"] });
-  }
+function LiveBanner({
+  race, allRaces, isAdmin, onChange, liveStatus,
+}: {
+  race: RaceListItem | undefined;
+  liveStatus: string | null;
+  allRaces: RaceListItem[];
+  isAdmin: boolean;
+  onChange: (value: string | null) => void;
+}) {
+  const currentYear = new Date().getFullYear().toString();
 
-  const sessions = sessionsQ.data ?? [];
-  const upcoming = sessions.filter(s => s.status === "upcoming");
-  const closed = sessions.filter(s => s.status === "closed");
-  const past = sessions.filter(s => s.status === "past");
-  const [showAllPast, setShowAllPast] = useState(false);
-  // Sessions already arrive newest-first (created_at desc), so this is simply
-  // the 3 most recent past sessions until the admin/user asks to see more.
-  const pastShown = showAllPast ? past : past.slice(0, 3);
-  const lb = lbQ.data ?? [];
-  const shown = showAll ? lb : lb.slice(0, 10);
-  const myRankVal = rankQ.data?.rank ?? null;
-  const inTop10 = myRankVal != null && myRankVal <= 10;
-
-  async function invalidateAll() {
-    await Promise.all([
-      qc.invalidateQueries({ queryKey: ["p-sessions"] }),
-      qc.invalidateQueries({ queryKey: ["p-leaderboard"] }),
-      qc.invalidateQueries({ queryKey: ["my-preds", uid] }),
-      qc.invalidateQueries({ queryKey: ["my-total", uid] }),
-      qc.invalidateQueries({ queryKey: ["my-rank", uid] }),
-    ]);
-  }
-
+  if (!race && !isAdmin && liveStatus !== "kesätauko" && liveStatus !== "talvitauko") return null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Veikkaa</h1>
-          <div className="hairline-red mt-3" />
-          <p className="text-sm text-muted-foreground mt-2 max-w-xl">
-            Veikkaa jokaisen session kolme kärjessä. Oikea kuljettaja oikealla paikalla 30 p, kolmen kärjessä väärällä paikalla 10 p. Maksimi 90 p.
-          </p>
-        </div>
-        <div className="card-dark p-4 text-right min-w-[220px]">
-          <div className="flex justify-end gap-1 mb-2">
-            {(["year", "all"] as const).map(sc => (
-              <button key={sc} onClick={() => setScope(sc)}
-                className={`text-[10px] font-display uppercase tracking-widest px-2 py-1 rounded border ${scope === sc ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 text-muted-foreground"}`}>
-                {sc === "year" ? `Kausi ${new Date().getUTCFullYear()}` : "Kaikki ajat"}
-              </button>
-            ))}
-          </div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Omat pisteet</div>
-          <div className="font-display text-3xl text-primary">{uid ? (totalQ.data ?? 0) : "—"}</div>
-          {uid && myRankVal && <div className="text-xs text-muted-foreground">Sija #{myRankVal}</div>}
-          {!uid && <button onClick={signIn} className="mt-2 text-xs bg-primary text-primary-foreground rounded px-3 py-1 font-display uppercase tracking-widest">Kirjaudu</button>}
-        </div>
+    <div className="card-dark p-4 mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+        </span>
+        <span className="font-display text-[10px] uppercase tracking-widest text-primary">Käynnissä</span>
+      </div>
 
-      </header>
+      {race ? (
+        <Link to="/kilpailut/$slug" params={{ slug: race.slug }} className="flex items-center gap-3 hover:opacity-80 transition">
+          <span className="text-2xl">{race.flag}</span>
+          {race.round_number != null && (
+            <span className="font-display text-[10px] px-1.5 py-0.5 rounded border border-primary/60 text-primary">{roundLabel(race.round_number)}</span>
+          )}
+          <span className="font-display uppercase tracking-widest">{race.name}</span>
+          <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right leading-tight">
+            <LiveStatusLabel race={race} />
+          </span>
+        </Link>
+      ) : liveStatus === "kesätauko" ? (
+        <Link to="/tilastot/$season" params={{ season: currentYear }} className="flex items-center gap-3 hover:opacity-80 transition">
+          <span className="text-2xl">☀️</span>
+          <span className="font-display uppercase tracking-widest">Kesätauko</span>
+          <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right">→ Tilastot</span>
+        </Link>
+      ) : liveStatus === "talvitauko" ? (
+        <Link to="/tilastot/$season" params={{ season: currentYear }} className="flex items-center gap-3 hover:opacity-80 transition">
+          <span className="text-2xl">❄️</span>
+          <span className="font-display uppercase tracking-widest">Talvitauko</span>
+          <span className="ml-auto font-display uppercase tracking-widest text-sm text-primary text-right">→ Tilastot</span>
+        </Link>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">Ei valittua kilpailua.</p>
+      )}
+
+      {isAdmin && (
+        <div className="mt-3 pt-3 border-t border-primary/20">
+          <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-display mb-1">
+            Admin: valitse käynnissä oleva kilpailu tai tauko
+          </label>
+          <select
+            value={liveStatus ?? ""}
+            onChange={e => onChange(e.target.value || null)}
+            className="w-full bg-black/70 border border-primary/40 rounded p-2 text-sm disabled:opacity-60"
+          >
+            <option value="">— Ei käynnissä —</option>
+            <option value="kesätauko">☀️ Kesätauko</option>
+            <option value="talvitauko">❄️ Talvitauko</option>
+            <optgroup label="Kilpailut">
+              {allRaces.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.round_number != null ? `${roundLabel(r.round_number)} — ` : ""}{r.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function RacesIndex() {
+  const list = useServerFn(listRaces);
+  const create = useServerFn(upsertRace);
+  const del = useServerFn(deleteRace);
+  const qc = useQueryClient();
+  const admin = useAdmin();
+  const q = useQuery({ queryKey: ["races"], queryFn: () => list() });
+
+  const [name, setName] = useState("");
+  const [flag, setFlag] = useState("");
+  const [round, setRound] = useState("");
+  const [seasonFilter, setSeasonFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [view, setView] = useState<"past" | "upcoming">("past");
+  
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setLiveStatus(localStorage.getItem("live-status"));
+    }
+  }, []);
+
+  const races = q.data ?? [];
+  const liveRace = races.find(r => r.id === liveStatus);
+
+  const pastRaces = races.filter(r => hasContent(r.race_content)).sort(comparePast);
+  const upcomingRaces = races.filter(r => !hasContent(r.race_content)).sort(compareUpcoming);
+  const pickerRaces = [...races].sort((a, b) => {
+    const aHasRaceContent = hasContent(a.race_content);
+    const bHasRaceContent = hasContent(b.race_content);
+    
+    if (!aHasRaceContent && bHasRaceContent) return -1;
+    if (aHasRaceContent && !bHasRaceContent) return 1;
+    
+    if (!aHasRaceContent && !bHasRaceContent) return compareUpcoming(a, b);
+    return comparePast(a, b);
+  });
+
+  const seasonOptions = [...new Set(races.map(r => seasonYearFromName(r.name)).filter((y): y is number => y != null))].sort((a, b) => b - a);
+  const countryOptions = [...new Set(races.map(r => countryFromRaceName(r.name)).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const base = view === "past" ? pastRaces : upcomingRaces;
+  const filtered = base.filter(r =>
+    (seasonFilter === "all" || String(seasonYearFromName(r.name)) === seasonFilter)
+    && (countryFilter === "all" || countryFromRaceName(r.name) === countryFilter));
+
+  async function add() {
+    if (!name.trim()) return;
+    try {
+      const r = round.trim() ? Math.min(50, Math.max(0, Number(round))) : null;
+      await create({ data: { name, flag, round_number: r, qualifying_content: "", race_content: "" } });
+      setName(""); setFlag(""); setRound("");
+      await qc.invalidateQueries({ queryKey: ["races"] });
+      toast.success("Kilpailu lisätty");
+    } catch (e: any) { toast.error(e.message); }
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Poistetaanko kilpailu?")) return;
+    await del({ data: { id } });
+    await qc.invalidateQueries({ queryKey: ["races"] });
+  }
+
+  function changeLive(value: string | null) {
+    if (typeof window !== "undefined") {
+      if (value) {
+        localStorage.setItem("live-status", value);
+      } else {
+        localStorage.removeItem("live-status");
+      }
+    }
+    setLiveStatus(value);
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <h1 className="font-display uppercase tracking-widest text-2xl text-primary">Kilpailut</h1>
+      <div className="hairline-red mt-3 mb-6" />
+
+      <LiveBanner race={liveRace} liveStatus={liveStatus} allRaces={pickerRaces} isAdmin={admin.isAdmin} onChange={changeLive} />
 
       {admin.isAdmin && (
-        <section className="card-dark p-3 flex gap-2 flex-wrap items-center">
-          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Session nimi, esim. Australia 2026 – Aika-ajot"
-            className="flex-1 min-w-[240px] bg-black/70 border border-primary/40 rounded p-2 text-sm" />
-          <button onClick={addSession} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">
-            + Lisää sessio
+        <div className="card-dark p-3 mb-6 flex flex-col md:flex-row gap-2">
+          <input placeholder="Kilpailun nimi (esim. Kiina 2025)" value={name} onChange={e => setName(e.target.value)}
+            className="flex-1 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <input placeholder="🇨🇳" value={flag} onChange={e => setFlag(e.target.value)}
+            className="w-24 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <input type="number" min={0} max={50} placeholder="R# (0 = talvitestit)" value={round} onChange={e => setRound(e.target.value)}
+            className="w-36 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <button onClick={add} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">
+            Lisää
           </button>
-        </section>
+        </div>
       )}
 
-      <section>
-        <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Tulevat sessiot</h2>
-        {upcoming.length === 0 && <p className="text-sm text-muted-foreground italic">Ei tulevia sessioita.</p>}
-        <div className="space-y-3">
-          {upcoming.map(s => (
-            <UpcomingCard
-              key={s.id}
-              session={s}
-              drivers={drivers}
-              existing={myPredMap.get(s.id)?.top3 ?? null}
-              signedIn={!!uid}
-              admin={admin.isAdmin}
-              locked={false}
-              onSubmit={async (top3) => {
-                await submitFn({ data: { session_id: s.id, top3: top3 as [string, string, string] } });
-                await qc.invalidateQueries({ queryKey: ["my-preds", uid] });
-                toast.success("Veikkaus tallennettu");
-              }}
-              onSignIn={signIn}
-              onToggleLock={async () => {
-                await statusFn({ data: { id: s.id, status: "closed" } });
-                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
-                toast.success("Veikkaus suljettu");
-              }}
-              onFinalize={async (top3) => {
-                await finalizeFn({ data: { id: s.id, top3 } });
-                await invalidateAll();
-                toast.success("Sessio päätetty");
-              }}
-              onDelete={async () => {
-                if (!confirm("Poistetaanko sessio?")) return;
-                await delFn({ data: { id: s.id } });
-                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
-              }}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Suljetut veikkaukset</h2>
-        {closed.length === 0 && <p className="text-sm text-muted-foreground italic">Ei suljettuja veikkauksia.</p>}
-        <div className="space-y-3">
-          {closed.map(s => (
-            <UpcomingCard
-              key={s.id}
-              session={s}
-              drivers={drivers}
-              existing={myPredMap.get(s.id)?.top3 ?? null}
-              signedIn={!!uid}
-              admin={admin.isAdmin}
-              locked
-              onSubmit={async () => {}}
-              onSignIn={signIn}
-              onToggleLock={async () => {
-                await statusFn({ data: { id: s.id, status: "upcoming" } });
-                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
-                toast.success("Veikkaus avattu uudelleen");
-              }}
-              onFinalize={async (top3) => {
-                await finalizeFn({ data: { id: s.id, top3 } });
-                await invalidateAll();
-                toast.success("Sessio päätetty");
-              }}
-              onDelete={async () => {
-                if (!confirm("Poistetaanko sessio?")) return;
-                await delFn({ data: { id: s.id } });
-                await qc.invalidateQueries({ queryKey: ["p-sessions"] });
-              }}
-            />
-          ))}
-        </div>
-      </section>
-
-
-      <section>
-        <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Menneet sessiot</h2>
-        {past.length === 0 && <p className="text-sm text-muted-foreground italic">Ei menneitä sessioita.</p>}
-        <div className="space-y-3">
-          {pastShown.map(s => {
-            const truth = (s.result_top3 as string[] | null) ?? [];
-            const mine = myPredMap.get(s.id);
-            return (
-              <div key={s.id} className="card-dark p-4">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <h3 className="font-display uppercase tracking-widest text-primary">{s.name}</h3>
-                  {admin.isAdmin && (
-                    <div className="flex gap-2">
-                      <button onClick={async () => {
-                        await reopenFn({ data: { id: s.id } });
-                        await qc.invalidateQueries({ queryKey: ["p-sessions"] });
-                      }} className="text-xs border border-primary/50 rounded px-2 py-1">Palauta tulevaksi</button>
-                      <button onClick={async () => {
-                        if (!confirm("Poistetaanko sessio?")) return;
-                        await delFn({ data: { id: s.id } });
-                        await qc.invalidateQueries({ queryKey: ["p-sessions"] });
-                      }} className="text-xs border border-primary/50 rounded px-2 py-1">Poista</button>
-                    </div>
-                  )}
-                </div>
-                <div className="grid md:grid-cols-3 gap-3 mt-3 text-sm">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display mb-1">Oikea tulos</div>
-                    <PodiumList slugs={truth} driverName={driverName} />
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display mb-1">Sinun veikkauksesi</div>
-                    {mine ? <PodiumList slugs={mine.top3} driverName={driverName} truth={truth} /> : <div className="italic text-muted-foreground">Et veikannut.</div>}
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display mb-1">Saamasi pisteet</div>
-                    <div className="font-display text-3xl text-primary">{mine?.points ?? 0}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {!showAllPast && past.length > 3 && (
-          <button onClick={() => setShowAllPast(true)}
-            className="mt-3 text-xs font-display uppercase tracking-widest border border-primary/50 rounded px-4 py-2 hover:bg-primary/20">
-            Katso kaikki ({past.length})
+      <div className="flex gap-2 mb-4">
+        {(["past", "upcoming"] as const).map(v => (
+          <button key={v} onClick={() => setView(v)}
+            className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${view === v ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary/60"}`}
+          >
+            {v === "past" ? "Menneet" : "Tulevat"}
           </button>
-        )}
-        {showAllPast && past.length > 3 && (
-          <button onClick={() => setShowAllPast(false)}
-            className="mt-3 text-xs font-display uppercase tracking-widest border border-primary/50 rounded px-4 py-2 hover:bg-primary/20">
-            Näytä vähemmän
-          </button>
-        )}
-      </section>
-
-      <section>
-        <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Leaderboard</h2>
-        <div className="card-dark divide-y divide-primary/20">
-          {shown.map(row => (
-            <LeaderRow key={row.user_id} row={row} me={row.user_id === uid} />
-          ))}
-          {!inTop10 && uid && myRankVal && (
-            <LeaderRow row={{ rank: myRankVal, user_id: uid, points: rankQ.data?.points ?? 0, display_name: "Sinä", avatar_url: null }} me />
-          )}
-        </div>
-        {lb.length > 10 && (
-          <button onClick={() => setShowAll(v => !v)} className="mt-3 text-xs border border-primary/40 rounded px-3 py-1 font-display uppercase tracking-widest">
-            {showAll ? "Näytä vähemmän" : "Näytä lisää"}
-          </button>
-        )}
-      </section>
-
-      <div>
-        <Link to="/" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">← Etusivulle</Link>
-      </div>
-    </div>
-  );
-}
-
-function LeaderRow({ row, me }: { row: { rank: number; user_id: string; points: number; display_name: string; avatar_url: string | null }; me?: boolean }) {
-  return (
-    <div className={`flex items-center justify-between px-4 py-2 ${me ? "bg-primary/15" : ""}`}>
-      <div className="flex items-center gap-3">
-        <span className="font-display text-primary w-8">#{row.rank}</span>
-        <span className="font-display uppercase tracking-widest text-sm">{row.display_name}</span>
-      </div>
-      <span className="font-display">{row.points} p</span>
-    </div>
-  );
-}
-
-function PodiumList({ slugs, driverName, truth }: { slugs: string[]; driverName: Map<string, string>; truth?: string[] }) {
-  return (
-    <ol className="space-y-1">
-      {[0, 1, 2].map(i => {
-        const s = slugs[i];
-        const name = s ? (driverName.get(s) ?? s) : "—";
-        const exact = truth && truth[i] === s;
-        const inTop = truth && s && truth.includes(s);
-        const cls = !truth ? "" : exact ? "text-primary" : inTop ? "text-yellow-400" : "text-muted-foreground line-through";
-        return <li key={i} className={`font-display ${cls}`}>{i + 1}. {name}</li>;
-      })}
-    </ol>
-  );
-}
-
-function UpcomingCard({
-  session, drivers, existing, signedIn, admin, locked, onSubmit, onSignIn, onFinalize, onDelete, onToggleLock,
-}: {
-  session: any; drivers: any[]; existing: string[] | null; signedIn: boolean; admin: boolean; locked: boolean;
-  onSubmit: (top3: string[]) => Promise<void>; onSignIn: () => void;
-  onFinalize: (top3: [string, string, string]) => Promise<void>; onDelete: () => void;
-  onToggleLock: () => Promise<void>;
-}) {
-  const [t, setT] = useState<string[]>(existing ?? ["", "", ""]);
-  const [busy, setBusy] = useState(false);
-  const [truth, setTruth] = useState<string[]>(["", "", ""]);
-
-  useEffect(() => { if (existing) setT(existing); }, [existing]);
-
-  async function submit() {
-    if (t.some(x => !x)) { toast.error("Valitse kolme kuljettajaa"); return; }
-    if (new Set(t).size !== 3) { toast.error("Kuljettajat eivät voi toistua"); return; }
-    setBusy(true);
-    try { await onSubmit(t); } finally { setBusy(false); }
-  }
-
-  async function finalize() {
-    if (truth.some(x => !x)) { toast.error("Valitse kolme kärjessä"); return; }
-    if (new Set(truth).size !== 3) { toast.error("Kuljettajat eivät voi toistua"); return; }
-    setBusy(true);
-    try { await onFinalize(truth as [string, string, string]); } finally { setBusy(false); }
-  }
-
-  return (
-    <div className="card-dark p-4">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <h3 className="font-display uppercase tracking-widest text-primary">
-          {session.name}
-          {locked && <span className="ml-2 text-[10px] border border-primary/50 rounded px-2 py-0.5 text-muted-foreground">Veikkaus suljettu</span>}
-        </h3>
-        {admin && (
-          <div className="flex gap-2">
-            <button onClick={() => void onToggleLock()} className="text-xs border border-primary/50 rounded px-2 py-1">
-              {locked ? "Avaa veikkaus" : "Sulje veikkaus"}
-            </button>
-            <button onClick={onDelete} className="text-xs border border-primary/50 rounded px-2 py-1">Poista</button>
-          </div>
-        )}
-      </div>
-      <div className="mt-3 grid md:grid-cols-3 gap-2">
-        {[0, 1, 2].map(i => (
-          <label key={i} className="text-sm">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Sija {i + 1}</span>
-            <select value={t[i]} onChange={e => { const next = [...t]; next[i] = e.target.value; setT(next); }}
-              disabled={!signedIn || locked}
-              className="w-full mt-1 bg-black/70 border border-primary/30 rounded p-2 font-display disabled:opacity-60">
-              <option value="">—</option>
-              {drivers.map(d => <option key={d.slug} value={d.slug}>{d.name}</option>)}
-            </select>
-          </label>
         ))}
       </div>
-      <div className="mt-3 flex gap-2 flex-wrap items-center">
-        {locked ? (
-          <span className="text-xs text-muted-foreground">Veikkaus on suljettu — muutokset eivät ole enää mahdollisia.</span>
-        ) : signedIn ? (
-          <button disabled={busy} onClick={submit} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2 disabled:opacity-50">
-            {existing ? "Päivitä veikkaus" : "Veikkaa tulosta"}
-          </button>
-        ) : (
-          <button onClick={onSignIn} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">Kirjaudu veikataksesi</button>
-        )}
-        {existing && !locked && <span className="text-xs text-muted-foreground">Veikkauksesi tallennettu</span>}
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
+          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+          <option value="all">Kaikki kaudet</option>
+          {seasonOptions.map(y => <option key={y} value={String(y)}>{y}</option>)}
+        </select>
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+          <option value="all">Kaikki radat / maat</option>
+          {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
       </div>
 
-
-      {admin && (
-        <div className="mt-4 pt-4 border-t border-primary/20">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display mb-2">Admin: aseta lopputulos ja päätä sessio</div>
-          <div className="grid md:grid-cols-3 gap-2">
-            {[0, 1, 2].map(i => (
-              <select key={i} value={truth[i]} onChange={e => { const n = [...truth]; n[i] = e.target.value; setTruth(n); }}
-                className="w-full bg-black/70 border border-primary/30 rounded p-2 font-display text-sm">
-                <option value="">Sija {i + 1}</option>
-                {drivers.map(d => <option key={d.slug} value={d.slug}>{d.name}</option>)}
-              </select>
-            ))}
-          </div>
-          <button disabled={busy} onClick={finalize} className="mt-2 text-xs border border-primary/60 rounded px-3 py-1 font-display uppercase tracking-widest hover:bg-primary/20">
-            Päätä sessio ja laske pisteet
-          </button>
-        </div>
-      )}
+      <ul className="space-y-2">
+        {filtered.map(r => (
+          <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
+            <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
+              <span className="text-2xl">{r.flag}</span>
+              {r.round_number != null && (
+                <span className="font-display text-[10px] px-1.5 py-0.5 rounded border border-primary/60 text-primary">{roundLabel(r.round_number)}</span>
+              )}
+              <span className="font-display uppercase tracking-widest">{r.name}</span>
+              {r.race_date && <span className="text-xs text-muted-foreground ml-auto mr-3">{new Date(r.race_date).toLocaleDateString("fi-FI")}</span>}
+            </Link>
+            {admin.isAdmin && (
+              <button onClick={() => remove(r.id)} className="text-xs text-primary underline ml-3">Poista</button>
+            )}
+          </li>
+        ))}
+        {filtered.length === 0 && (
+          <li className="text-sm text-muted-foreground italic">
+            {view === "past" ? "Ei menneitä kilpailuja." : "Ei tulevia kilpailuja."}
+          </li>
+        )}
+      </ul>
     </div>
   );
 }
