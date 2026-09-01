@@ -18,6 +18,7 @@ import { listSeasons } from "@/lib/seasons.functions";
 import { useAdmin } from "@/components/admin-store";
 import { MediaUpload } from "@/components/MediaUpload";
 import { CardViewer } from "@/components/CardViewer";
+import { DuelPanel } from "@/components/DuelPanel";
 import { CARD_TYPES, POSITIONS, VAULT_PER_CARD, cardTotal } from "@/lib/cards-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -142,13 +143,6 @@ function CollectionPage() {
     } catch (e: any) { toast.error(e?.message ?? "Lunastus epäonnistui"); }
     finally { setBusy(false); }
   }
-
-  const ownedCards = useMemo(() => cards.filter((c) => c.copies > 0), [cards]);
-  const playableAll = ownedCards.length;
-  const playable2026 = useMemo(
-    () => ownedCards.filter((c) => String(c.season_slug ?? "").includes("2026")).length,
-    [ownedCards],
-  );
 
   const alerts = packs.length + (vault.redeemable ?? 0);
 
