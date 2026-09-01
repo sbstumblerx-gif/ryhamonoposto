@@ -329,6 +329,7 @@ export type Database = {
           color_key: string
           content: string | null
           created_at: string
+          current_team_is_reserve: boolean
           current_team_since: number | null
           current_team_slug: string | null
           flag: string
@@ -346,6 +347,7 @@ export type Database = {
           color_key: string
           content?: string | null
           created_at?: string
+          current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
           flag?: string
@@ -363,6 +365,7 @@ export type Database = {
           color_key?: string
           content?: string | null
           created_at?: string
+          current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
           flag?: string
@@ -383,6 +386,89 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["slug"]
+          },
+        ]
+      }
+      duel_drafts: {
+        Row: {
+          booster_pool: string[]
+          created_at: string
+          duel_pool: string[]
+          id: string
+          mode: string
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          booster_pool?: string[]
+          created_at?: string
+          duel_pool: string[]
+          id?: string
+          mode: string
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          booster_pool?: string[]
+          created_at?: string
+          duel_pool?: string[]
+          id?: string
+          mode?: string
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      duel_matches: {
+        Row: {
+          booster: Json | null
+          created_at: string
+          draft_id: string | null
+          id: string
+          mode: string
+          my_cards: Json
+          opponent_cards: Json
+          result: string
+          rounds: Json
+          season_points: number
+          user_id: string
+          vault_awarded: number
+        }
+        Insert: {
+          booster?: Json | null
+          created_at?: string
+          draft_id?: string | null
+          id?: string
+          mode: string
+          my_cards?: Json
+          opponent_cards?: Json
+          result: string
+          rounds?: Json
+          season_points?: number
+          user_id: string
+          vault_awarded?: number
+        }
+        Update: {
+          booster?: Json | null
+          created_at?: string
+          draft_id?: string | null
+          id?: string
+          mode?: string
+          my_cards?: Json
+          opponent_cards?: Json
+          result?: string
+          rounds?: Json
+          season_points?: number
+          user_id?: string
+          vault_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_matches_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "duel_drafts"
+            referencedColumns: ["id"]
           },
         ]
       }
