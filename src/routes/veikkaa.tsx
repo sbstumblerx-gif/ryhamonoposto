@@ -95,6 +95,10 @@ function VeikkaaPage() {
   const upcoming = sessions.filter(s => s.status === "upcoming");
   const closed = sessions.filter(s => s.status === "closed");
   const past = sessions.filter(s => s.status === "past");
+  const [showAllPast, setShowAllPast] = useState(false);
+  // Sessions already arrive newest-first (created_at desc), so this is simply
+  // the 3 most recent past sessions until the admin/user asks to see more.
+  const pastShown = showAllPast ? past : past.slice(0, 3);
   const lb = lbQ.data ?? [];
   const shown = showAll ? lb : lb.slice(0, 10);
   const myRankVal = rankQ.data?.rank ?? null;
@@ -227,7 +231,7 @@ function VeikkaaPage() {
         <h2 className="font-display uppercase tracking-widest text-sm text-muted-foreground mb-3">Menneet sessiot</h2>
         {past.length === 0 && <p className="text-sm text-muted-foreground italic">Ei menneitä sessioita.</p>}
         <div className="space-y-3">
-          {past.map(s => {
+          {pastShown.map(s => {
             const truth = (s.result_top3 as string[] | null) ?? [];
             const mine = myPredMap.get(s.id);
             return (
@@ -266,6 +270,18 @@ function VeikkaaPage() {
             );
           })}
         </div>
+        {!showAllPast && past.length > 3 && (
+          <button onClick={() => setShowAllPast(true)}
+            className="mt-3 text-xs font-display uppercase tracking-widest border border-primary/50 rounded px-4 py-2 hover:bg-primary/20">
+            Katso kaikki ({past.length})
+          </button>
+        )}
+        {showAllPast && past.length > 3 && (
+          <button onClick={() => setShowAllPast(false)}
+            className="mt-3 text-xs font-display uppercase tracking-widest border border-primary/50 rounded px-4 py-2 hover:bg-primary/20">
+            Näytä vähemmän
+          </button>
+        )}
       </section>
 
       <section>
