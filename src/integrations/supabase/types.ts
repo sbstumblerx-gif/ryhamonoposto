@@ -389,6 +389,89 @@ export type Database = {
           },
         ]
       }
+      duel_drafts: {
+        Row: {
+          booster_pool: string[]
+          created_at: string
+          duel_pool: string[]
+          id: string
+          mode: string
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          booster_pool?: string[]
+          created_at?: string
+          duel_pool: string[]
+          id?: string
+          mode: string
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          booster_pool?: string[]
+          created_at?: string
+          duel_pool?: string[]
+          id?: string
+          mode?: string
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      duel_matches: {
+        Row: {
+          booster: Json | null
+          created_at: string
+          draft_id: string | null
+          id: string
+          mode: string
+          my_cards: Json
+          opponent_cards: Json
+          result: string
+          rounds: Json
+          season_points: number
+          user_id: string
+          vault_awarded: number
+        }
+        Insert: {
+          booster?: Json | null
+          created_at?: string
+          draft_id?: string | null
+          id?: string
+          mode: string
+          my_cards?: Json
+          opponent_cards?: Json
+          result: string
+          rounds?: Json
+          season_points?: number
+          user_id: string
+          vault_awarded?: number
+        }
+        Update: {
+          booster?: Json | null
+          created_at?: string
+          draft_id?: string | null
+          id?: string
+          mode?: string
+          my_cards?: Json
+          opponent_cards?: Json
+          result?: string
+          rounds?: Json
+          season_points?: number
+          user_id?: string
+          vault_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_matches_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "duel_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_items: {
         Row: {
           caption: string
