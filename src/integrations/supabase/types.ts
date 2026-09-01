@@ -329,6 +329,7 @@ export type Database = {
           color_key: string
           content: string | null
           created_at: string
+          current_team_is_reserve: boolean
           current_team_since: number | null
           current_team_slug: string | null
           flag: string
@@ -346,6 +347,7 @@ export type Database = {
           color_key: string
           content?: string | null
           created_at?: string
+          current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
           flag?: string
@@ -363,6 +365,7 @@ export type Database = {
           color_key?: string
           content?: string | null
           created_at?: string
+          current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
           flag?: string
