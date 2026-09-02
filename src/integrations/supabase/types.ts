@@ -679,6 +679,7 @@ export type Database = {
           created_at: string
           flag: string
           id: string
+          is_live: boolean
           name: string
           qualifying_content: string | null
           qualifying_media_url: string | null
@@ -698,6 +699,7 @@ export type Database = {
           created_at?: string
           flag?: string
           id?: string
+          is_live?: boolean
           name: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
@@ -717,6 +719,7 @@ export type Database = {
           created_at?: string
           flag?: string
           id?: string
+          is_live?: boolean
           name?: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
