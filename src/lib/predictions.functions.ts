@@ -114,7 +114,7 @@ export const myRank = createServerFn({ method: "POST" })
 
 // Admin: create a session
 export const adminCreateSession = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ name: z.string().min(1).max(200) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ name: z.string().min(1).max(200), closes_at: z.string().nullable().optional() }).parse(d))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
