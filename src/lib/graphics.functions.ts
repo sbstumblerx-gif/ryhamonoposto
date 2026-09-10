@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { buildGraph, graphOptions, signature } from "./graphics.server";
 
 export const graphConfigSchema = z.object({
   target: z.enum(["drivers", "teams"]),
@@ -13,19 +14,58 @@ export const graphConfigSchema = z.object({
 
 export type GraphConfig = z.infer<typeof graphConfigSchema>;
 
-export const getGraphOptions = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const [{ data: drivers, error: de }, { data: teams, error: te }, { data: races, error: re }] = await Promise.all([
-    supabaseAdmin.from("drivers").select("slug, name, flag, current_team_slug, team_slug"),
-    supabaseAdmin.from("teams").select("slug, name, color_key"),
-    supabaseAdmin.from("races").select("name"),
-  ]);
-  if (de) throw de; if (te) throw te; if (re) throw re;
-  const years = [...new Set((races ?? []).map(r => { const m = /\\b(20\\d{2})\\b/.exec(r.name ?? ""); return m ? Number(m[1]) : null; }).filter((x): x is number => x != null))].sort((a, b) => b - a);
-  const colors: Record<string, string> = { red: "#ef4444", green: "#22c55e", yellow: "#eab308", cyan: "#06b6d4", blue: "#3b82f6", gray: "#9ca3af", darkred: "#991b1b", darkblue: "#1e3a8a", darkgreen: "#166534" };
-  return {
-    drivers: (drivers ?? []).map(d => ({ slug: d.slug, name: d.name, flag: d.flag, team_slug: d.current_team_slug ?? d.team_slug })),
-    teams: (teams ?? []).map(t => ({ slug: t.slug, name: t.name, color: colors[t.color_key] ?? "#9ca3af" })),
-    seasons: years,
-  };
-});
+export const getGraphOptions = createServerFn({ method: "GET" }).handler(async () => graphOptions());
+
+export const createGraph = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => graphConfigSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const config = data as GraphConfig;
+    const sig = signature(config);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing, error: lookupError } = await supabaseAdmin.from("graphs").select("*").eq("signature", sig).maybeSingle();
+    if (lookupError) throw lookupError;
+    if (existing) return { graph: existing, reused: true };
+    const built = await buildGraph(config);
+    const { data: graph, error } = await supabaseAdmin.from("graphs").insert({ signature: sig, owner_id: context.userId, config, title: built.title, subtitle: built.subtitle, data: built }).select("*").single();
+    if (error) {
+      if (error.code === "23505") {
+        const { data: raced } = await supabaseAdmin.from("graphs").select("*").eq("signature", sig).single();
+        if (raced) return { graph: raced, reused: true };
+      }
+      throw error;
+    }
+    return { graph, reused: false };
+  });
+
+export const getGraph = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: graph, error } = await supabaseAdmin.from("graphs").select("*").eq("id", data.id).maybeSingle();
+    if (error) throw error;
+    if (!graph) throw new Error("Grafiikkaa ei löytynyt");
+    return graph;
+  });
+
+export const listMyGraphs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.from("graphs").select("id, title, subtitle, config, created_at").eq("owner_id", context.userId).order("created_at", { ascending: false }).limit(50);
+    if (error) throw error;
+    return data ?? [];
+  });
+
+export const shareGraphToClub = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ graph_id: z.string().uuid(), club_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: graph, error } = await supabaseAdmin.from("graphs").select("id, title, subtitle").eq("id", data.graph_id).maybeSingle();
+    if (error) throw error;
+    if (!graph) throw new Error("Grafiikkaa ei löytynyt");
+    const { postMessage } = await import("./clubs.server");
+    await postMessage(context.userId, data.club_id, `📊 ${graph.title} — ${graph.subtitle} → /graphics/${graph.id}`);
+    return { ok: true };
+  });
