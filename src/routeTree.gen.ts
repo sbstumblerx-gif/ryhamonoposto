@@ -20,6 +20,7 @@ import { Route as KokoelmaRouteImport } from './routes/kokoelma'
 import { Route as KilpailutRouteImport } from './routes/kilpailut'
 import { Route as IlmoituksetRouteImport } from './routes/ilmoitukset'
 import { Route as AsetuksetRouteImport } from './routes/asetukset'
+import { Route as AanestyksetRouteImport } from './routes/aanestykset'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UutisetIndexRouteImport } from './routes/uutiset.index'
 import { Route as TilastotIndexRouteImport } from './routes/tilastot.index'
@@ -89,6 +90,11 @@ const IlmoituksetRoute = IlmoituksetRouteImport.update({
 const AsetuksetRoute = AsetuksetRouteImport.update({
   id: '/asetukset',
   path: '/asetukset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AanestyksetRoute = AanestyksetRouteImport.update({
+  id: '/aanestykset',
+  path: '/aanestykset',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -169,6 +175,7 @@ const KlubitLiityCodeRoute = KlubitLiityCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aanestykset': typeof AanestyksetRoute
   '/asetukset': typeof AsetuksetRoute
   '/ilmoitukset': typeof IlmoituksetRoute
   '/kilpailut': typeof KilpailutRouteWithChildren
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aanestykset': typeof AanestyksetRoute
   '/asetukset': typeof AsetuksetRoute
   '/ilmoitukset': typeof IlmoituksetRoute
   '/kokoelma': typeof KokoelmaRoute
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/aanestykset': typeof AanestyksetRoute
   '/asetukset': typeof AsetuksetRoute
   '/ilmoitukset': typeof IlmoituksetRoute
   '/kilpailut': typeof KilpailutRouteWithChildren
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/aanestykset'
     | '/asetukset'
     | '/ilmoitukset'
     | '/kilpailut'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/aanestykset'
     | '/asetukset'
     | '/ilmoitukset'
     | '/kokoelma'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/aanestykset'
     | '/asetukset'
     | '/ilmoitukset'
     | '/kilpailut'
@@ -331,6 +343,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AanestyksetRoute: typeof AanestyksetRoute
   AsetuksetRoute: typeof AsetuksetRoute
   IlmoituksetRoute: typeof IlmoituksetRoute
   KilpailutRoute: typeof KilpailutRouteWithChildren
@@ -424,6 +437,13 @@ declare module '@tanstack/react-router' {
       path: '/asetukset'
       fullPath: '/asetukset'
       preLoaderRoute: typeof AsetuksetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aanestykset': {
+      id: '/aanestykset'
+      path: '/aanestykset'
+      fullPath: '/aanestykset'
+      preLoaderRoute: typeof AanestyksetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -606,6 +626,7 @@ const UutisetRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AanestyksetRoute: AanestyksetRoute,
   AsetuksetRoute: AsetuksetRoute,
   IlmoituksetRoute: IlmoituksetRoute,
   KilpailutRoute: KilpailutRouteWithChildren,

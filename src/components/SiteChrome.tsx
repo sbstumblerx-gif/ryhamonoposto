@@ -17,6 +17,7 @@ const NAV = [
   { to: "/tilastot", label: "Tilastot" },
   { to: "/uutiset", label: "Uutiset" },
   { to: "/veikkaa", label: "Veikkaa" },
+  { to: "/aanestykset", label: "Äänestykset" },
   { to: "/klubit", label: "Klubit" },
   { to: "/kokoelma", label: "Kokoelma" },
   { to: "/ilmoitukset", label: "Ilmoitukset" },

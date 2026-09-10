@@ -6,15 +6,23 @@ import { scorePrediction, yearStartIso } from "./predictions-scoring";
 const Top3 = z.tuple([z.string(), z.string(), z.string()]);
 const Scope = z.object({ scope: z.enum(["all", "year"]).default("all") });
 
+// A scheduled deadline closes betting on its own, without an admin click.
+const deadlinePassed = (closesAt: string | null | undefined) =>
+  !!closesAt && new Date(closesAt).getTime() <= Date.now();
+
 // Public: list all sessions
 export const listSessions = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("prediction_sessions")
-    .select("id, name, status, result_top3, created_at, updated_at")
+    .select("id, name, status, result_top3, closes_at, created_at, updated_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(s => ({
+    ...s,
+    status: s.status === "upcoming" && deadlinePassed(s.closes_at) ? "closed" : s.status,
+    auto_closed: s.status === "upcoming" && deadlinePassed(s.closes_at),
+  }));
 });
 
 // Authenticated: list own predictions map (session_id -> {top3, points})
@@ -35,8 +43,8 @@ export const submitPrediction = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ session_id: z.string().uuid(), top3: Top3 }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: session } = await context.supabase
-      .from("prediction_sessions").select("status").eq("id", data.session_id).maybeSingle();
-    if (!session || session.status !== "upcoming") throw new Error("Veikkaus on suljettu");
+      .from("prediction_sessions").select("status, closes_at").eq("id", data.session_id).maybeSingle();
+    if (!session || session.status !== "upcoming" || deadlinePassed(session.closes_at)) throw new Error("Veikkaus on suljettu");
     const { data: row, error } = await context.supabase
       .from("predictions")
       .upsert({ session_id: data.session_id, user_id: context.userId, top3: data.top3, points: 0 }, { onConflict: "session_id,user_id" })
@@ -106,14 +114,14 @@ export const myRank = createServerFn({ method: "POST" })
 
 // Admin: create a session
 export const adminCreateSession = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ name: z.string().min(1).max(200) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ name: z.string().min(1).max(200), closes_at: z.string().nullable().optional() }).parse(d))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("prediction_sessions")
-      .insert({ name: data.name })
+      .insert({ name: data.name, closes_at: data.closes_at || null })
       .select()
       .single();
     if (error) throw error;
@@ -184,5 +192,20 @@ export const adminReopenSession = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw error;
     await supabaseAdmin.from("predictions").update({ points: 0 }).eq("session_id", data.id);
+    return { ok: true };
+  });
+
+// Admin: schedule (or clear) the moment betting closes on its own
+export const adminSetSessionDeadline = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), closes_at: z.string().nullable() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./admin-session.server");
+    await requireAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("prediction_sessions")
+      .update({ closes_at: data.closes_at })
+      .eq("id", data.id);
+    if (error) throw error;
     return { ok: true };
   });
