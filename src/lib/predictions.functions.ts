@@ -121,7 +121,7 @@ export const adminCreateSession = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("prediction_sessions")
-      .insert({ name: data.name })
+      .insert({ name: data.name, closes_at: data.closes_at || null })
       .select()
       .single();
     if (error) throw error;
