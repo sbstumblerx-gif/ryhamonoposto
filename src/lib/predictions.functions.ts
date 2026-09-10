@@ -6,15 +6,23 @@ import { scorePrediction, yearStartIso } from "./predictions-scoring";
 const Top3 = z.tuple([z.string(), z.string(), z.string()]);
 const Scope = z.object({ scope: z.enum(["all", "year"]).default("all") });
 
+// A scheduled deadline closes betting on its own, without an admin click.
+const deadlinePassed = (closesAt: string | null | undefined) =>
+  !!closesAt && new Date(closesAt).getTime() <= Date.now();
+
 // Public: list all sessions
 export const listSessions = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("prediction_sessions")
-    .select("id, name, status, result_top3, created_at, updated_at")
+    .select("id, name, status, result_top3, closes_at, created_at, updated_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(s => ({
+    ...s,
+    status: s.status === "upcoming" && deadlinePassed(s.closes_at) ? "closed" : s.status,
+    auto_closed: s.status === "upcoming" && deadlinePassed(s.closes_at),
+  }));
 });
 
 // Authenticated: list own predictions map (session_id -> {top3, points})
