@@ -194,3 +194,18 @@ export const adminReopenSession = createServerFn({ method: "POST" })
     await supabaseAdmin.from("predictions").update({ points: 0 }).eq("session_id", data.id);
     return { ok: true };
   });
+
+// Admin: schedule (or clear) the moment betting closes on its own
+export const adminSetSessionDeadline = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), closes_at: z.string().nullable() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./admin-session.server");
+    await requireAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("prediction_sessions")
+      .update({ closes_at: data.closes_at })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
