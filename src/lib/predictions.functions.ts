@@ -43,8 +43,8 @@ export const submitPrediction = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ session_id: z.string().uuid(), top3: Top3 }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: session } = await context.supabase
-      .from("prediction_sessions").select("status").eq("id", data.session_id).maybeSingle();
-    if (!session || session.status !== "upcoming") throw new Error("Veikkaus on suljettu");
+      .from("prediction_sessions").select("status, closes_at").eq("id", data.session_id).maybeSingle();
+    if (!session || session.status !== "upcoming" || deadlinePassed(session.closes_at)) throw new Error("Veikkaus on suljettu");
     const { data: row, error } = await context.supabase
       .from("predictions")
       .upsert({ session_id: data.session_id, user_id: context.userId, top3: data.top3, points: 0 }, { onConflict: "session_id,user_id" })
