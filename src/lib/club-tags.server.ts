@@ -26,7 +26,6 @@ export async function updateClubTag(userId: string, clubId: string, input: { tag
   const tag = input.tag === null || input.tag === undefined || !input.tag.trim() ? null : validateTag(input.tag);
   const emoji = input.emoji?.trim() || null;
   const enabled = input.enabled ?? !!tag;
-
   if (enabled && !tag) throw new Error("Tunniste täytyy määrittää ennen käyttöönottoa");
 
   if (enabled && tag) {
@@ -41,11 +40,12 @@ export async function updateClubTag(userId: string, clubId: string, input: { tag
 
 export async function listMyClubTags(userId: string) {
   const db = await admin();
-  const { data: mem } = await db.from("club_members").select("club_id").eq("user_id", userId);
+  const { data: mem } = await db.from("club_members").select("club_id, role").eq("user_id", userId);
   const ids = (mem ?? []).map(x => x.club_id);
   if (!ids.length) return [];
-  const { data } = await db.from("clubs").select("id, name, tag, tag_emoji, tag_enabled").in("id", ids).eq("tag_enabled", true).not("tag", "is", null).order("name");
-  return data ?? [];
+  const roleBy = new Map((mem ?? []).map(x => [x.club_id, x.role]));
+  const { data } = await db.from("clubs").select("id, name, tag, tag_emoji, tag_enabled").in("id", ids).order("name");
+  return (data ?? []).map(c => ({ ...c, role: roleBy.get(c.id) ?? "member" }));
 }
 
 export async function setMyClubTag(userId: string, clubId: string | null) {
