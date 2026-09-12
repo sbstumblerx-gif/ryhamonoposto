@@ -6,11 +6,9 @@ import { scorePrediction, yearStartIso } from "./predictions-scoring";
 const Top3 = z.tuple([z.string(), z.string(), z.string()]);
 const Scope = z.object({ scope: z.enum(["all", "year"]).default("all") });
 
-// A scheduled deadline closes betting on its own, without an admin click.
 const deadlinePassed = (closesAt: string | null | undefined) =>
   !!closesAt && new Date(closesAt).getTime() <= Date.now();
 
-// Public: list all sessions
 export const listSessions = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
@@ -25,7 +23,6 @@ export const listSessions = createServerFn({ method: "GET" }).handler(async () =
   }));
 });
 
-// Authenticated: list own predictions map (session_id -> {top3, points})
 export const listMyPredictions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -37,7 +34,6 @@ export const listMyPredictions = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
-// Authenticated: submit/update own prediction (only allowed while the session is open)
 export const submitPrediction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ session_id: z.string().uuid(), top3: Top3 }).parse(d))
@@ -54,7 +50,6 @@ export const submitPrediction = createServerFn({ method: "POST" })
     return row;
   });
 
-// Authenticated: my total points (all time or current year)
 export const myTotalPoints = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Scope.parse(d))
@@ -66,7 +61,6 @@ export const myTotalPoints = createServerFn({ method: "POST" })
     return (rows ?? []).reduce((s, r) => s + (r.points ?? 0), 0);
   });
 
-// Public: leaderboard top 50
 export const leaderboard = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => Scope.parse(d))
   .handler(async ({ data }) => {
@@ -81,21 +75,32 @@ export const leaderboard = createServerFn({ method: "POST" })
     rows.sort((a, b) => b.points - a.points);
     const top = rows.slice(0, 50);
     const userIds = top.map(r => r.user_id);
-    const profiles: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+    const profiles: Record<string, { display_name: string | null; avatar_url: string | null; club_tag_club_id: string | null }> = {};
     if (userIds.length) {
-      const { data: p } = await supabaseAdmin.from("profiles").select("id, display_name, avatar_url").in("id", userIds);
-      for (const it of p ?? []) profiles[it.id] = { display_name: it.display_name, avatar_url: it.avatar_url };
+      const { data: p } = await supabaseAdmin.from("profiles").select("id, display_name, avatar_url, club_tag_club_id").in("id", userIds);
+      for (const it of p ?? []) profiles[it.id] = { display_name: it.display_name, avatar_url: it.avatar_url, club_tag_club_id: it.club_tag_club_id };
     }
-    return top.map((r, i) => ({
-      rank: i + 1,
-      user_id: r.user_id,
-      points: r.points,
-      display_name: profiles[r.user_id]?.display_name ?? "Vierailija",
-      avatar_url: profiles[r.user_id]?.avatar_url ?? null,
-    }));
+    const clubIds = [...new Set(Object.values(profiles).map(p => p.club_tag_club_id).filter(Boolean) as string[])];
+    const { data: clubs } = clubIds.length
+      ? await supabaseAdmin.from("clubs").select("id, tag, tag_emoji, tag_enabled").in("id", clubIds)
+      : { data: [] };
+    const tags = new Map((clubs ?? []).map(c => [c.id, c]));
+    return top.map((r, i) => {
+      const c = profiles[r.user_id]?.club_tag_club_id ? tags.get(profiles[r.user_id].club_tag_club_id!) : null;
+      const active = c?.tag_enabled && c.tag ? c : null;
+      return {
+        rank: i + 1,
+        user_id: r.user_id,
+        points: r.points,
+        display_name: profiles[r.user_id]?.display_name ?? "Vierailija",
+        avatar_url: profiles[r.user_id]?.avatar_url ?? null,
+        club_tag: active?.tag ?? null,
+        club_tag_emoji: active?.tag_emoji ?? null,
+        club_tag_club_id: active?.id ?? null,
+      };
+    });
   });
 
-// Authenticated: my rank across everyone
 export const myRank = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Scope.parse(d))
@@ -112,7 +117,6 @@ export const myRank = createServerFn({ method: "POST" })
     return { rank: idx + 1, points: arr[idx].points };
   });
 
-// Admin: create a session
 export const adminCreateSession = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ name: z.string().min(1).max(200), closes_at: z.string().nullable().optional() }).parse(d))
   .handler(async ({ data }) => {
@@ -128,7 +132,6 @@ export const adminCreateSession = createServerFn({ method: "POST" })
     return row;
   });
 
-// Admin: delete
 export const adminDeleteSession = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
@@ -140,7 +143,6 @@ export const adminDeleteSession = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Admin: close betting without publishing results yet
 export const adminSetSessionStatus = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), status: z.enum(["upcoming", "closed"]) }).parse(d))
   .handler(async ({ data }) => {
@@ -152,7 +154,6 @@ export const adminSetSessionStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Admin: finalize session with top3, computes points for all predictions
 export const adminFinalizeSession = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), top3: Top3 }).parse(d))
   .handler(async ({ data }) => {
@@ -174,12 +175,10 @@ export const adminFinalizeSession = createServerFn({ method: "POST" })
       const pts = scorePrediction(top3, data.top3);
       await supabaseAdmin.from("predictions").update({ points: pts }).eq("id", p.id);
     }
-    // Every participant earns a card pack sized by their score.
     await (await import("./cards.server")).grantPacksForSession(data.id);
     return { ok: true, updated: preds?.length ?? 0 };
   });
 
-// Admin: reopen (undo finalize)
 export const adminReopenSession = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
@@ -195,7 +194,6 @@ export const adminReopenSession = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Admin: schedule (or clear) the moment betting closes on its own
 export const adminSetSessionDeadline = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), closes_at: z.string().nullable() }).parse(d))
   .handler(async ({ data }) => {
