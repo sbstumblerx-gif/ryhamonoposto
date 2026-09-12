@@ -61,6 +61,7 @@ function TeamPage() {
         </div>
       </div>
       <div className="mx-auto max-w-4xl px-4 py-8">
+        <div className="mb-4"><FollowButton kind="team" slug={slug} name={t.name} /></div>
         {t.hero_media_url && <img src={t.hero_media_url} alt={t.name} className="w-full rounded border border-primary/30 mb-4" />}
         {admin.isAdmin && (
           <div className="card-dark p-3 mb-4 space-y-3">
