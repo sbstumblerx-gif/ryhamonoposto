@@ -268,6 +268,9 @@ export type Database = {
           name: string
           owner_id: string
           require_approval: boolean
+          tag: string | null
+          tag_emoji: string | null
+          tag_enabled: boolean
           updated_at: string
           visibility: string
         }
@@ -280,6 +283,9 @@ export type Database = {
           name: string
           owner_id: string
           require_approval?: boolean
+          tag?: string | null
+          tag_emoji?: string | null
+          tag_enabled?: boolean
           updated_at?: string
           visibility?: string
         }
@@ -292,6 +298,9 @@ export type Database = {
           name?: string
           owner_id?: string
           require_approval?: boolean
+          tag?: string | null
+          tag_emoji?: string | null
+          tag_enabled?: boolean
           updated_at?: string
           visibility?: string
         }
@@ -468,6 +477,71 @@ export type Database = {
             columns: ["draft_id"]
             isOneToOne: false
             referencedRelation: "duel_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: {
+          created_at: string
+          entity_slug: string
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_slug: string
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_slug?: string
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      graphs: {
+        Row: {
+          config: Json
+          created_at: string
+          data: Json
+          id: string
+          owner_id: string | null
+          signature: string
+          subtitle: string
+          title: string
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          data: Json
+          id?: string
+          owner_id?: string | null
+          signature: string
+          subtitle?: string
+          title: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          data?: Json
+          id?: string
+          owner_id?: string | null
+          signature?: string
+          subtitle?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "graphs_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -751,6 +825,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          club_tag_club_id: string | null
           created_at: string
           display_name: string | null
           id: string
@@ -760,6 +835,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          club_tag_club_id?: string | null
           created_at?: string
           display_name?: string | null
           id: string
@@ -769,6 +845,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          club_tag_club_id?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -776,7 +853,15 @@ export type Database = {
           sv_reward_claimed?: boolean
           sv_user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_club_tag_club_id_fkey"
+            columns: ["club_tag_club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       races: {
         Row: {

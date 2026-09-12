@@ -139,7 +139,7 @@ function GraphicsPage() {
         </select></label>
         <label className="text-sm md:col-span-2">Osallistujat <span className="text-muted-foreground">(Ctrl/Cmd-valinta työpöydällä)</span>
           <select multiple value={selected} onChange={e => setParticipants([...e.target.selectedOptions].map(o => o.value))} className="mt-1 w-full min-h-40 bg-black/70 border border-primary/30 rounded p-2">
-            {choices.map(c => <option key={c.slug} value={c.slug}>{c.flag ? `${c.flag} ` : ""}{c.name}</option>)}
+            {choices.map((c: any) => <option key={c.slug} value={c.slug}>{c.flag ? `${c.flag} ` : ""}{c.name}</option>)}
           </select>
         </label>
       </div>

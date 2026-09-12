@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar } from "@/components/Avatar";
 import { ClubComposer } from "@/components/ClubComposer";
 import { ClubMessageMedia } from "@/components/ClubMessageMedia";
+import { ClubTagSettings } from "@/components/ClubTagSettings";
 
 export const Route = createFileRoute("/klubit/$id")({
   head: () => ({
@@ -194,6 +195,11 @@ function ClubPage() {
               </>
             )}
           </section>
+
+          {myRole === "owner" && (
+            <ClubTagSettings clubId={id} tag={club.tag ?? ""} emoji={club.tag_emoji ?? ""} enabled={!!club.tag_enabled}
+              onSaved={() => qc.invalidateQueries({ queryKey: ["club", id] })} />
+          )}
 
           <section className="card-dark p-4 space-y-2">
             <h2 className="font-display uppercase tracking-widest text-sm text-primary">Kutsulinkki</h2>

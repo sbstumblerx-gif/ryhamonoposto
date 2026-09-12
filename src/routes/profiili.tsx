@@ -9,6 +9,8 @@ import { Avatar, AVATAR_PRESETS } from "@/components/Avatar";
 import { fileToBase64 } from "@/lib/file-base64";
 import { SvAccountPanel } from "@/components/SvAccountPanel";
 import { listMyClubTags, setMyClubTag, updateClubTag } from "@/lib/club-tags.functions";
+import { listMyFollows, toggleFollow } from "@/lib/follows.functions";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/profiili")({
   head: () => ({ meta: [{ title: "Profiili — RyhäMonoposto" }, { name: "description", content: "Aseta käyttäjänimesi, avatar ja klubitunniste RyhäMonopostossa." }] }),
@@ -20,6 +22,9 @@ function ProfilePage() {
   const myTagsFn = useServerFn(listMyClubTags);
   const setTagFn = useServerFn(setMyClubTag);
   const updateTagFn = useServerFn(updateClubTag);
+  const followsFn = useServerFn(listMyFollows);
+  const unfollowFn = useServerFn(toggleFollow);
+  const [follows, setFollows] = useState<any[]>([]);
   const [uid, setUid] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -37,6 +42,20 @@ function ProfilePage() {
     } catch { /* migration may still be pending */ }
   }
 
+  async function loadFollows() {
+    try { setFollows((await followsFn()) as any[]); } catch { /* ignore */ }
+  }
+
+  async function dropFollow(f: any) {
+    setBusy(true);
+    try {
+      await unfollowFn({ data: { entity_type: f.entity_type, entity_slug: f.entity_slug } });
+      await loadFollows();
+      toast.success("Rooli poistettu");
+    } catch (e: any) { toast.error(e?.message ?? "Roolin poisto epäonnistui"); }
+    finally { setBusy(false); }
+  }
+
   useEffect(() => {
     let alive = true;
     async function load(id: string | null) {
@@ -48,6 +67,7 @@ function ProfilePage() {
       setName(data?.display_name ?? "");
       setAvatar(data?.avatar_url ?? null);
       await loadTags(id);
+      await loadFollows();
       setLoaded(true);
     }
     supabase.auth.getUser().then(({ data }) => load(data.user?.id ?? null));
@@ -107,6 +127,23 @@ function ProfilePage() {
         <label className="block space-y-1"><span className="text-xs uppercase tracking-widest text-muted-foreground">Käyttäjänimi</span><input value={name} onChange={(e) => setName(e.target.value.slice(0, 32))} placeholder="Käyttäjänimi" className="w-full bg-black/70 border border-primary/30 rounded p-2 text-sm" /></label>
         <div className="space-y-2"><span className="text-xs uppercase tracking-widest text-muted-foreground">Valitse avatar</span><div className="flex flex-wrap gap-2">{AVATAR_PRESETS.map((e) => { const val = `emoji:${e}`; return <button key={e} onClick={() => { setAvatar(val); void save({ avatar_url: val }); }} className={`h-10 w-10 rounded-full border text-lg flex items-center justify-center ${avatar === val ? "border-primary bg-primary/20" : "border-primary/30 hover:border-primary"}`}>{e}</button>; })}</div><label className="inline-flex items-center gap-2 cursor-pointer"><span className="text-xs uppercase tracking-widest text-muted-foreground">Tai lataa kuva</span><input type="file" accept="image/*" disabled={busy} className="text-xs file:mr-2 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1 file:text-primary-foreground" onChange={(e) => { const f = e.target.files?.[0]; if (f) void pickFile(f); }} /></label></div>
         <div className="flex gap-2"><button disabled={busy} onClick={() => void save()} className="bg-primary text-primary-foreground rounded px-4 py-2 text-xs font-display uppercase tracking-widest disabled:opacity-50">Tallenna</button>{avatar && <button disabled={busy} onClick={() => { setAvatar(null); void save({ avatar_url: null }); }} className="border border-primary/40 rounded px-4 py-2 text-xs font-display uppercase tracking-widest">Poista avatar</button>}</div>
+      </section>
+
+      <section className="card-dark p-4 space-y-3">
+        <h2 className="font-display uppercase tracking-widest text-sm text-primary">❤️ Roolini</h2>
+        <p className="text-xs text-muted-foreground">Ota rooleja kuljettajien ja tiimien sivuilta sydän-ikonista. Saat ilmoituksen aina, kun rooliasi vastaava kuljettaja tai tiimi mainitaan uutisessa.</p>
+        {follows.length === 0 ? <p className="text-xs text-muted-foreground">Ei rooleja vielä.</p> : (
+          <ul className="space-y-1">
+            {follows.map(f => (
+              <li key={`${f.entity_type}:${f.entity_slug}`} className="flex items-center justify-between gap-2 border border-primary/20 rounded px-2 py-1.5">
+                <Link to={f.entity_type === "driver" ? "/kuljettajat/$slug" : "/tiimit/$slug"} params={{ slug: f.entity_slug }} className="text-sm hover:text-primary">
+                  {f.flag ? `${f.flag} ` : ""}{f.name}
+                </Link>
+                <button disabled={busy} onClick={() => void dropFollow(f)} className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary">Poista</button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="card-dark p-4 space-y-3">
