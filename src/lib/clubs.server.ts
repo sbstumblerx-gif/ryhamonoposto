@@ -25,10 +25,25 @@ async function requireRole(db: Admin, clubId: string, userId: string, roles: Rol
 }
 
 async function profileMap(db: Admin, ids: string[]) {
-  const out = new Map<string, { display_name: string; avatar_url: string | null }>();
+  const out = new Map<string, { display_name: string; avatar_url: string | null; club_tag: string | null; club_tag_emoji: string | null; club_tag_club_id: string | null }>();
   if (!ids.length) return out;
-  const { data } = await db.from("profiles").select("id, display_name, avatar_url").in("id", ids);
-  for (const p of data ?? []) out.set(p.id, { display_name: p.display_name ?? "Vierailija", avatar_url: p.avatar_url });
+  const { data } = await db.from("profiles").select("id, display_name, avatar_url, club_tag_club_id").in("id", ids);
+  const clubIds = [...new Set((data ?? []).map(p => p.club_tag_club_id).filter(Boolean) as string[])];
+  const { data: clubs } = clubIds.length
+    ? await db.from("clubs").select("id, tag, tag_emoji, tag_enabled").in("id", clubIds)
+    : { data: [] };
+  const tags = new Map((clubs ?? []).map(c => [c.id, c]));
+  for (const p of data ?? []) {
+    const c = p.club_tag_club_id ? tags.get(p.club_tag_club_id) : null;
+    const active = c?.tag_enabled && c.tag ? c : null;
+    out.set(p.id, {
+      display_name: p.display_name ?? "Vierailija",
+      avatar_url: p.avatar_url,
+      club_tag: active?.tag ?? null,
+      club_tag_emoji: active?.tag_emoji ?? null,
+      club_tag_club_id: active?.id ?? null,
+    });
+  }
   return out;
 }
 
@@ -138,6 +153,9 @@ export async function getClub(userId: string, clubId: string) {
       user_id: m.user_id, role: m.role as Role,
       display_name: profiles.get(m.user_id)?.display_name ?? "Vierailija",
       avatar_url: profiles.get(m.user_id)?.avatar_url ?? null,
+      club_tag: profiles.get(m.user_id)?.club_tag ?? null,
+      club_tag_emoji: profiles.get(m.user_id)?.club_tag_emoji ?? null,
+      club_tag_club_id: profiles.get(m.user_id)?.club_tag_club_id ?? null,
     })),
     requests,
   };
@@ -170,6 +188,9 @@ export async function listMessages(userId: string, clubId: string) {
     ...m,
     display_name: m.is_ai ? "RyhäAI" : (profiles.get(m.user_id)?.display_name ?? "Vierailija"),
     avatar_url: m.is_ai ? "emoji:🤖" : (profiles.get(m.user_id)?.avatar_url ?? null),
+    club_tag: m.is_ai ? null : (profiles.get(m.user_id)?.club_tag ?? null),
+    club_tag_emoji: m.is_ai ? null : (profiles.get(m.user_id)?.club_tag_emoji ?? null),
+    club_tag_club_id: m.is_ai ? null : (profiles.get(m.user_id)?.club_tag_club_id ?? null),
     reactions: byMsg.get(m.id) ?? [],
   }));
 }
@@ -305,7 +326,14 @@ export async function clubLeaderboard(userId: string, clubId: string) {
   for (const p of preds ?? []) totals.set(p.user_id, (totals.get(p.user_id) ?? 0) + (p.points ?? 0));
   const profiles = await profileMap(db, ids);
   return [...totals.entries()]
-    .map(([user_id, points]) => ({ user_id, points, display_name: profiles.get(user_id)?.display_name ?? "Vierailija" }))
+    .map(([user_id, points]) => ({
+      user_id,
+      points,
+      display_name: profiles.get(user_id)?.display_name ?? "Vierailija",
+      club_tag: profiles.get(user_id)?.club_tag ?? null,
+      club_tag_emoji: profiles.get(user_id)?.club_tag_emoji ?? null,
+      club_tag_club_id: profiles.get(user_id)?.club_tag_club_id ?? null,
+    }))
     .sort((a, b) => b.points - a.points)
     .map((r, i) => ({ rank: i + 1, ...r }));
 }
