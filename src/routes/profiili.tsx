@@ -9,6 +9,8 @@ import { Avatar, AVATAR_PRESETS } from "@/components/Avatar";
 import { fileToBase64 } from "@/lib/file-base64";
 import { SvAccountPanel } from "@/components/SvAccountPanel";
 import { listMyClubTags, setMyClubTag, updateClubTag } from "@/lib/club-tags.functions";
+import { listMyFollows, toggleFollow } from "@/lib/follows.functions";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/profiili")({
   head: () => ({ meta: [{ title: "Profiili — RyhäMonoposto" }, { name: "description", content: "Aseta käyttäjänimesi, avatar ja klubitunniste RyhäMonopostossa." }] }),
