@@ -53,6 +53,7 @@ function ProfilePage() {
       setName(data?.display_name ?? "");
       setAvatar(data?.avatar_url ?? null);
       await loadTags(id);
+      await loadFollows();
       setLoaded(true);
     }
     supabase.auth.getUser().then(({ data }) => load(data.user?.id ?? null));
