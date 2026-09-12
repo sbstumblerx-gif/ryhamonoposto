@@ -11,6 +11,7 @@ import { MediaGallery } from "@/components/MediaGallery";
 import { EntityStats } from "@/components/EntityStats";
 
 import { TeamInfoCard } from "@/components/TeamInfoCard";
+import { FollowButton } from "@/components/FollowButton";
 import { useAdmin } from "@/components/admin-store";
 import { gradientFor } from "@/lib/team-colors";
 import { useState } from "react";
