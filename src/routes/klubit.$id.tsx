@@ -195,6 +195,11 @@ function ClubPage() {
             )}
           </section>
 
+          {myRole === "owner" && (
+            <ClubTagSettings clubId={id} tag={club.tag ?? ""} emoji={club.tag_emoji ?? ""} enabled={!!club.tag_enabled}
+              onSaved={() => qc.invalidateQueries({ queryKey: ["club", id] })} />
+          )}
+
           <section className="card-dark p-4 space-y-2">
             <h2 className="font-display uppercase tracking-widest text-sm text-primary">Kutsulinkki</h2>
             <p className="text-xs text-muted-foreground">Jaa tämä linkki — sen avaaja näkee klubin tiedot ja voi liittyä{club.require_approval ? " tai lähettää liittymispyynnön" : ""}.</p>
