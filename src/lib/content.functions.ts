@@ -336,6 +336,10 @@ export const upsertNews = createServerFn({ method: "POST" })
       hero_media_url: data.hero_media_url ?? null,
     }).select().single();
     if (error) throw error;
+    try {
+      const { notifyFollowersOfNews } = await import("./follows.server");
+      await notifyFollowersOfNews(data.title, `${data.excerpt}\n${data.content}`);
+    } catch (e) { console.error("news follower notify failed", e); }
     return row;
   });
 
