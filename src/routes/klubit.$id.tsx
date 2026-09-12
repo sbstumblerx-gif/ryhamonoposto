@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar } from "@/components/Avatar";
 import { ClubComposer } from "@/components/ClubComposer";
 import { ClubMessageMedia } from "@/components/ClubMessageMedia";
+import { ClubTagSettings } from "@/components/ClubTagSettings";
 
 export const Route = createFileRoute("/klubit/$id")({
   head: () => ({
