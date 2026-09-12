@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar } from "@/components/Avatar";
 import { ClubComposer } from "@/components/ClubComposer";
 import { ClubMessageMedia } from "@/components/ClubMessageMedia";
+import { ClubTagBadge } from "@/components/ClubTagBadge";
 
 export const Route = createFileRoute("/klubit/$id")({
   head: () => ({
@@ -130,7 +131,10 @@ function ClubPage() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
                     <Avatar url={m.avatar_url} name={m.display_name} size={22} />
-                    {m.display_name}
+                    <span className="inline-flex items-center gap-1.5 flex-wrap">
+                      {m.display_name}
+                      <ClubTagBadge tag={m.club_tag} emoji={m.club_tag_emoji} clubId={m.club_tag_club_id} />
+                    </span>
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground">{new Date(m.created_at).toLocaleString("fi-FI")}</span>
@@ -229,7 +233,11 @@ function ClubPage() {
             <h2 className="font-display uppercase tracking-widest text-sm text-primary">Jäsenet ({data.members.length}/50)</h2>
             {data.members.map((m: any) => (
               <div key={m.user_id} className="flex items-center justify-between gap-2 border border-primary/20 rounded p-2">
-                <span className="text-sm">{m.display_name} <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{m.role}</span></span>
+                <span className="text-sm inline-flex items-center gap-1.5 flex-wrap">
+                  <span>{m.display_name}</span>
+                  <ClubTagBadge tag={m.club_tag} emoji={m.club_tag_emoji} clubId={m.club_tag_club_id} />
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{m.role}</span>
+                </span>
                 <div className="flex gap-2">
                   {myRole === "owner" && m.role !== "owner" && (
                     <button onClick={() => act(() => roleFn({ data: { club_id: id, user_id: m.user_id, role: m.role === "moderator" ? "member" : "moderator" } }), [["club", id]])}
@@ -263,7 +271,10 @@ function ClubPage() {
           <ol className="space-y-1">
             {(lbQ.data ?? []).map((r: any) => (
               <li key={r.user_id} className={`flex justify-between text-sm border rounded px-2 py-1 ${r.user_id === uid ? "border-primary bg-primary/10" : "border-primary/20"}`}>
-                <span>{r.rank}. {r.display_name}</span>
+                <span className="inline-flex items-center gap-1.5 flex-wrap">
+                  <span>{r.rank}. {r.display_name}</span>
+                  <ClubTagBadge tag={r.club_tag} emoji={r.club_tag_emoji} clubId={r.club_tag_club_id} />
+                </span>
                 <span className="text-primary">{r.points} p</span>
               </li>
             ))}
