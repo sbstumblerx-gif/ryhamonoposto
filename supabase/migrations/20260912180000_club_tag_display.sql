@@ -1,2 +1,0 @@
--- Club tag display is already backed by the existing club-tag schema.
--- This migration is intentionally empty; it documents the final display rollout.
