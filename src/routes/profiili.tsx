@@ -22,6 +22,9 @@ function ProfilePage() {
   const myTagsFn = useServerFn(listMyClubTags);
   const setTagFn = useServerFn(setMyClubTag);
   const updateTagFn = useServerFn(updateClubTag);
+  const followsFn = useServerFn(listMyFollows);
+  const unfollowFn = useServerFn(toggleFollow);
+  const [follows, setFollows] = useState<any[]>([]);
   const [uid, setUid] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
