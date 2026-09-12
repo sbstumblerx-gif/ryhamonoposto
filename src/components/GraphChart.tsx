@@ -36,7 +36,7 @@ export function GraphChart({ graph, height = 440 }: { graph: GraphData; height?:
 
   const labels = [...new Set(data.series.flatMap((s: any) => s.points.map((p: Point) => p.label)))];
   const lineData = labels.map(label => {
-    const row: Record<string, string | number> = { label };
+    const row: Record<string, string | number> = { label: label as string };
     for (const s of data.series) row[s.name] = s.points.find((p: Point) => p.label === label)?.value ?? 0;
     return row;
   });
