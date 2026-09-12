@@ -25,10 +25,25 @@ async function requireRole(db: Admin, clubId: string, userId: string, roles: Rol
 }
 
 async function profileMap(db: Admin, ids: string[]) {
-  const out = new Map<string, { display_name: string; avatar_url: string | null }>();
+  const out = new Map<string, { display_name: string; avatar_url: string | null; club_tag: string | null; club_tag_emoji: string | null; club_tag_club_id: string | null }>();
   if (!ids.length) return out;
-  const { data } = await db.from("profiles").select("id, display_name, avatar_url").in("id", ids);
-  for (const p of data ?? []) out.set(p.id, { display_name: p.display_name ?? "Vierailija", avatar_url: p.avatar_url });
+  const { data } = await db.from("profiles").select("id, display_name, avatar_url, club_tag_club_id").in("id", ids);
+  const clubIds = [...new Set((data ?? []).map(p => p.club_tag_club_id).filter(Boolean) as string[])];
+  const { data: clubs } = clubIds.length
+    ? await db.from("clubs").select("id, tag, tag_emoji, tag_enabled").in("id", clubIds)
+    : { data: [] };
+  const tags = new Map((clubs ?? []).map(c => [c.id, c]));
+  for (const p of data ?? []) {
+    const c = p.club_tag_club_id ? tags.get(p.club_tag_club_id) : null;
+    const active = c?.tag_enabled && c.tag ? c : null;
+    out.set(p.id, {
+      display_name: p.display_name ?? "Vierailija",
+      avatar_url: p.avatar_url,
+      club_tag: active?.tag ?? null,
+      club_tag_emoji: active?.tag_emoji ?? null,
+      club_tag_club_id: active?.id ?? null,
+    });
+  }
   return out;
 }
 
@@ -94,9 +109,7 @@ async function joinClub(db: Admin, club: any, userId: string) {
   if (club.require_approval) {
     await db.from("club_join_requests").upsert({ club_id: club.id, user_id: userId, status: "pending" }, { onConflict: "club_id,user_id" });
     const { data: staff } = await db.from("club_members").select("user_id").eq("club_id", club.id).in("role", ["owner", "moderator"]);
-    await notify(db, (staff ?? []).map(s => ({
-      user_id: s.user_id, type: "join_request", title: "Uusi liittymispyyntö", body: `Klubiin ${club.name} on uusi liittymispyyntö.`, club_id: club.id,
-    })));
+    await notify(db, (staff ?? []).map(s => ({ user_id: s.user_id, type: "join_request", title: "Uusi liittymispyyntö", body: `Klubiin ${club.name} on uusi liittymispyyntö.`, club_id: club.id })));
     return { status: "pending" as const, club_id: club.id };
   }
   await db.from("club_members").insert({ club_id: club.id, user_id: userId, role: "member" });
@@ -138,6 +151,9 @@ export async function getClub(userId: string, clubId: string) {
       user_id: m.user_id, role: m.role as Role,
       display_name: profiles.get(m.user_id)?.display_name ?? "Vierailija",
       avatar_url: profiles.get(m.user_id)?.avatar_url ?? null,
+      club_tag: profiles.get(m.user_id)?.club_tag ?? null,
+      club_tag_emoji: profiles.get(m.user_id)?.club_tag_emoji ?? null,
+      club_tag_club_id: profiles.get(m.user_id)?.club_tag_club_id ?? null,
     })),
     requests,
   };
@@ -170,57 +186,31 @@ export async function listMessages(userId: string, clubId: string) {
     ...m,
     display_name: m.is_ai ? "RyhäAI" : (profiles.get(m.user_id)?.display_name ?? "Vierailija"),
     avatar_url: m.is_ai ? "emoji:🤖" : (profiles.get(m.user_id)?.avatar_url ?? null),
+    club_tag: m.is_ai ? null : (profiles.get(m.user_id)?.club_tag ?? null),
+    club_tag_emoji: m.is_ai ? null : (profiles.get(m.user_id)?.club_tag_emoji ?? null),
+    club_tag_club_id: m.is_ai ? null : (profiles.get(m.user_id)?.club_tag_club_id ?? null),
     reactions: byMsg.get(m.id) ?? [],
   }));
 }
 
-export async function postMessage(
-  userId: string,
-  clubId: string,
-  body: string,
-  media?: { url: string; type: "image" | "audio" | "video"; duration?: number | null },
-) {
+export async function postMessage(userId: string, clubId: string, body: string, media?: { url: string; type: "image" | "audio" | "video"; duration?: number | null }) {
   const db = await admin();
   await requireRole(db, clubId, userId, ["owner", "moderator", "member"]);
-  const { data: msg, error } = await db.from("club_messages").insert({
-    club_id: clubId, user_id: userId, body,
-    media_url: media?.url ?? null,
-    media_type: media?.type ?? null,
-    media_duration: media?.duration ?? null,
-  }).select().single();
+  const { data: msg, error } = await db.from("club_messages").insert({ club_id: clubId, user_id: userId, body, media_url: media?.url ?? null, media_type: media?.type ?? null, media_duration: media?.duration ?? null }).select().single();
   if (error) throw error;
-
-  // @mentions -> notifications for tagged members
   const { data: members } = await db.from("club_members").select("user_id").eq("club_id", clubId);
   const profiles = await profileMap(db, (members ?? []).map(m => m.user_id));
   const { data: club } = await db.from("clubs").select("name, ai_enabled").eq("id", clubId).maybeSingle();
   const me = profiles.get(userId)?.display_name ?? "Joku";
   const lower = body.toLowerCase();
   const targets: string[] = [];
-  for (const [id, p] of profiles) {
-    if (id === userId) continue;
-    if (lower.includes(`@${p.display_name.toLowerCase()}`)) targets.push(id);
-  }
-  await notify(db, targets.map(t => ({
-    user_id: t, type: "mention", title: `${me} mainitsi sinut`, body: `${club?.name ?? "Klubi"}: ${body.slice(0, 120)}`, club_id: clubId,
-  })));
-
-  // ---- AI participant: @ai invites it, @aioff removes it ----
+  for (const [id, p] of profiles) { if (id !== userId && lower.includes(`@${p.display_name.toLowerCase()}`)) targets.push(id); }
+  await notify(db, targets.map(t => ({ user_id: t, type: "mention", title: `${me} mainitsi sinut`, body: `${club?.name ?? "Klubi"}: ${body.slice(0, 120)}`, club_id: clubId })));
   const ai = await import("./club-ai.server");
   let aiEnabled = !!club?.ai_enabled;
-  if (ai.mentionsAiOff(body)) {
-    if (aiEnabled) await db.from("clubs").update({ ai_enabled: false }).eq("id", clubId);
-    await ai.postAiSystemLine(db, clubId, "🤖 RyhäAI poistui keskustelusta. Kutsu takaisin tagaamalla @ai.");
-    return msg;
-  }
-  if (ai.mentionsAiOn(body) && !aiEnabled) {
-    await db.from("clubs").update({ ai_enabled: true }).eq("id", clubId);
-    await ai.postAiSystemLine(db, clubId, "🤖 RyhäAI liittyi keskusteluun. Vastaan nyt jokaiseen viestiin — poista tagaamalla @aioff.");
-    aiEnabled = true;
-  }
-  if (aiEnabled) {
-    try { await ai.replyInClub(db, clubId); } catch { /* chat must not break if the AI fails */ }
-  }
+  if (ai.mentionsAiOff(body)) { if (aiEnabled) await db.from("clubs").update({ ai_enabled: false }).eq("id", clubId); await ai.postAiSystemLine(db, clubId, "🤖 RyhäAI poistui keskustelusta. Kutsu takaisin tagaamalla @ai."); return msg; }
+  if (ai.mentionsAiOn(body) && !aiEnabled) { await db.from("clubs").update({ ai_enabled: true }).eq("id", clubId); await ai.postAiSystemLine(db, clubId, "🤖 RyhäAI liittyi keskusteluun. Vastaan nyt jokaiseen viestiin — poista tagaamalla @aioff."); aiEnabled = true; }
+  if (aiEnabled) { try { await ai.replyInClub(db, clubId); } catch { /* chat must not break if the AI fails */ } }
   return msg;
 }
 
@@ -232,10 +222,7 @@ export async function deleteMessage(userId: string, messageId: string) {
   const allowed = role === "owner" || role === "moderator" || msg.user_id === userId;
   if (!allowed) throw new Error("Ei oikeuksia");
   await db.from("club_messages").delete().eq("id", messageId);
-  if (msg.user_id !== userId) {
-    const { data: club } = await db.from("clubs").select("name").eq("id", msg.club_id).maybeSingle();
-    await notify(db, [{ user_id: msg.user_id, type: "message_removed", title: "Viestisi poistettiin", body: `Klubissa ${club?.name ?? ""}: "${msg.body.slice(0, 80)}"`, club_id: msg.club_id }]);
-  }
+  if (msg.user_id !== userId) { const { data: club } = await db.from("clubs").select("name").eq("id", msg.club_id).maybeSingle(); await notify(db, [{ user_id: msg.user_id, type: "message_removed", title: "Viestisi poistettiin", body: `Klubissa ${club?.name ?? ""}: "${msg.body.slice(0, 80)}"`, club_id: msg.club_id }]); }
   return { ok: true };
 }
 
@@ -245,8 +232,7 @@ export async function toggleReaction(userId: string, messageId: string, emoji: s
   if (!msg) throw new Error("Viestiä ei löydy");
   await requireRole(db, msg.club_id, userId, ["owner", "moderator", "member"]);
   const { data: existing } = await db.from("club_message_reactions").select("id").eq("message_id", messageId).eq("user_id", userId).eq("emoji", emoji).maybeSingle();
-  if (existing) await db.from("club_message_reactions").delete().eq("id", existing.id);
-  else await db.from("club_message_reactions").insert({ message_id: messageId, user_id: userId, emoji });
+  if (existing) await db.from("club_message_reactions").delete().eq("id", existing.id); else await db.from("club_message_reactions").insert({ message_id: messageId, user_id: userId, emoji });
   return { ok: true };
 }
 
@@ -284,11 +270,7 @@ export async function handleJoinRequest(userId: string, clubId: string, targetId
   const db = await admin();
   await requireRole(db, clubId, userId, ["owner", "moderator"]);
   const { data: club } = await db.from("clubs").select("name").eq("id", clubId).maybeSingle();
-  if (approve) {
-    const counts = await memberCounts(db, [clubId]);
-    if ((counts.get(clubId) ?? 0) >= MAX_MEMBERS) throw new Error("Klubi on täynnä (50 jäsentä)");
-    await db.from("club_members").upsert({ club_id: clubId, user_id: targetId, role: "member" }, { onConflict: "club_id,user_id" });
-  }
+  if (approve) { const counts = await memberCounts(db, [clubId]); if ((counts.get(clubId) ?? 0) >= MAX_MEMBERS) throw new Error("Klubi on täynnä (50 jäsentä)"); await db.from("club_members").upsert({ club_id: clubId, user_id: targetId, role: "member" }, { onConflict: "club_id,user_id" }); }
   await db.from("club_join_requests").delete().eq("club_id", clubId).eq("user_id", targetId);
   await notify(db, [{ user_id: targetId, type: "join_result", title: approve ? "Liittymispyyntö hyväksyttiin" : "Liittymispyyntö hylättiin", body: club?.name ?? "", club_id: clubId }]);
   return { ok: true };
@@ -305,17 +287,14 @@ export async function clubLeaderboard(userId: string, clubId: string) {
   for (const p of preds ?? []) totals.set(p.user_id, (totals.get(p.user_id) ?? 0) + (p.points ?? 0));
   const profiles = await profileMap(db, ids);
   return [...totals.entries()]
-    .map(([user_id, points]) => ({ user_id, points, display_name: profiles.get(user_id)?.display_name ?? "Vierailija" }))
+    .map(([user_id, points]) => ({ user_id, points, display_name: profiles.get(user_id)?.display_name ?? "Vierailija", club_tag: profiles.get(user_id)?.club_tag ?? null, club_tag_emoji: profiles.get(user_id)?.club_tag_emoji ?? null, club_tag_club_id: profiles.get(user_id)?.club_tag_club_id ?? null }))
     .sort((a, b) => b.points - a.points)
     .map((r, i) => ({ rank: i + 1, ...r }));
 }
 
-// ============ Notifications ============
-
 export async function listNotifications(userId: string) {
   const db = await admin();
-  const { data } = await db.from("notifications").select("id, type, title, body, club_id, read, created_at")
-    .eq("user_id", userId).order("created_at", { ascending: false }).limit(100);
+  const { data } = await db.from("notifications").select("id, type, title, body, club_id, read, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100);
   return data ?? [];
 }
 
@@ -331,22 +310,12 @@ export async function markAllRead(userId: string) {
   return { ok: true };
 }
 
-// ============ Invite links ============
-
 export async function previewClubByCode(code: string) {
   const db = await admin();
   const { data: club } = await db.from("clubs").select("id, name, description, code, visibility, require_approval").eq("code", code).maybeSingle();
   if (!club) throw new Error("Klubia ei löytynyt tällä kutsulinkillä");
   const counts = await memberCounts(db, [club.id]);
-  return {
-    id: club.id,
-    name: club.name,
-    description: club.description,
-    code: club.code,
-    require_approval: club.require_approval,
-    members: counts.get(club.id) ?? 0,
-    max_members: MAX_MEMBERS,
-  };
+  return { id: club.id, name: club.name, description: club.description, code: club.code, require_approval: club.require_approval, members: counts.get(club.id) ?? 0, max_members: MAX_MEMBERS };
 }
 
 export async function myMembership(userId: string, clubId: string) {
