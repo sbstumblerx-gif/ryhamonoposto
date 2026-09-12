@@ -71,6 +71,7 @@ function DriverPage() {
       </div>
 
       <div className="mx-auto max-w-4xl px-4 py-8">
+        <div className="mb-4"><FollowButton kind="driver" slug={slug} name={d.name} /></div>
         {d.hero_media_url && <img src={d.hero_media_url} alt={d.name} className="w-full rounded border border-primary/30 mb-4" />}
 
         {admin.isAdmin && (
