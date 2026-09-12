@@ -42,6 +42,20 @@ function ProfilePage() {
     } catch { /* migration may still be pending */ }
   }
 
+  async function loadFollows() {
+    try { setFollows((await followsFn()) as any[]); } catch { /* ignore */ }
+  }
+
+  async function dropFollow(f: any) {
+    setBusy(true);
+    try {
+      await unfollowFn({ data: { entity_type: f.entity_type, entity_slug: f.entity_slug } });
+      await loadFollows();
+      toast.success("Rooli poistettu");
+    } catch (e: any) { toast.error(e?.message ?? "Roolin poisto epäonnistui"); }
+    finally { setBusy(false); }
+  }
+
   useEffect(() => {
     let alive = true;
     async function load(id: string | null) {
