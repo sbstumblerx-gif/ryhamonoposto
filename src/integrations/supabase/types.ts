@@ -472,6 +472,47 @@ export type Database = {
           },
         ]
       }
+      graphs: {
+        Row: {
+          config: Json
+          created_at: string
+          data: Json
+          id: string
+          owner_id: string | null
+          signature: string
+          subtitle: string
+          title: string
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          data: Json
+          id?: string
+          owner_id?: string | null
+          signature: string
+          subtitle?: string
+          title: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          data?: Json
+          id?: string
+          owner_id?: string | null
+          signature?: string
+          subtitle?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "graphs_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_items: {
         Row: {
           caption: string
