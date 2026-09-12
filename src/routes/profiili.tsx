@@ -130,6 +130,23 @@ function ProfilePage() {
       </section>
 
       <section className="card-dark p-4 space-y-3">
+        <h2 className="font-display uppercase tracking-widest text-sm text-primary">❤️ Roolini</h2>
+        <p className="text-xs text-muted-foreground">Ota rooleja kuljettajien ja tiimien sivuilta sydän-ikonista. Saat ilmoituksen aina, kun rooliasi vastaava kuljettaja tai tiimi mainitaan uutisessa.</p>
+        {follows.length === 0 ? <p className="text-xs text-muted-foreground">Ei rooleja vielä.</p> : (
+          <ul className="space-y-1">
+            {follows.map(f => (
+              <li key={`${f.entity_type}:${f.entity_slug}`} className="flex items-center justify-between gap-2 border border-primary/20 rounded px-2 py-1.5">
+                <Link to={f.entity_type === "driver" ? "/kuljettajat/$slug" : "/tiimit/$slug"} params={{ slug: f.entity_slug }} className="text-sm hover:text-primary">
+                  {f.flag ? `${f.flag} ` : ""}{f.name}
+                </Link>
+                <button disabled={busy} onClick={() => void dropFollow(f)} className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary">Poista</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="card-dark p-4 space-y-3">
         <h2 className="font-display uppercase tracking-widest text-sm text-primary">🏷️ Oma klubitunniste</h2>
         <p className="text-xs text-muted-foreground">Valitse yksi aktiivinen tunniste niistä klubeista, joiden jäsen olet. Se näkyy nimesi perässä.</p>
         <select disabled={busy} value={selectedTag ?? ""} onChange={(e) => void chooseTag(e.target.value || null)} className="w-full bg-black/70 border border-primary/30 rounded p-2 text-sm"><option value="">Ei klubitunnistetta</option>{clubTags.filter(c => c.tag_enabled && c.tag).map(c => <option key={c.id} value={c.id}>{c.tag_emoji ? `${c.tag_emoji} ` : ""}{c.tag} — {c.name}</option>)}</select>
