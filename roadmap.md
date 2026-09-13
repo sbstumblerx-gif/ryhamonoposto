@@ -1,2 +1,5 @@
-
 - [x] Korjaa esikatselun typecheck-virheet (races.is_live -kenttä puuttui tietokannasta)
+- [x] Viimeistele roolit, uutisilmoitukset ja klubitagien hallinta
+- [x] Korjaa grafiikoiden tiimi- ja kuljettajavärit
+- [x] Aseta grafiikin Y-akseli välille 0–vertailun korkein arvo
+- [x] Näytä race-to-race-grafiikissa jokainen kilpailu omana sarakkeena ja kilpailun lippu alapuolella

@@ -25,7 +25,12 @@ export const createGraph = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existing, error: lookupError } = await supabaseAdmin.from("graphs").select("*").eq("signature", sig).maybeSingle();
     if (lookupError) throw lookupError;
-    if (existing) return { graph: existing, reused: true };
+    if (existing) {
+      const built = await buildGraph(config);
+      const { data: refreshed, error: refreshError } = await supabaseAdmin.from("graphs").update({ title: built.title, subtitle: built.subtitle, data: built }).eq("id", existing.id).select("*").single();
+      if (refreshError) throw refreshError;
+      return { graph: refreshed, reused: true };
+    }
     const built = await buildGraph(config);
     const { data: graph, error } = await supabaseAdmin.from("graphs").insert({ signature: sig, owner_id: context.userId, config, title: built.title, subtitle: built.subtitle, data: built }).select("*").single();
     if (error) {
@@ -45,7 +50,11 @@ export const getGraph = createServerFn({ method: "GET" })
     const { data: graph, error } = await supabaseAdmin.from("graphs").select("*").eq("id", data.id).maybeSingle();
     if (error) throw error;
     if (!graph) throw new Error("Grafiikkaa ei löytynyt");
-    return graph;
+    const config = graphConfigSchema.parse(graph.config);
+    const built = await buildGraph(config);
+    const { data: refreshed, error: refreshError } = await supabaseAdmin.from("graphs").update({ title: built.title, subtitle: built.subtitle, data: built }).eq("id", graph.id).select("*").single();
+    if (refreshError) throw refreshError;
+    return refreshed;
   });
 
 export const listMyGraphs = createServerFn({ method: "GET" })
