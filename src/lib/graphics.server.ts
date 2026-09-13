@@ -1,4 +1,4 @@
-import { parseResultLines, pointsForPosition, seasonYearFromName, normalizeName } from "./stats-compute";
+import { parseResultLines, pointsForPosition, seasonYearFromName, normalizeName, compareRaceOrder } from "./stats-compute";
 import { colorFor } from "./team-colors";
 
 type Team = { slug: string; name: string; color_key: string };
@@ -24,7 +24,7 @@ function historicalTeam(driver: Driver | undefined, year: number | null, teams: 
 async function loadData() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [{ data: races, error: re }, { data: drivers, error: de }, { data: teams, error: te }] = await Promise.all([
-    supabaseAdmin.from("races").select("name, slug, flag, round_number, race_date, qualifying_content, race_content").order("race_date", { ascending: true }),
+    supabaseAdmin.from("races").select("name, slug, flag, round_number, race_date, qualifying_content, race_content"),
     supabaseAdmin.from("drivers").select("slug, name, flag, current_team_slug, team_slug, current_team_since, former_teams"),
     supabaseAdmin.from("teams").select("slug, name, color_key"),
   ]);

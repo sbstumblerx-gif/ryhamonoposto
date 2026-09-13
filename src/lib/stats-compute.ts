@@ -118,3 +118,17 @@ export function sortStandings(rows: StatLine[]): StatLine[] {
   return [...rows].sort((a, b) =>
     b.points - a.points || b.wins - a.wins || b.podiums - a.podiums || a.name.localeCompare(b.name));
 }
+
+/** Chronological race order: season year first, then round number. */
+export function compareRaceOrder(
+  a: { name: string; round_number?: number | null },
+  b: { name: string; round_number?: number | null },
+): number {
+  const ya = seasonYearFromName(a.name) ?? Number.POSITIVE_INFINITY;
+  const yb = seasonYearFromName(b.name) ?? Number.POSITIVE_INFINITY;
+  if (ya !== yb) return ya - yb;
+  const ra = a.round_number ?? Number.POSITIVE_INFINITY;
+  const rb = b.round_number ?? Number.POSITIVE_INFINITY;
+  if (ra !== rb) return ra - rb;
+  return a.name.localeCompare(b.name);
+}
