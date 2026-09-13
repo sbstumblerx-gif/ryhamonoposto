@@ -23,12 +23,79 @@ function downloadText(filename: string, content: string, type: string) {
   const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
 }
 
+function prepareGraphSvg(svg: SVGSVGElement, title: string, subtitle: string) {
+  const copy = svg.cloneNode(true) as SVGSVGElement;
+  const rect = svg.getBoundingClientRect();
+  const width = Math.max(720, Math.ceil(rect.width || Number(svg.getAttribute("width")) || 720));
+  const height = Math.max(440, Math.ceil(rect.height || Number(svg.getAttribute("height")) || 440));
+  const ns = "http://www.w3.org/2000/svg";
+  copy.setAttribute("xmlns", ns);
+  copy.setAttribute("width", String(width));
+  copy.setAttribute("height", String(height + 72));
+  copy.setAttribute("viewBox", `0 0 ${width} ${height + 72}`);
+
+  const background = document.createElementNS(ns, "rect");
+  background.setAttribute("x", "0"); background.setAttribute("y", "0"); background.setAttribute("width", String(width)); background.setAttribute("height", String(height + 72));
+  background.setAttribute("fill", "#101010");
+  copy.insertBefore(background, copy.firstChild);
+
+  const titleEl = document.createElementNS(ns, "text");
+  titleEl.setAttribute("x", "24"); titleEl.setAttribute("y", "28"); titleEl.setAttribute("fill", "#ffffff"); titleEl.setAttribute("font-family", "Arial, sans-serif"); titleEl.setAttribute("font-size", "20"); titleEl.setAttribute("font-weight", "700");
+  titleEl.textContent = title;
+  copy.appendChild(titleEl);
+
+  const subtitleEl = document.createElementNS(ns, "text");
+  subtitleEl.setAttribute("x", "24"); subtitleEl.setAttribute("y", "52"); subtitleEl.setAttribute("fill", "#b8b8b8"); subtitleEl.setAttribute("font-family", "Arial, sans-serif"); subtitleEl.setAttribute("font-size", "13");
+  subtitleEl.textContent = subtitle;
+  copy.appendChild(subtitleEl);
+
+  const content = copy.querySelector(".recharts-wrapper") as SVGElement | null;
+  if (content) content.setAttribute("transform", "translate(0 72)");
+  else {
+    for (const child of Array.from(copy.children)) {
+      if (child !== background && child !== titleEl && child !== subtitleEl && child instanceof SVGElement) child.setAttribute("transform", "translate(0 72)");
+    }
+  }
+  return { copy, width, height: height + 72 };
+}
+
 function downloadGraphSvg() {
   const svg = document.querySelector("#graph-export svg") as SVGSVGElement | null;
   if (!svg) return toast.error("Grafiikkaa ei ole vielä valmis");
-  const copy = svg.cloneNode(true) as SVGSVGElement;
-  copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  downloadText("ryhamonoposto-grafiikka.svg", new XMLSerializer().serializeToString(copy), "image/svg+xml");
+  const graph = (window as any).__activeGraphForExport;
+  const { copy } = prepareGraphSvg(svg, graph?.title ?? "RyhäMonoposto — Grafiikka", graph?.subtitle ?? "");
+  downloadText("ryhamonoposto-grafiikka.svg", new XMLSerializer().serializeToString(copy), "image/svg+xml;charset=utf-8");
+}
+
+async function downloadGraphPng(graph: any) {
+  const svg = document.querySelector("#graph-export svg") as SVGSVGElement | null;
+  if (!svg) return toast.error("Grafiikkaa ei ole vielä valmis");
+  const { copy, width, height } = prepareGraphSvg(svg, graph?.title ?? "RyhäMonoposto — Grafiikka", graph?.subtitle ?? "");
+  const svgText = new XMLSerializer().serializeToString(copy);
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = url;
+    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("SVG-kuvan lataus epäonnistui")); });
+    const scale = Math.max(2, Math.min(4, window.devicePixelRatio || 2));
+    const canvas = document.createElement("canvas");
+    canvas.width = width * scale; canvas.height = height * scale;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas ei ole käytettävissä");
+    ctx.fillStyle = "#101010"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const png = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"));
+    if (!png) throw new Error("PNG-kuvan muodostaminen epäonnistui");
+    const pngUrl = URL.createObjectURL(png);
+    const a = document.createElement("a"); a.href = pngUrl; a.download = "ryhamonoposto-grafiikka.png"; a.click();
+    setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+  } catch (e: any) {
+    toast.error(e?.message ?? "PNG-kuvan tallentaminen epäonnistui");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function graphCsv(graph: any) {
@@ -49,10 +116,7 @@ function useUser() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUid(session?.user?.id ?? null);
     });
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
+    return () => { mounted = false; sub.subscription.unsubscribe(); };
   }, []);
   return uid;
 }
@@ -78,15 +142,14 @@ function GraphicsPage() {
   const [clubId, setClubId] = useState("");
   const [creating, setCreating] = useState(false);
 
+  useEffect(() => { (window as any).__activeGraphForExport = graph; return () => { delete (window as any).__activeGraphForExport; }; }, [graph]);
+
   const choices = target === "drivers" ? options.data?.drivers ?? [] : options.data?.teams ?? [];
   const selected = useMemo(() => participants.filter(p => choices.some(c => c.slug === p)), [participants, choices]);
 
   async function signIn() {
-    try {
-      await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.href });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Kirjautuminen epäonnistui");
-    }
+    try { await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.href }); }
+    catch (e: any) { toast.error(e?.message ?? "Kirjautuminen epäonnistui"); }
   }
 
   async function create() {
@@ -104,75 +167,20 @@ function GraphicsPage() {
   }
 
   return <div className="mx-auto max-w-6xl px-4 py-8 pb-24">
-    <div className="flex items-center justify-between gap-3 mb-5">
-      <div>
-        <Link to="/tilastot" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"><ArrowLeft size={14} /> Tilastot</Link>
-        <h1 className="font-display uppercase tracking-widest text-3xl text-primary mt-2">Grafiikat</h1>
-      </div>
-    </div>
+    <div className="flex items-center justify-between gap-3 mb-5"><div><Link to="/tilastot" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"><ArrowLeft size={14} /> Tilastot</Link><h1 className="font-display uppercase tracking-widest text-3xl text-primary mt-2">Grafiikat</h1></div></div>
     <div className="hairline-red mb-6" />
+    {!uid && <section className="card-dark p-5 md:p-6 mb-6 border border-primary/30"><h2 className="font-display uppercase tracking-widest text-lg">Kirjaudu käyttääksesi grafiikoita</h2><p className="text-sm text-muted-foreground mt-1">Grafiikat tallennetaan julkiseen tietokantaan, mutta omien grafiikoiden historia ja jakaminen klubien chatteihin vaativat kirjautumisen.</p><button onClick={signIn} className="mt-4 bg-primary text-primary-foreground rounded px-6 py-3 font-display uppercase tracking-widest">Kirjaudu Googlella</button></section>}
+    <section className="card-dark p-5 md:p-6"><h2 className="font-display uppercase tracking-widest text-lg">Luo grafiikkaa</h2><p className="text-sm text-muted-foreground mt-1 mb-5">Valitse mitä haluat verrata. Sama asetusyhdistelmä käyttää aina jo olemassa olevaa julkista grafiikkaa.</p><div className="grid md:grid-cols-2 gap-4">
+      <label className="text-sm">Kohde<select value={target} onChange={e => { setTarget(e.target.value as any); setParticipants([]); }} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5"><option value="drivers">Kuljettajat</option><option value="teams">Valmistajat / tiimit</option></select></label>
+      <label className="text-sm">Kausi<select value={season} onChange={e => setSeason(e.target.value)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5"><option value="history">Koko historia</option>{(options.data?.seasons ?? []).map(y => <option key={y} value={String(y)}>{y}</option>)}</select></label>
+      <label className="text-sm">Grafiikkatyyppi<select value={chartType} onChange={e => setChartType(e.target.value as any)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5"><option value="line">Viivagraafi — kehitys kilpailu kilpailulta</option><option value="bar">Pylväsdiagrammi</option><option value="pie">Piirakkakaavio</option></select></label>
+      <label className="text-sm">Tilasto<select value={metric} onChange={e => setMetric(e.target.value)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5">{Object.entries(metricLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+      <label className="text-sm">Aikaväli<select value={range} onChange={e => setRange(e.target.value as any)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5"><option value="all">Koko valittu aikaväli</option><option value="last5">Viimeiset 5 kilpailua</option><option value="last10">Viimeiset 10 kilpailua</option><option value="last20">Viimeiset 20 kilpailua</option></select></label>
+      <label className="text-sm md:col-span-2">Osallistujat <span className="text-muted-foreground">(Ctrl/Cmd-valinta työpöydällä)</span><select multiple value={selected} onChange={e => setParticipants([...e.target.selectedOptions].map(o => o.value))} className="mt-1 w-full min-h-40 bg-black/70 border border-primary/30 rounded p-2">{choices.map((c: any) => <option key={c.slug} value={c.slug}>{c.flag ? `${c.flag} ` : ""}{c.name}</option>)}</select></label>
+    </div><button disabled={creating || !uid} onClick={create} className="mt-5 w-full md:w-auto bg-primary text-primary-foreground rounded px-6 py-3 font-display uppercase tracking-widest disabled:opacity-50">{creating ? "Luo..." : "📊 Luo grafiikka"}</button></section>
 
-    {!uid && <section className="card-dark p-5 md:p-6 mb-6 border border-primary/30">
-      <h2 className="font-display uppercase tracking-widest text-lg">Kirjaudu käyttääksesi grafiikoita</h2>
-      <p className="text-sm text-muted-foreground mt-1">Grafiikat tallennetaan julkiseen tietokantaan, mutta omien grafiikoiden historia ja jakaminen klubien chatteihin vaativat kirjautumisen.</p>
-      <button onClick={signIn} className="mt-4 bg-primary text-primary-foreground rounded px-6 py-3 font-display uppercase tracking-widest">Kirjaudu Googlella</button>
-    </section>}
+    {graph && <section className="card-dark p-4 md:p-6 mt-6" id="graph-export"><div className="flex flex-wrap justify-between items-start gap-3 mb-4"><div><h2 className="font-display uppercase tracking-widest text-xl">{graph.title}</h2><p className="text-sm text-muted-foreground">{graph.subtitle}</p></div><div className="flex flex-wrap gap-2"><button onClick={() => downloadGraphPng(graph)} className="bg-primary text-primary-foreground rounded px-3 py-2 text-xs inline-flex items-center gap-2"><Download size={14} /> PNG</button><button onClick={downloadGraphSvg} className="border border-primary/40 rounded px-3 py-2 text-xs inline-flex items-center gap-2"><Download size={14} /> SVG</button><button onClick={() => downloadText("ryhamonoposto-grafiikka.csv", graphCsv(graph), "text/csv;charset=utf-8")} className="border border-primary/40 rounded px-3 py-2 text-xs">CSV</button></div></div><GraphChart graph={graph} /><div className="mt-4 border-t border-white/10 pt-4"><div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Jaa klubin chattiin</div><div className="flex flex-col md:flex-row gap-2"><select value={clubId} onChange={e => setClubId(e.target.value)} className="flex-1 bg-black/70 border border-primary/30 rounded p-2.5 text-sm"><option value="">Valitse klubi...</option>{(clubs.data ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><button disabled={!clubId || !uid} onClick={async () => { try { await shareFn({ data: { graph_id: graph.id, club_id: clubId } }); toast.success("Grafiikka jaettu klubin chattiin."); } catch (e: any) { toast.error(e?.message ?? "Jakaminen epäonnistui"); } }} className="bg-primary text-primary-foreground rounded px-4 py-2 text-sm inline-flex items-center justify-center gap-2 disabled:opacity-50"><Share2 size={15} /> Jaa</button></div>{!uid && <p className="text-xs text-muted-foreground mt-2">Kirjaudu sisään nähdäksesi omat klubisi ja jakaaksesi grafiikan klubichattiin.</p>}{uid && !clubs.data?.length && <p className="text-xs text-muted-foreground mt-2">Liity klubin jäseneksi, jotta voit jakaa grafiikan klubichattiin.</p>}</div></section>}
 
-    <section className="card-dark p-5 md:p-6">
-      <h2 className="font-display uppercase tracking-widest text-lg">Luo grafiikkaa</h2>
-      <p className="text-sm text-muted-foreground mt-1 mb-5">Valitse mitä haluat verrata. Sama asetusyhdistelmä käyttää aina jo olemassa olevaa julkista grafiikkaa.</p>
-      <div className="grid md:grid-cols-2 gap-4">
-        <label className="text-sm">Kohde<select value={target} onChange={e => { setTarget(e.target.value as any); setParticipants([]); }} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5">
-          <option value="drivers">Kuljettajat</option><option value="teams">Valmistajat / tiimit</option>
-        </select></label>
-        <label className="text-sm">Kausi<select value={season} onChange={e => setSeason(e.target.value)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5">
-          <option value="history">Koko historia</option>{(options.data?.seasons ?? []).map(y => <option key={y} value={String(y)}>{y}</option>)}
-        </select></label>
-        <label className="text-sm">Grafiikkatyyppi<select value={chartType} onChange={e => setChartType(e.target.value as any)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5">
-          <option value="line">Viivagraafi — kehitys kilpailu kilpailulta</option><option value="bar">Pylväsdiagrammi</option><option value="pie">Piirakkakaavio</option>
-        </select></label>
-        <label className="text-sm">Tilasto<select value={metric} onChange={e => setMetric(e.target.value)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5">
-          {Object.entries(metricLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-        </select></label>
-        <label className="text-sm">Aikaväli<select value={range} onChange={e => setRange(e.target.value as any)} className="mt-1 w-full bg-black/70 border border-primary/30 rounded p-2.5">
-          <option value="all">Koko valittu aikaväli</option><option value="last5">Viimeiset 5 kilpailua</option><option value="last10">Viimeiset 10 kilpailua</option><option value="last20">Viimeiset 20 kilpailua</option>
-        </select></label>
-        <label className="text-sm md:col-span-2">Osallistujat <span className="text-muted-foreground">(Ctrl/Cmd-valinta työpöydällä)</span>
-          <select multiple value={selected} onChange={e => setParticipants([...e.target.selectedOptions].map(o => o.value))} className="mt-1 w-full min-h-40 bg-black/70 border border-primary/30 rounded p-2">
-            {choices.map((c: any) => <option key={c.slug} value={c.slug}>{c.flag ? `${c.flag} ` : ""}{c.name}</option>)}
-          </select>
-        </label>
-      </div>
-      <button disabled={creating || !uid} onClick={create} className="mt-5 w-full md:w-auto bg-primary text-primary-foreground rounded px-6 py-3 font-display uppercase tracking-widest disabled:opacity-50">{creating ? "Luo..." : "📊 Luo grafiikka"}</button>
-    </section>
-
-    {graph && <section className="card-dark p-4 md:p-6 mt-6" id="graph-export">
-      <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
-        <div><h2 className="font-display uppercase tracking-widest text-xl">{graph.title}</h2><p className="text-sm text-muted-foreground">{graph.subtitle}</p></div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={downloadGraphSvg} className="border border-primary/40 rounded px-3 py-2 text-xs inline-flex items-center gap-2"><Download size={14} /> SVG</button>
-          <button onClick={() => downloadText("ryhamonoposto-grafiikka.csv", graphCsv(graph), "text/csv;charset=utf-8")} className="border border-primary/40 rounded px-3 py-2 text-xs">CSV</button>
-        </div>
-      </div>
-      <GraphChart graph={graph} />
-      <div className="mt-4 border-t border-white/10 pt-4">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Jaa klubin chattiin</div>
-        <div className="flex flex-col md:flex-row gap-2">
-          <select value={clubId} onChange={e => setClubId(e.target.value)} className="flex-1 bg-black/70 border border-primary/30 rounded p-2.5 text-sm">
-            <option value="">Valitse klubi...</option>{(clubs.data ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <button disabled={!clubId || !uid} onClick={async () => { try { await shareFn({ data: { graph_id: graph.id, club_id: clubId } }); toast.success("Grafiikka jaettu klubin chattiin."); } catch (e: any) { toast.error(e?.message ?? "Jakaminen epäonnistui"); } }} className="bg-primary text-primary-foreground rounded px-4 py-2 text-sm inline-flex items-center justify-center gap-2 disabled:opacity-50"><Share2 size={15} /> Jaa</button>
-        </div>
-        {!uid && <p className="text-xs text-muted-foreground mt-2">Kirjaudu sisään nähdäksesi omat klubisi ja jakaaksesi grafiikan.</p>}
-        {uid && !clubs.data?.length && <p className="text-xs text-muted-foreground mt-2">Liity klubin jäseneksi, jotta voit jakaa grafiikan klubichattiin.</p>}
-      </div>
-    </section>}
-
-    <section className="mt-8">
-      <h2 className="font-display uppercase tracking-widest text-lg mb-3">Omat grafiikat</h2>
-      {!uid ? <p className="text-sm text-muted-foreground">Kirjaudu sisään nähdäksesi omat tallennetut grafiikkasi.</p> : history.isLoading ? <p className="text-sm text-muted-foreground">Ladataan...</p> : !history.data?.length ? <p className="text-sm text-muted-foreground">Et ole vielä tallentanut grafiikoita.</p> : <div className="grid md:grid-cols-2 gap-3">
-        {history.data.map(g => <button key={g.id} onClick={() => navigate({ to: "/graphics/$id", params: { id: g.id } })} className="card-dark p-4 text-left hover:border-primary/60 border border-transparent transition"><div className="font-display uppercase">{g.title}</div><div className="text-xs text-muted-foreground mt-1">{g.subtitle}</div></button>)}
-      </div>}
-    </section>
+    <section className="mt-8"><h2 className="font-display uppercase tracking-widest text-lg mb-3">Omat grafiikat</h2>{!uid ? <p className="text-sm text-muted-foreground">Kirjaudu sisään nähdäksesi omat tallennetut grafiikkasi.</p> : history.isLoading ? <p className="text-sm text-muted-foreground">Ladataan...</p> : !history.data?.length ? <p className="text-sm text-muted-foreground">Et ole vielä tallentanut grafiikoita.</p> : <div className="grid md:grid-cols-2 gap-3">{history.data.map(g => <button key={g.id} onClick={() => navigate({ to: "/graphics/$id", params: { id: g.id } })} className="card-dark p-4 text-left hover:border-primary/60 border border-transparent transition"><div className="font-display uppercase">{g.title}</div><div className="text-xs text-muted-foreground mt-1">{g.subtitle}</div></button>)}</div>}</section>
   </div>;
 }
