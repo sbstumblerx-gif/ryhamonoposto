@@ -2,8 +2,8 @@ import { parseResultLines, pointsForPosition, seasonYearFromName, normalizeName 
 
 type Team = { slug: string; name: string; color_key: string };
 type Driver = { slug: string; name: string; flag: string; current_team_slug: string | null; team_slug: string | null; current_team_since: number | null; former_teams: any };
-type Race = { name: string; slug: string; round_number: number | null; race_date: string | null; qualifying_content: string | null; race_content: string | null };
-type GraphPoint = { label: string; value: number; round: number; teamColor?: string; teamName?: string };
+type Race = { name: string; slug: string; flag: string; round_number: number | null; race_date: string | null; qualifying_content: string | null; race_content: string | null };
+type GraphPoint = { label: string; axisLabel: string; value: number; round: number; teamColor?: string; teamName?: string };
 
 export const TEAM_COLORS: Record<string, string> = {
   red: "#ef4444", green: "#22c55e", yellow: "#eab308", cyan: "#06b6d4", blue: "#3b82f6",
@@ -11,7 +11,11 @@ export const TEAM_COLORS: Record<string, string> = {
   purple: "#a855f7", orange: "#f97316", pink: "#ec4899", white: "#f5f5f5", black: "#111827",
 };
 
-export function teamColor(team?: Team | null) { return TEAM_COLORS[team?.color_key ?? ""] ?? "#9ca3af"; }
+export function teamColor(team?: Team | null) {
+  const color = team?.color_key ?? "";
+  if (/^#[0-9a-f]{6}$/i.test(color)) return color;
+  return TEAM_COLORS[color] ?? "#9ca3af";
+}
 
 function historicalTeam(driver: Driver | undefined, year: number | null, teams: Map<string, Team>) {
   if (!driver) return undefined;
@@ -27,7 +31,7 @@ function historicalTeam(driver: Driver | undefined, year: number | null, teams: 
 async function loadData() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [{ data: races, error: re }, { data: drivers, error: de }, { data: teams, error: te }] = await Promise.all([
-    supabaseAdmin.from("races").select("name, slug, round_number, race_date, qualifying_content, race_content").order("race_date", { ascending: true }),
+    supabaseAdmin.from("races").select("name, slug, flag, round_number, race_date, qualifying_content, race_content").order("race_date", { ascending: true }),
     supabaseAdmin.from("drivers").select("slug, name, flag, current_team_slug, team_slug, current_team_since, former_teams"),
     supabaseAdmin.from("teams").select("slug, name, color_key"),
   ]);
@@ -136,7 +140,7 @@ export async function buildGraph(config: any) {
         const teamLines = lines.filter(line => teamByName.get(normalizeName(line.team ?? ""))?.slug === p.key);
         for (const line of teamLines) { add(acc, line); if (pole.has(driverByName.get(normalizeName(line.driver))?.slug ?? normalizeName(line.driver))) acc.poles++; }
       }
-      series.get(p.key)!.push({ label: race.name, value: metric(acc, config.metric), round: race.round_number ?? 0, teamColor: teamColor(usedTeam), teamName: usedTeam?.name });
+      series.get(p.key)!.push({ label: race.name, axisLabel: race.flag || `R${race.round_number ?? ""}`, value: metric(acc, config.metric), round: race.round_number ?? 0, teamColor: teamColor(usedTeam), teamName: usedTeam?.name });
     }
   }
 
