@@ -1,4 +1,4 @@
-import { parseResultLines, pointsForPosition, seasonYearFromName, normalizeName } from "./stats-compute";
+import { parseResultLines, pointsForPosition, seasonYearFromName, normalizeName, compareRaceOrder } from "./stats-compute";
 import { colorFor } from "./team-colors";
 
 type Team = { slug: string; name: string; color_key: string };
