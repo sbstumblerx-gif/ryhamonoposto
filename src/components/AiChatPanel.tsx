@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { aiChat } from "@/lib/ai-search.functions";
 import {
@@ -35,6 +35,7 @@ export function AiChatPanel({
   const [messages, setMessages] = useState<AiMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Load messages when active conversation changes (external)
   useEffect(() => {
@@ -45,6 +46,16 @@ export function AiChatPanel({
       setMessages([]);
     }
   }, [activeId]);
+
+  // Always open a conversation at its latest message.
+  // requestAnimationFrame waits until the message list has rendered and its
+  // scroll height is available, so this does not scroll the whole page.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeId, messages.length]);
 
   useEffect(() => {
     onConversationChange?.(activeId);
@@ -196,6 +207,7 @@ export function AiChatPanel({
             </div>
           ))
         )}
+        <div ref={messagesEndRef} aria-hidden="true" />
       </div>
 
       <form onSubmit={submit} className="flex gap-2">
