@@ -52,7 +52,7 @@ export function GraphChart({ graph, height = 440 }: { graph: GraphData; height?:
           <LineChart data={lineData} margin={{ top: 10, right: 20, left: 0, bottom: 16 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis dataKey="label" interval={0} tickFormatter={(label: string) => axisLabels.get(label) ?? label} tick={{ fontSize: 18 }} />
-            <YAxis allowDecimals={false} domain={[0, yMax]} />
+            <YAxis allowDecimals={false} allowDataOverflow domain={[0, yMax]} />
             <Tooltip labelFormatter={(label: string) => label} />
             {data.series.map((s: any) => <Line key={s.name} type="monotone" dataKey={s.name} stroke={s.color} strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} isAnimationActive={false} />)}
           </LineChart>
