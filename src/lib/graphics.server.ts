@@ -1,20 +1,13 @@
 import { parseResultLines, pointsForPosition, seasonYearFromName, normalizeName } from "./stats-compute";
+import { colorFor } from "./team-colors";
 
 type Team = { slug: string; name: string; color_key: string };
 type Driver = { slug: string; name: string; flag: string; current_team_slug: string | null; team_slug: string | null; current_team_since: number | null; former_teams: any };
 type Race = { name: string; slug: string; flag: string; round_number: number | null; race_date: string | null; qualifying_content: string | null; race_content: string | null };
 type GraphPoint = { label: string; axisLabel: string; value: number; round: number; teamColor?: string; teamName?: string };
 
-export const TEAM_COLORS: Record<string, string> = {
-  red: "#ef4444", green: "#22c55e", yellow: "#eab308", cyan: "#06b6d4", blue: "#3b82f6",
-  gray: "#9ca3af", darkred: "#991b1b", darkblue: "#1e3a8a", darkgreen: "#166534",
-  purple: "#a855f7", orange: "#f97316", pink: "#ec4899", white: "#f5f5f5", black: "#111827",
-};
-
 export function teamColor(team?: Team | null) {
-  const color = team?.color_key ?? "";
-  if (/^#[0-9a-f]{6}$/i.test(color)) return color;
-  return TEAM_COLORS[color] ?? "#9ca3af";
+  return team ? colorFor(team.color_key) : "#9ca3af";
 }
 
 function historicalTeam(driver: Driver | undefined, year: number | null, teams: Map<string, Team>) {
