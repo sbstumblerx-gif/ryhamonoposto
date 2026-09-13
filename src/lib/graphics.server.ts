@@ -130,7 +130,8 @@ export async function buildGraph(config: any) {
     const pole = new Set(q.filter(x => x.status === "FIN" && x.position === 1).map(x => driverByName.get(normalizeName(x.driver))?.slug ?? normalizeName(x.driver)));
     const byDriver = new Map(lines.map(line => [driverByName.get(normalizeName(line.driver))?.slug ?? normalizeName(line.driver), line]));
     for (const p of meta) {
-      const acc = totals.get(p.key)!; let usedTeam: Team | undefined = p.team;
+      const acc = totals.get(p.key)!;
+      let usedTeam: Team | undefined = config.target === "drivers" ? undefined : p.team;
       if (config.target === "drivers") {
         const d = driverBySlug.get(p.key); const line = byDriver.get(p.key);
         if (line?.team) usedTeam = teamByName.get(normalizeName(line.team)) ?? usedTeam;
