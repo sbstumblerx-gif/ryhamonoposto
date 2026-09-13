@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 type Point = { label: string; axisLabel?: string; value: number; round: number; teamColor?: string; teamName?: string };
 type GraphData = {
@@ -19,6 +19,7 @@ export function GraphChart({ graph, height = 440 }: { graph: GraphData; height?:
         {data.totals.map((entry: any, i: number) => <Cell key={i} fill={entry.color} />)}
       </Pie>
       <Tooltip formatter={(value: number) => [value, metricLabels[data.config.metric] ?? data.config.metric]} />
+      <Legend />
     </PieChart>
   </ResponsiveContainer>;
 
@@ -31,6 +32,7 @@ export function GraphChart({ graph, height = 440 }: { graph: GraphData; height?:
       <Bar dataKey="value" name={metricLabels[data.config.metric] ?? data.config.metric}>
         {data.totals.map((entry: any, i: number) => <Cell key={i} fill={entry.color} />)}
       </Bar>
+      <Legend payload={data.totals.map((entry: any) => ({ value: entry.name, type: "square", color: entry.color }))} />
     </BarChart>
   </ResponsiveContainer>;
 
@@ -54,6 +56,7 @@ export function GraphChart({ graph, height = 440 }: { graph: GraphData; height?:
             <XAxis dataKey="label" interval={0} tickFormatter={(label: string) => axisLabels.get(label) ?? label} tick={{ fontSize: 18 }} />
             <YAxis allowDecimals={false} allowDataOverflow domain={[0, yMax]} />
             <Tooltip labelFormatter={(label: string) => label} />
+            <Legend />
             {data.series.map((s: any) => <Line key={s.name} type="monotone" dataKey={s.name} stroke={s.color} strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} isAnimationActive={false} />)}
           </LineChart>
         </ResponsiveContainer>
