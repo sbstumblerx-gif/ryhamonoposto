@@ -30,12 +30,11 @@ export function StatsIndex() {
 
   return <div className="mx-auto max-w-4xl px-4 py-8">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h1 className="font-display uppercase tracking-widest text-2xl text-primary">Tilastot</h1><div className="hairline-red mt-3 mb-3" /><p className="text-sm text-muted-foreground">Valitse kausi tai rakenna oma vertailu.</p></div>
+      <div><h1 className="font-display uppercase tracking-widest text-2xl text-primary">Tilastot</h1><div className="hairline-red mt-3 mb-3" /><p className="text-sm text-muted-foreground">Valitse kausi.</p></div>
       <Link to="/graphics" className="bg-primary text-primary-foreground rounded px-5 py-3 font-display uppercase tracking-widest text-sm shadow-lg shadow-primary/10 hover:scale-[1.02] transition">📊 GRAFIIKAT</Link>
     </div>
 
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-5">
-      <Link to="/tilastot/vertailu" className="block card-dark p-6 hover:border-primary transition text-center border-primary/60"><div className="text-2xl mb-2">⚖️</div><div className="font-display uppercase tracking-widest text-primary">Valitse vertailu</div><div className="text-xs text-muted-foreground mt-1">Järjestä millä tahansa tilastolla</div></Link>
       <Link to="/tilastot/koko-historia" className="block card-dark p-6 hover:border-primary transition text-center border-primary/60"><div className="font-display uppercase tracking-widest text-primary">Koko historia</div></Link>
       {seasons.map(s => <div key={s.id} className="relative group"><Link to="/tilastot/$season" params={{ season: s.slug }} className="block card-dark p-6 hover:border-primary transition text-center"><div className="font-display uppercase tracking-widest">{s.name}</div></Link>{admin.isAdmin && <button onClick={async () => { if (!confirm(`Poistetaanko ${s.name}?`)) return; await del({ data: { id: s.id } }); await qc.invalidateQueries({ queryKey: ["seasons"] }); }} className="absolute top-1 right-1 text-xs bg-black/80 border border-primary/50 rounded px-2 py-0.5 opacity-0 group-hover:opacity-100">×</button>}</div>)}
     </div>

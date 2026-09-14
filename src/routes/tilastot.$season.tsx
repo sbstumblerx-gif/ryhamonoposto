@@ -41,6 +41,9 @@ function SeasonPage() {
     queryKey: ["standings", year],
     queryFn: () => standings({ data: { year } }),
     enabled: !q.isLoading,
+    retry: 3,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
+    staleTime: 60_000,
   });
 
   return (
@@ -60,6 +63,8 @@ function SeasonPage() {
 
       {st.isLoading ? (
         <div className="text-sm text-muted-foreground">Lasketaan tilastoja…</div>
+      ) : st.isError ? (
+        <div className="text-sm text-muted-foreground">Tilastojen lataus epäonnistui. <button onClick={() => void st.refetch()} className="text-primary underline">Yritä uudelleen</button></div>
       ) : (
         <StandingsTable rows={(sec === "drivers" ? st.data?.drivers : st.data?.teams) ?? []} kind={sec} />
       )}
