@@ -28,7 +28,13 @@ const SECTIONS = [
 function FullHistoryPage() {
   const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("drivers");
   const standings = useServerFn(getStandings);
-  const st = useQuery({ queryKey: ["standings", "all"], queryFn: () => standings({ data: { year: null } }) });
+  const st = useQuery({
+    queryKey: ["standings", "all"],
+    queryFn: () => standings({ data: { year: null } }),
+    retry: 3,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
+    staleTime: 60_000,
+  });
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">

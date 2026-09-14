@@ -41,6 +41,9 @@ function SeasonPage() {
     queryKey: ["standings", year],
     queryFn: () => standings({ data: { year } }),
     enabled: !q.isLoading,
+    retry: 3,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
+    staleTime: 60_000,
   });
 
   return (
