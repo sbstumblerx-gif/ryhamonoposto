@@ -9,11 +9,10 @@ export const graphConfigSchema = z.object({
   participants: z.array(z.string().min(1).max(100)).min(1).max(12),
   chartType: z.enum(["pie", "bar", "line"]),
   range: z.enum(["all", "last5", "last10", "last20"]),
-  metric: z.enum(["points", "wins", "podiums", "dnf", "dsq", "dns", "poles", "starts", "championships"]),
+  metric: z.enum(["points", "wins", "podiums", "dnf", "dsq", "dns", "poles", "starts", "championships", "driverOfTheDay", "fastestLaps"]),
 });
 
 export type GraphConfig = z.infer<typeof graphConfigSchema>;
-
 export const getGraphOptions = createServerFn({ method: "GET" }).handler(async () => graphOptions());
 
 export const createGraph = createServerFn({ method: "POST" })
@@ -57,14 +56,12 @@ export const getGraph = createServerFn({ method: "GET" })
     return refreshed;
   });
 
-export const listMyGraphs = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.from("graphs").select("id, title, subtitle, config, created_at").eq("owner_id", context.userId).order("created_at", { ascending: false }).limit(50);
-    if (error) throw error;
-    return data ?? [];
-  });
+export const listMyGraphs = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.from("graphs").select("id, title, subtitle, config, created_at").eq("owner_id", context.userId).order("created_at", { ascending: false }).limit(50);
+  if (error) throw error;
+  return data ?? [];
+});
 
 export const shareGraphToClub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
