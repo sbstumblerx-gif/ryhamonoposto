@@ -18,11 +18,14 @@ export const getStandings = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ year: z.number().int().nullable().optional() }).parse(d ?? {}))
   .handler(async ({ data }): Promise<StandingsResult> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: races }, { data: drivers }, { data: teams }] = await Promise.all([
-      supabaseAdmin.from("races").select("name, round_number, qualifying_content, race_content, driver_of_the_day_slug, fastest_lap_driver_slug" as any),
+    const [{ data: races, error: raceError }, { data: drivers, error: driverError }, { data: teams, error: teamError }] = await Promise.all([
+      supabaseAdmin.from("races").select("name, round_number, qualifying_content, race_content, driver_of_the_day_slug, fastest_lap_driver_slug"),
       supabaseAdmin.from("drivers").select("slug, name, flag, current_team_slug, team_slug"),
       supabaseAdmin.from("teams").select("slug, name, flag"),
     ]);
+    if (raceError) throw raceError;
+    if (driverError) throw driverError;
+    if (teamError) throw teamError;
 
     const driverByName = new Map((drivers ?? []).map(d => [normalizeName(d.name), d] as const));
     const driverBySlug = new Map((drivers ?? []).map(d => [d.slug, d] as const));
@@ -94,8 +97,7 @@ export const getStandings = createServerFn({ method: "GET" })
         }
       }
 
-      const raceAny = race as any;
-      const specialDriverSlugs = [raceAny.driver_of_the_day_slug, raceAny.fastest_lap_driver_slug] as const;
+      const specialDriverSlugs = [race.driver_of_the_day_slug, race.fastest_lap_driver_slug] as const;
       const awardFields = ["driverOfTheDay", "fastestLaps"] as const;
       for (let i = 0; i < specialDriverSlugs.length; i++) {
         const slug = specialDriverSlugs[i] ?? null;
