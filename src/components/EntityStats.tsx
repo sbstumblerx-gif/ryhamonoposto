@@ -18,9 +18,23 @@ const FIELDS = [
 /** Automatic career statistics for a single driver or team. */
 export function EntityStats({ kind, slug }: { kind: "drivers" | "teams"; slug: string }) {
   const fn = useServerFn(getStandings);
-  const q = useQuery({ queryKey: ["standings", "all"], queryFn: () => fn({ data: { year: null } }) });
+  const q = useQuery({
+    queryKey: ["standings", "all"],
+    queryFn: () => fn({ data: { year: null } }),
+    retry: 3,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
+    staleTime: 60_000,
+  });
 
   if (q.isLoading) return <div className="text-sm text-muted-foreground">Lasketaan tilastoja…</div>;
+  if (q.isError) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Tilastojen lataus epäonnistui.{" "}
+        <button onClick={() => void q.refetch()} className="text-primary underline">Yritä uudelleen</button>
+      </div>
+    );
+  }
   const row = (kind === "drivers" ? q.data?.drivers : q.data?.teams)?.find(r => r.slug === slug);
   if (!row) return <p className="text-sm text-muted-foreground italic">Ei vielä tuloksia laskettavaksi.</p>;
 
