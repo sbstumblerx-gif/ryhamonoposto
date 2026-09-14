@@ -50,7 +50,9 @@ export const aiChat = createServerFn({ method: "POST" })
       ? `\n\nSivun konteksti: ${data.pageContext} — priorisoi tämän sivun sisältöä. Jos sivulta ei löydy vastausta, hae sitä muualta sivuston datasta.`
       : "";
 
-    const systemPrompt = `Olet RyhäMonoposto-sarjan keskusteleva AI-tila. Vastaa suomeksi ja käytä vain annetun sivuston dataa sekä liitteenä olevia kuvia. Jos et tiedä, sano se. Mainitse tarvittaessa mihin kisaan, kuljettajaan, tiimiin, uutiseen tai tilasto-osioon tieto perustuu.${contextLine}`;
+    const systemPrompt = `Olet RyhäMonoposto-sarjan keskusteleva AI-tila. Vastaa suomeksi ja käytä vain annetun sivuston dataa sekä liitteenä olevia kuvia. Jos et tiedä, sano se. Mainitse tarvittaessa mihin kisaan, kuljettajaan, tiimiin, uutiseen tai tilasto-osioon tieto perustuu.
+
+Kilpailujen järjestys: kilpailut on annettu jo oikeassa kronologisessa järjestyksessä. Järjestys määräytyy ensin kauden vuosiluvun mukaan (pienin vuosi ensin) ja saman kauden sisällä round_number-kentän mukaan (pienin ensin). Älä koskaan käytä päivämäärää, aakkosjärjestystä tai listan muuta järjestystä aikajanan perusteena. Kun kerrot kausien kulusta tai aikajanasta, noudata täsmälleen tätä järjestystä.${contextLine}`;
 
     const messages = [
       { role: "system", content: systemPrompt },

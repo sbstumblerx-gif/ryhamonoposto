@@ -1,5 +1,6 @@
 // Club chat AI participant. Tagging @ai invites it, @aioff removes it.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { compareRaceOrder } from "./stats-compute";
 
 type Admin = SupabaseClient<any, any, any>;
 
