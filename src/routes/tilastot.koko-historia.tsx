@@ -51,6 +51,8 @@ function FullHistoryPage() {
       </div>
       {st.isLoading ? (
         <div className="text-sm text-muted-foreground">Lasketaan tilastoja…</div>
+      ) : st.isError ? (
+        <div className="text-sm text-muted-foreground">Tilastojen lataus epäonnistui. <button onClick={() => void st.refetch()} className="text-primary underline">Yritä uudelleen</button></div>
       ) : (
         <StandingsTable rows={(sec === "drivers" ? st.data?.drivers : st.data?.teams) ?? []} kind={sec} />
       )}
