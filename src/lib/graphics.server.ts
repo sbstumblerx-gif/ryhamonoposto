@@ -107,7 +107,7 @@ export async function buildGraph(config: any) {
   const teamByName = new Map(teams.map(t => [normalizeName(t.name), t]));
   const season = config.season === "history" ? null : Number(config.season);
   let selected = races.filter(r => r.round_number !== 0 && (!season || seasonYearFromName(r.name) === season));
-  selected = sliceRange(selected.sort((a, b) => (a.race_date ?? a.name).localeCompare(b.race_date ?? b.name)), config.range);
+  selected = sliceRange([...selected].sort(compareRaceOrder), config.range);
   const meta = config.participants.map((key: string) => {
     if (config.target === "drivers") { const d = driverBySlug.get(key) ?? driverByName.get(normalizeName(key)); return { key: d?.slug ?? key, name: d?.name ?? key, flag: d?.flag ?? "", team: historicalTeam(d, season, teamBySlug) }; }
     const t = teamBySlug.get(key) ?? teamByName.get(normalizeName(key)); return { key: t?.slug ?? key, name: t?.name ?? key, flag: "", team: t };
