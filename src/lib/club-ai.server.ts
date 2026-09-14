@@ -24,7 +24,7 @@ async function siteCorpus(db: Admin) {
   return JSON.stringify({
     drivers: drivers.data ?? [],
     teams: teams.data ?? [],
-    races: races.data ?? [],
+    races: [...(races.data ?? [])].sort(compareRaceOrder),
     news: news.data ?? [],
     seasons: seasons.data ?? [],
   }).slice(0, 60000);

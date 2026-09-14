@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { compareRaceOrder } from "./stats-compute";
 
 const ChatMessage = z.object({
   role: z.enum(["user", "assistant"]),
@@ -28,7 +29,7 @@ export const aiChat = createServerFn({ method: "POST" })
     const corpus = {
       drivers: drivers.data ?? [],
       teams: teams.data ?? [],
-      races: races.data ?? [],
+      races: [...(races.data ?? [])].sort(compareRaceOrder),
       news: news.data ?? [],
       seasons: seasons.data ?? [],
       media_index: (media.data ?? []).map(m => ({ scope: m.scope, caption: m.caption })),
