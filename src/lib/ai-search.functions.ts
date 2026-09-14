@@ -19,7 +19,7 @@ export const aiChat = createServerFn({ method: "POST" })
     const [drivers, teams, races, news, seasons, media] = await Promise.all([
       supabaseAdmin.from("drivers").select("slug, name, number, flag, team_slug, content, info_card, current_team_slug, current_team_since, former_teams"),
       supabaseAdmin.from("teams").select("slug, name, flag, color_key, content, info_card, current_driver_slugs, former_lineups"),
-      supabaseAdmin.from("races").select("slug, name, flag, race_date, qualifying_content, race_content, youtube_url, qualifying_youtube_url, race_youtube_url"),
+      supabaseAdmin.from("races").select("slug, name, flag, race_date, round_number, qualifying_content, race_content, youtube_url, qualifying_youtube_url, race_youtube_url"),
       supabaseAdmin.from("news").select("slug, title, excerpt, content, hero_media_url, published_at"),
       supabaseAdmin.from("seasons").select("slug, name"),
       supabaseAdmin.from("media_items").select("scope, url, caption").order("created_at", { ascending: false }).limit(30),
