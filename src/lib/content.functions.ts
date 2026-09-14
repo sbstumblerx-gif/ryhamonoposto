@@ -92,20 +92,11 @@ function slugify(s: string): string {
 }
 
 const RaceInput = z.object({
-  id: z.string().uuid().optional(),
-  name: z.string().min(1).max(200),
-  round_number: z.number().int().min(0).max(50).nullable().optional(),
-  flag: z.string().max(20).default(""),
-  race_date: z.string().nullable().optional(),
-  qualifying_content: z.string().default(""),
-  race_content: z.string().default(""),
-  qualifying_media_url: z.string().nullable().optional(),
-  race_media_url: z.string().nullable().optional(),
-  youtube_url: z.string().nullable().optional(),
-  qualifying_youtube_url: z.string().nullable().optional(),
-  race_youtube_url: z.string().nullable().optional(),
-  driver_of_the_day_slug: z.string().nullable().optional(),
-  fastest_lap_driver_slug: z.string().nullable().optional(),
+  id: z.string().uuid().optional(), name: z.string().min(1).max(200),
+  round_number: z.number().int().min(0).max(50).nullable().optional(), flag: z.string().max(20).default(""), race_date: z.string().nullable().optional(),
+  qualifying_content: z.string().default(""), race_content: z.string().default(""), qualifying_media_url: z.string().nullable().optional(), race_media_url: z.string().nullable().optional(),
+  youtube_url: z.string().nullable().optional(), qualifying_youtube_url: z.string().nullable().optional(), race_youtube_url: z.string().nullable().optional(),
+  driver_of_the_day_slug: z.string().nullable().optional(), fastest_lap_driver_slug: z.string().nullable().optional(),
 });
 
 export const upsertRace = createServerFn({ method: "POST" })
@@ -121,8 +112,7 @@ export const upsertRace = createServerFn({ method: "POST" })
       const raceChanged = !current || (current.race_content ?? "") !== data.race_content || (current.race_media_url ?? null) !== (data.race_media_url ?? null) || (current.race_youtube_url ?? null) !== (data.race_youtube_url ?? null);
       const { data: row, error } = await supabaseAdmin.from("races").update({
         name: data.name, flag: data.flag, round_number: data.round_number ?? null, race_date: data.race_date || null,
-        qualifying_content: data.qualifying_content, race_content: data.race_content,
-        qualifying_media_url: data.qualifying_media_url ?? null, race_media_url: data.race_media_url ?? null,
+        qualifying_content: data.qualifying_content, race_content: data.race_content, qualifying_media_url: data.qualifying_media_url ?? null, race_media_url: data.race_media_url ?? null,
         youtube_url: data.youtube_url ?? null, qualifying_youtube_url: data.qualifying_youtube_url ?? null, race_youtube_url: data.race_youtube_url ?? null,
         driver_of_the_day_slug: data.driver_of_the_day_slug ?? null, fastest_lap_driver_slug: data.fastest_lap_driver_slug ?? null,
         ...(qualifyingChanged ? { qualifying_updated_at: now } : {}), ...(raceChanged ? { race_updated_at: now } : {}),
@@ -133,12 +123,10 @@ export const upsertRace = createServerFn({ method: "POST" })
     const slug = `${slugify(data.name)}-${Date.now().toString(36)}`;
     const { data: row, error } = await supabaseAdmin.from("races").insert({
       slug, name: data.name, flag: data.flag, round_number: data.round_number ?? null, race_date: data.race_date || null,
-      qualifying_content: data.qualifying_content, race_content: data.race_content,
-      qualifying_media_url: data.qualifying_media_url ?? null, race_media_url: data.race_media_url ?? null,
+      qualifying_content: data.qualifying_content, race_content: data.race_content, qualifying_media_url: data.qualifying_media_url ?? null, race_media_url: data.race_media_url ?? null,
       youtube_url: data.youtube_url ?? null, qualifying_youtube_url: data.qualifying_youtube_url ?? null, race_youtube_url: data.race_youtube_url ?? null,
       driver_of_the_day_slug: data.driver_of_the_day_slug ?? null, fastest_lap_driver_slug: data.fastest_lap_driver_slug ?? null,
-      qualifying_updated_at: data.qualifying_content.trim() ? new Date().toISOString() : null,
-      race_updated_at: data.race_content.trim() ? new Date().toISOString() : null,
+      qualifying_updated_at: data.qualifying_content.trim() ? new Date().toISOString() : null, race_updated_at: data.race_content.trim() ? new Date().toISOString() : null,
     } as any).select().single();
     if (error) throw error;
     return row;
@@ -153,5 +141,29 @@ export const deleteRace = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+const FormerTeam = z.object({ slug: z.string().min(1), from: z.number().int().min(2025).max(2100), to: z.number().int().min(2025).max(2100), is_reserve: z.boolean().optional().default(false) });
+const DriverPatch = z.object({ slug: z.string(), content: z.string().optional(), hero_media_url: z.string().nullable().optional(), team_slug: z.string().nullable().optional(), color_key: z.string().optional(), name: z.string().optional(), number: z.number().int().min(1).max(99).nullable().optional(), flag: z.string().optional(), info_card: z.string().nullable().optional(), current_team_slug: z.string().nullable().optional(), current_team_since: z.number().int().min(2025).max(2100).nullable().optional(), current_team_is_reserve: z.boolean().optional(), former_teams: z.array(FormerTeam).optional() });
+export const updateDriver = createServerFn({ method: "POST" }).inputValidator((d: unknown) => DriverPatch.parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const { slug, ...patch } = data; const { data: row, error } = await supabaseAdmin.from("drivers").update(patch).eq("slug", slug).select().single(); if (error) throw error; return row; });
+
+const TeamPatch = z.object({ slug: z.string(), content: z.string().optional(), info_card: z.string().nullable().optional(), hero_media_url: z.string().nullable().optional(), logo_url: z.string().nullable().optional(), color_key: z.string().optional(), name: z.string().optional(), flag: z.string().optional(), current_driver_slugs: z.array(z.string()).max(2).optional(), former_lineups: z.array(z.object({ from: z.number().int().min(2025).max(2100), to: z.number().int().min(2025).max(2100), driver_slugs: z.tuple([z.string(), z.string()]) })).optional() });
+export const updateTeam = createServerFn({ method: "POST" }).inputValidator((d: unknown) => TeamPatch.parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const { slug, ...patch } = data; const { data: row, error } = await supabaseAdmin.from("teams").update(patch).eq("slug", slug).select().single(); if (error) throw error; return row; });
+
+const NewsInput = z.object({ id: z.string().uuid().optional(), title: z.string().min(1).max(300), excerpt: z.string().default(""), content: z.string().default(""), hero_media_url: z.string().nullable().optional() });
+export const upsertNews = createServerFn({ method: "POST" }).inputValidator((d: unknown) => NewsInput.parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); if (data.id) { const { data: row, error } = await supabaseAdmin.from("news").update({ title: data.title, excerpt: data.excerpt, content: data.content, hero_media_url: data.hero_media_url ?? null }).eq("id", data.id).select().single(); if (error) throw error; return row; } const slug = `${slugify(data.title)}-${Date.now().toString(36)}`; const { data: row, error } = await supabaseAdmin.from("news").insert({ slug, title: data.title, excerpt: data.excerpt, content: data.content, hero_media_url: data.hero_media_url ?? null }).select().single(); if (error) throw error; try { const { notifyFollowersOfNews } = await import("./follows.server"); await notifyFollowersOfNews(data.title, `${data.excerpt}\n${data.content}`); } catch (e) { console.error("news follower notify failed", e); } return row; });
+export const deleteNews = createServerFn({ method: "POST" }).inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const { error } = await supabaseAdmin.from("news").delete().eq("id", data.id); if (error) throw error; return { ok: true }; });
+
+const StatsPatch = z.object({ id: z.enum(["drivers", "teams"]), content: z.string().optional(), hero_media_url: z.string().nullable().optional() });
+export const updateStats = createServerFn({ method: "POST" }).inputValidator((d: unknown) => StatsPatch.parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const { id, ...patch } = data; const { data: row, error } = await supabaseAdmin.from("stats_pages").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().single(); if (error) throw error; return row; });
+
+const CreateTeamInput = z.object({ name: z.string().min(1).max(120), flag: z.string().max(20).default(""), color_key: z.string().min(1).max(40).default("red") });
+export const createTeam = createServerFn({ method: "POST" }).inputValidator((d: unknown) => CreateTeamInput.parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const slug = `${slugify(data.name)}-${Date.now().toString(36)}`; const { data: row, error } = await supabaseAdmin.from("teams").insert({ slug, name: data.name, flag: data.flag, color_key: data.color_key }).select().single(); if (error) throw error; return row; });
+export const deleteTeam = createServerFn({ method: "POST" }).inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const { error } = await supabaseAdmin.from("teams").delete().eq("id", data.id); if (error) throw error; return { ok: true }; });
+
+const CreateDriverInput = z.object({ name: z.string().min(1).max(120), flag: z.string().max(20).default(""), number: z.number().int().min(1).max(99).default(1), team_slug: z.string().nullable().optional(), color_key: z.string().min(1).max(40).default("red") });
+export const createDriver = createServerFn({ method: "POST" }).inputValidator((d: unknown) => CreateDriverInput.parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); let color = data.color_key; if (data.team_slug) { const { data: team } = await supabaseAdmin.from("teams").select("color_key").eq("slug", data.team_slug).maybeSingle(); if (team?.color_key) color = team.color_key; } const slug = `${slugify(data.name)}-${Date.now().toString(36)}`; const { data: row, error } = await supabaseAdmin.from("drivers").insert({ slug, name: data.name, flag: data.flag, number: data.number, team_slug: data.team_slug ?? null, current_team_slug: data.team_slug ?? null, color_key: color }).select().single(); if (error) throw error; return row; });
+export const deleteDriver = createServerFn({ method: "POST" }).inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const { error } = await supabaseAdmin.from("drivers").delete().eq("id", data.id); if (error) throw error; return { ok: true }; });
+
+export const setLiveRace = createServerFn({ method: "POST" }).inputValidator((d: unknown) => z.object({ id: z.string().uuid().nullable() }).parse(d)).handler(async ({ data }) => { await assertAdmin(); const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); const { error: clearError } = await supabaseAdmin.from("races").update({ is_live: false }).eq("is_live", true); if (clearError) throw clearError; if (data.id) { const { error } = await supabaseAdmin.from("races").update({ is_live: true }).eq("id", data.id); if (error) throw error; } return { ok: true }; });
 
 export { slugify };
