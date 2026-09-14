@@ -3,5 +3,6 @@
 - [x] Korjaa grafiikoiden tiimi- ja kuljettajavärit
 - [x] Aseta grafiikin Y-akseli välille 0–vertailun korkein arvo
 - [x] Näytä race-to-race-grafiikissa jokainen kilpailu omana sarakkeena ja kilpailun lippu alapuolella
-- [ ] Järjestä kilpailut aina kausi + round number -järjestyksessä (grafiikat + AI) ja nollaa vanhat grafiikat
-- [ ] Korjaa tilastot-sivun "ei tilastoja laskettavaksi" -noutovirhe
+- [x] Järjestä kilpailut aina kausi + round number -järjestyksessä (grafiikat + AI) ja nollaa vanhat grafiikat
+- [x] Korjaa tilastot-sivun "ei tilastoja laskettavaksi" -noutovirhe
+- [x] Grafiikat saa luoda uudelleen, kunhan mikään data ei katoa
