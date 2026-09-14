@@ -866,6 +866,8 @@ export type Database = {
       races: {
         Row: {
           created_at: string
+          driver_of_the_day_slug: string | null
+          fastest_lap_driver_slug: string | null
           flag: string
           id: string
           is_live: boolean
@@ -886,6 +888,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          driver_of_the_day_slug?: string | null
+          fastest_lap_driver_slug?: string | null
           flag?: string
           id?: string
           is_live?: boolean
@@ -906,6 +910,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          driver_of_the_day_slug?: string | null
+          fastest_lap_driver_slug?: string | null
           flag?: string
           id?: string
           is_live?: boolean
