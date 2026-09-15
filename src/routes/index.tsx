@@ -4,9 +4,13 @@ import markAsset from "@/assets/mark.png.asset.json";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listNews, listRaces } from "@/lib/content.functions";
+import { highlightIndex } from "@/lib/highlights.functions";
+import { useSeenHighlights, firstUnseen } from "@/lib/highlights-seen";
+import { HighlightRing } from "@/components/HighlightRing";
+import { HighlightViewer } from "@/components/HighlightViewer";
 import { AiChatPanel } from "@/components/AiChatPanel";
 import { compareRaceOrder } from "@/lib/stats-compute";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,19 +46,23 @@ type RaceItem = {
 
 function RaceWeekendSlider() {
   const list = useServerFn(listRaces);
+  const highlights = useServerFn(highlightIndex);
   const q = useQuery({ queryKey: ["home-race-weekends"], queryFn: () => list(), staleTime: 30_000 });
+  const hq = useQuery({ queryKey: ["highlight-index"], queryFn: () => highlights(), staleTime: 30_000 });
+  const seen = useSeenHighlights();
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const focusRef = useRef<HTMLAnchorElement | null>(null);
+  const focusRef = useRef<HTMLButtonElement | null>(null);
+  const [viewer, setViewer] = useState<{ raceSlug: string; startId: string | null } | null>(null);
 
   const races = [...((q.data ?? []) as RaceItem[])].sort(compareRaceOrder);
   const liveIndex = races.findIndex(r => r.is_live === true);
   const nextIndex = races.findIndex(r => !r.race_content?.trim() && (r.round_number ?? 1) > 0);
   const focusIndex = liveIndex >= 0 ? liveIndex : (nextIndex >= 0 ? nextIndex : Math.max(0, races.length - 1));
   const hasLive = liveIndex >= 0;
-
   const start = hasLive ? Math.max(0, focusIndex - 5) : focusIndex;
   const visible = races.slice(start, Math.min(races.length, focusIndex + 10));
   const focusedOffset = Math.max(0, focusIndex - start);
+  const index = hq.data ?? {};
 
   useEffect(() => {
     if (!focusRef.current || !scrollerRef.current) return;
@@ -70,36 +78,44 @@ function RaceWeekendSlider() {
   if (q.isLoading || !races.length) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 pt-5">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-display uppercase tracking-widest text-primary text-xs">Race weekendit</h2>
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">← vieritä →</span>
-      </div>
-      <div ref={scrollerRef} className="overflow-x-auto overflow-y-hidden snap-x snap-mandatory scrollbar-none pb-2">
-        <div className="flex items-center gap-2 min-w-max px-1">
-          {visible.map((race, i) => {
-            const isFocus = i === focusedOffset;
-            const label = race.is_live ? "Käynnissä" : (!race.race_content?.trim() && isFocus ? "Seuraavana" : undefined);
-            return (
-              <Link
-                key={race.slug}
-                ref={isFocus ? focusRef : undefined}
-                to="/kilpailut/$slug"
-                params={{ slug: race.slug }}
-                title={`${race.name}${race.round_number != null ? ` — R${race.round_number}` : ""}`}
-                className={`snap-start shrink-0 flex flex-col items-center gap-1 ${isFocus ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-              >
-                <span className={`relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border font-display transition ${isFocus ? "border-primary bg-primary/15 shadow-[0_0_18px_hsl(var(--primary)/0.25)]" : "border-primary/30 bg-black/50 hover:border-primary/70"}`}>
-                  <span className="text-2xl sm:text-3xl leading-none">{race.flag || "🏁"}</span>
-                  {race.round_number != null && race.round_number > 0 && <span className="absolute bottom-0.5 text-[9px] sm:text-[10px] tracking-wider">R{race.round_number}</span>}
-                </span>
-                <span className="h-3 text-[8px] uppercase tracking-widest whitespace-nowrap">{label ?? ""}</span>
-              </Link>
-            );
-          })}
+    <>
+      <section className="mx-auto max-w-6xl px-4 pt-5">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-display uppercase tracking-widest text-primary text-xs">Race weekendit</h2>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">← vieritä →</span>
         </div>
-      </div>
-    </section>
+        <div ref={scrollerRef} className="overflow-x-auto overflow-y-hidden snap-x snap-mandatory scrollbar-none pb-2">
+          <div className="flex items-center gap-2 min-w-max px-1">
+            {visible.map((race, i) => {
+              const isFocus = i === focusedOffset;
+              const ids = index[race.slug] ?? [];
+              const unseenId = firstUnseen(ids, seen);
+              const ringState = ids.length === 0 ? "none" : unseenId ? "unseen" : "seen";
+              const label = race.is_live ? "Käynnissä" : (!race.race_content?.trim() && isFocus ? "Seuraavana" : undefined);
+              return (
+                <button
+                  key={race.slug}
+                  ref={isFocus ? focusRef : undefined}
+                  type="button"
+                  title={`${race.name}${race.round_number != null ? ` — R${race.round_number}` : ""}`}
+                  onClick={() => unseenId || ids.length ? setViewer({ raceSlug: race.slug, startId: unseenId }) : undefined}
+                  className={`snap-start shrink-0 flex flex-col items-center gap-1 ${isFocus ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                >
+                  <HighlightRing state={ringState}>
+                    <span className={`relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border font-display transition ${isFocus ? "border-primary bg-primary/15 shadow-[0_0_18px_hsl(var(--primary)/0.25)]" : "border-primary/30 bg-black/50 hover:border-primary/70"}`}>
+                      <span className="text-2xl sm:text-3xl leading-none">{race.flag || "🏁"}</span>
+                      {race.round_number != null && race.round_number > 0 && <span className="absolute bottom-0.5 text-[9px] sm:text-[10px] tracking-wider">R{race.round_number}</span>}
+                    </span>
+                  </HighlightRing>
+                  <span className="h-3 text-[8px] uppercase tracking-widest whitespace-nowrap">{label ?? ""}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+      {viewer && <HighlightViewer raceSlug={viewer.raceSlug} startId={viewer.startId} onClose={() => setViewer(null)} />}
+    </>
   );
 }
 
