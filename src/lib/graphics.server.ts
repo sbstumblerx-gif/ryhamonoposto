@@ -27,7 +27,7 @@ async function loadData() {
     supabaseAdmin.from("teams").select("slug, name, color_key"),
   ]);
   if (re) throw re; if (de) throw de; if (te) throw te;
-  return { races: ([...(races ?? [])] as Race[]).sort(compareRaceOrder), drivers: (drivers ?? []) as Driver[], teams: (teams ?? []) as Team[] };
+  return { races: ([...(races ?? [])] as unknown as Race[]).sort(compareRaceOrder), drivers: (drivers ?? []) as unknown as Driver[], teams: (teams ?? []) as unknown as Team[] };
 }
 
 export async function graphOptions() {
