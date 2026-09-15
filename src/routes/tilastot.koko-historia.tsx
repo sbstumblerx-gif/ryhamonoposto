@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getStandings } from "@/lib/stats.functions";
-import { StandingsTable } from "@/components/StandingsTable";
+import { StandingsTable, STAT_FIELDS, type StatFieldKey } from "@/components/StandingsTable";
 import { Comments } from "@/components/Comments";
 import { useState } from "react";
 
@@ -27,6 +27,7 @@ const SECTIONS = [
 
 function FullHistoryPage() {
   const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("drivers");
+  const [comparison, setComparison] = useState<StatFieldKey | "all">("all");
   const standings = useServerFn(getStandings);
   const st = useQuery({
     queryKey: ["standings", "all"],
@@ -49,12 +50,21 @@ function FullHistoryPage() {
           </button>
         ))}
       </div>
+      <div className="card-dark p-3 mb-4 flex flex-wrap items-center gap-3">
+        <label className="text-xs font-display uppercase tracking-widest text-primary" htmlFor="history-stat">Vertailu</label>
+        <select id="history-stat" value={comparison} onChange={e => setComparison(e.target.value as StatFieldKey | "all")}
+          className="bg-black/70 border border-primary/30 rounded px-3 py-2 text-sm min-w-[220px]">
+          <option value="all">Pisteet + kaikki tilastot</option>
+          {STAT_FIELDS.map(f => <option key={f.key} value={f.key}>Vain {f.label.toLowerCase()}</option>)}
+        </select>
+        <span className="text-xs text-muted-foreground">Oletuksena pisteet ja kaikki tilastot. Valitse yksi tilasto omaan vertailuun.</span>
+      </div>
       {st.isLoading ? (
         <div className="text-sm text-muted-foreground">Lasketaan tilastoja…</div>
       ) : st.isError ? (
         <div className="text-sm text-muted-foreground">Tilastojen lataus epäonnistui. <button onClick={() => void st.refetch()} className="text-primary underline">Yritä uudelleen</button></div>
       ) : (
-        <StandingsTable rows={(sec === "drivers" ? st.data?.drivers : st.data?.teams) ?? []} kind={sec} />
+        <StandingsTable rows={(sec === "drivers" ? st.data?.drivers : st.data?.teams) ?? []} kind={sec} sortKey={comparison === "all" ? null : comparison} />
       )}
       <Comments entityType={`history:${sec}`} entityId="00000000-0000-0000-0000-000000000000" />
     </div>
