@@ -127,8 +127,9 @@ export const upsertRace = createServerFn({ method: "POST" }).inputValidator((d: 
   await assertAdmin();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (data.id) {
-    const { data: current, error: readError } = await supabaseAdmin.from("races").select("qualifying_content, race_content, qualifying_media_url, race_media_url, qualifying_youtube_url, race_youtube_url, driver_of_the_day_slug, fastest_lap_driver_slug" as any).eq("id", data.id).maybeSingle();
+    const { data: currentRaw, error: readError } = await supabaseAdmin.from("races").select("qualifying_content, race_content, qualifying_media_url, race_media_url, qualifying_youtube_url, race_youtube_url, driver_of_the_day_slug, fastest_lap_driver_slug").eq("id", data.id).maybeSingle();
     if (readError) throw readError;
+    const current = currentRaw as null | { qualifying_content: string | null; race_content: string | null; qualifying_media_url: string | null; race_media_url: string | null; qualifying_youtube_url: string | null; race_youtube_url: string | null };
     const now = new Date().toISOString();
     const qualifyingChanged = !current || (current.qualifying_content ?? "") !== data.qualifying_content || (current.qualifying_media_url ?? null) !== (data.qualifying_media_url ?? null) || (current.qualifying_youtube_url ?? null) !== (data.qualifying_youtube_url ?? null);
     const raceChanged = !current || (current.race_content ?? "") !== data.race_content || (current.race_media_url ?? null) !== (data.race_media_url ?? null) || (current.race_youtube_url ?? null) !== (data.race_youtube_url ?? null);

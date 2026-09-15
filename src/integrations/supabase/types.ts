@@ -546,6 +546,97 @@ export type Database = {
           },
         ]
       }
+      highlight_likes: {
+        Row: {
+          created_at: string
+          highlight_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          highlight_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          highlight_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlight_likes_highlight_id_fkey"
+            columns: ["highlight_id"]
+            isOneToOne: false
+            referencedRelation: "highlights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highlight_views: {
+        Row: {
+          created_at: string
+          highlight_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          highlight_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          highlight_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlight_views_highlight_id_fkey"
+            columns: ["highlight_id"]
+            isOneToOne: false
+            referencedRelation: "highlights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highlights: {
+        Row: {
+          caption: string
+          created_at: string
+          id: string
+          media_type: string
+          media_url: string
+          race_slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          id?: string
+          media_type?: string
+          media_url: string
+          race_slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          race_slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       media_items: {
         Row: {
           caption: string
