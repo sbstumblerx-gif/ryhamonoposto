@@ -46,6 +46,14 @@ export function RaceHighlights({ raceSlug }: { raceSlug: string }) {
     } finally { setSaving(false); }
   }
 
+  function openHighlights() {
+    // New highlights start from the oldest unseen one. Once everything has
+    // been viewed, deliberately start from the first highlight so the user
+    // can watch the whole set again.
+    setStartId(unseenId ?? ids[0] ?? null);
+    setOpen(true);
+  }
+
   if (!items.length && !admin.isAdmin) return null;
 
   return (
@@ -53,7 +61,7 @@ export function RaceHighlights({ raceSlug }: { raceSlug: string }) {
       <div className="flex flex-wrap items-center gap-2">
         {items.length > 0 && (
           <button
-            onClick={() => { setStartId(unseenId); setOpen(true); }}
+            onClick={openHighlights}
             className={`rounded px-4 py-2 text-xs font-display uppercase tracking-widest border transition ${unseenCount > 0 ? "border-primary bg-primary/20 text-primary shadow-[0_0_18px_hsl(var(--primary)/0.35)]" : "border-primary/40 hover:border-primary"}`}
           >
             {unseenCount > 0 ? `Uusia kohokohtia (${unseenCount})` : "Kohokohdat"}
