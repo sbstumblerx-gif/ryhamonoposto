@@ -8,6 +8,7 @@ import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
+import { RaceHighlights } from "@/components/RaceHighlights";
 import { useAdmin } from "@/components/admin-store";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -93,6 +94,8 @@ function RaceDetail() {
         <h1 className="font-display uppercase tracking-widest text-2xl md:text-3xl">{r.name}</h1>
       </div>
       <div className="hairline-red mt-3 mb-6" />
+
+      <RaceHighlights raceSlug={slug} />
 
       {embed && <div className="mb-6 aspect-video w-full rounded overflow-hidden border border-primary/30 bg-black"><iframe src={embed} title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full" /></div>}
 
