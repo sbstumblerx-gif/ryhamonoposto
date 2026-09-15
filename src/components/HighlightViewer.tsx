@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listHighlights, deleteHighlight, type Highlight } from "@/lib/highlights.functions";
-import { markSeen } from "@/lib/highlights-seen";
+import { markSeen, useSeenHighlights, firstUnseen } from "@/lib/highlights-seen";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Comments } from "./Comments";
@@ -15,9 +16,7 @@ function LikeBar({ highlight }: { highlight: Highlight }) {
   const [count, setCount] = useState(highlight.like_count);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    setCount(highlight.like_count);
-  }, [highlight.id, highlight.like_count]);
+  useEffect(() => { setCount(highlight.like_count); }, [highlight.id, highlight.like_count]);
 
   useEffect(() => {
     let active = true;
@@ -62,10 +61,12 @@ function LikeBar({ highlight }: { highlight: Highlight }) {
 }
 
 export function HighlightViewer({ raceSlug, startId, onClose }: { raceSlug: string; startId?: string | null; onClose: () => void }) {
+  const navigate = useNavigate();
   const list = useServerFn(listHighlights);
   const del = useServerFn(deleteHighlight);
   const admin = useAdmin();
   const qc = useQueryClient();
+  const seen = useSeenHighlights();
   const q = useQuery({ queryKey: ["highlights", raceSlug], queryFn: () => list({ data: { race_slug: raceSlug } }) });
   const items = q.data ?? [];
   const [index, setIndex] = useState(0);
@@ -74,10 +75,21 @@ export function HighlightViewer({ raceSlug, startId, onClose }: { raceSlug: stri
 
   useEffect(() => {
     if (started || items.length === 0) return;
-    const i = startId ? items.findIndex(h => h.id === startId) : 0;
-    setIndex(i >= 0 ? i : 0);
+    const requested = startId ? items.findIndex(h => h.id === startId) : -1;
+    if (!startId) {
+      const unseen = firstUnseen(items.map(h => h.id), seen);
+      if (!unseen) {
+        onClose();
+        void navigate({ to: "/kilpailut/$slug", params: { slug: raceSlug } });
+        return;
+      }
+      const i = items.findIndex(h => h.id === unseen);
+      setIndex(i >= 0 ? i : 0);
+    } else {
+      setIndex(requested >= 0 ? requested : 0);
+    }
     setStarted(true);
-  }, [items, startId, started]);
+  }, [items, startId, started, seen, navigate, onClose, raceSlug]);
 
   const current = items[index];
 
@@ -124,18 +136,8 @@ export function HighlightViewer({ raceSlug, startId, onClose }: { raceSlug: stri
 
         {items.length > 0 && (
           <>
-            <button
-              onClick={() => setIndex(i => Math.max(0, i - 1))}
-              disabled={index === 0}
-              aria-label="Edellinen"
-              className="absolute left-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-primary/50 bg-black/60 text-xl disabled:opacity-30"
-            >‹</button>
-            <button
-              onClick={() => setIndex(i => Math.min(items.length - 1, i + 1))}
-              disabled={index >= items.length - 1}
-              aria-label="Seuraava"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-primary/50 bg-black/60 text-xl disabled:opacity-30"
-            >›</button>
+            <button onClick={() => setIndex(i => Math.max(0, i - 1))} disabled={index === 0} aria-label="Edellinen" className="absolute left-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-primary/50 bg-black/60 text-xl disabled:opacity-30">‹</button>
+            <button onClick={() => setIndex(i => Math.min(items.length - 1, i + 1))} disabled={index >= items.length - 1} aria-label="Seuraava" className="absolute right-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-primary/50 bg-black/60 text-xl disabled:opacity-30">›</button>
           </>
         )}
       </div>
