@@ -2,6 +2,10 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listRaces, upsertRace, deleteRace } from "@/lib/content.functions";
+import { highlightIndex } from "@/lib/highlights.functions";
+import { useSeenHighlights, firstUnseen } from "@/lib/highlights-seen";
+import { HighlightRing } from "@/components/HighlightRing";
+import { HighlightViewer } from "@/components/HighlightViewer";
 import { seasonYearFromName, countryFromRaceName } from "@/lib/stats-compute";
 import { useAdmin } from "@/components/admin-store";
 
@@ -33,14 +37,11 @@ function hasContent(v: string | null | undefined): boolean {
   return !!v && v.trim().length > 0;
 }
 
-// Round 0 is reserved for winter testing: no points, not an official session,
-// but it still gets its own history entry once a result sheet is added.
 function roundLabel(n: number | null | undefined): string | null {
   if (n == null) return null;
   return n === 0 ? "TALVITESTIT" : `R${n}`;
 }
 
-// Sort upcoming races by soonest first (smallest round_number leads)
 function compareUpcoming(a: RaceListItem, b: RaceListItem): number {
   const ra = a.round_number ?? Infinity;
   const rb = b.round_number ?? Infinity;
@@ -51,7 +52,6 @@ function compareUpcoming(a: RaceListItem, b: RaceListItem): number {
   return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
 }
 
-// Sort past races by newest first (largest round_number leads)
 function comparePast(a: RaceListItem, b: RaceListItem): number {
   const ra = a.round_number ?? -Infinity;
   const rb = b.round_number ?? -Infinity;
@@ -149,11 +149,14 @@ function LiveBanner({
 
 export function RacesIndex() {
   const list = useServerFn(listRaces);
+  const getHighlights = useServerFn(highlightIndex);
   const create = useServerFn(upsertRace);
   const del = useServerFn(deleteRace);
   const qc = useQueryClient();
   const admin = useAdmin();
   const q = useQuery({ queryKey: ["races"], queryFn: () => list() });
+  const hq = useQuery({ queryKey: ["highlight-index"], queryFn: () => getHighlights(), staleTime: 30_000 });
+  const seen = useSeenHighlights();
 
   const [name, setName] = useState("");
   const [flag, setFlag] = useState("");
@@ -161,13 +164,11 @@ export function RacesIndex() {
   const [seasonFilter, setSeasonFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
   const [view, setView] = useState<"past" | "upcoming">("past");
-  
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ raceSlug: string; startId: string | null } | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setLiveStatus(localStorage.getItem("live-status"));
-    }
+    if (typeof window !== "undefined") setLiveStatus(localStorage.getItem("live-status"));
   }, []);
 
   const races = q.data ?? [];
@@ -178,10 +179,8 @@ export function RacesIndex() {
   const pickerRaces = [...races].sort((a, b) => {
     const aHasRaceContent = hasContent(a.race_content);
     const bHasRaceContent = hasContent(b.race_content);
-    
     if (!aHasRaceContent && bHasRaceContent) return -1;
     if (aHasRaceContent && !bHasRaceContent) return 1;
-    
     if (!aHasRaceContent && !bHasRaceContent) return compareUpcoming(a, b);
     return comparePast(a, b);
   });
@@ -192,6 +191,7 @@ export function RacesIndex() {
   const filtered = base.filter(r =>
     (seasonFilter === "all" || String(seasonYearFromName(r.name)) === seasonFilter)
     && (countryFilter === "all" || countryFromRaceName(r.name) === countryFilter));
+  const highlightMap = hq.data ?? {};
 
   async function add() {
     if (!name.trim()) return;
@@ -212,13 +212,16 @@ export function RacesIndex() {
 
   function changeLive(value: string | null) {
     if (typeof window !== "undefined") {
-      if (value) {
-        localStorage.setItem("live-status", value);
-      } else {
-        localStorage.removeItem("live-status");
-      }
+      if (value) localStorage.setItem("live-status", value);
+      else localStorage.removeItem("live-status");
     }
     setLiveStatus(value);
+  }
+
+  function openRaceHighlights(race: RaceListItem) {
+    const ids = highlightMap[race.slug] ?? [];
+    if (!ids.length) return;
+    setViewer({ raceSlug: race.slug, startId: firstUnseen(ids, seen) });
   }
 
   return (
@@ -230,63 +233,65 @@ export function RacesIndex() {
 
       {admin.isAdmin && (
         <div className="card-dark p-3 mb-6 flex flex-col md:flex-row gap-2">
-          <input placeholder="Kilpailun nimi (esim. Kiina 2025)" value={name} onChange={e => setName(e.target.value)}
-            className="flex-1 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
-          <input placeholder="🇨🇳" value={flag} onChange={e => setFlag(e.target.value)}
-            className="w-24 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
-          <input type="number" min={0} max={50} placeholder="R# (0 = talvitestit)" value={round} onChange={e => setRound(e.target.value)}
-            className="w-36 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
-          <button onClick={add} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">
-            Lisää
-          </button>
+          <input placeholder="Kilpailun nimi (esim. Kiina 2025)" value={name} onChange={e => setName(e.target.value)} className="flex-1 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <input placeholder="🇨🇳" value={flag} onChange={e => setFlag(e.target.value)} className="w-24 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <input type="number" min={0} max={50} placeholder="R# (0 = talvitestit)" value={round} onChange={e => setRound(e.target.value)} className="w-36 bg-black/70 border border-primary/40 rounded p-2 text-sm" />
+          <button onClick={add} className="rounded bg-primary text-primary-foreground text-sm font-display uppercase tracking-widest px-4 py-2">Lisää</button>
         </div>
       )}
 
       <div className="flex gap-2 mb-4">
         {(["past", "upcoming"] as const).map(v => (
-          <button key={v} onClick={() => setView(v)}
-            className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${view === v ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary/60"}`}
-          >
+          <button key={v} onClick={() => setView(v)} className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${view === v ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary/60"}`}>
             {v === "past" ? "Menneet" : "Tulevat"}
           </button>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
-          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+        <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)} className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
           <option value="all">Kaikki kaudet</option>
           {seasonOptions.map(y => <option key={y} value={String(y)}>{y}</option>)}
         </select>
-        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
-          className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)} className="bg-black/70 border border-primary/40 rounded p-2 text-sm">
           <option value="all">Kaikki radat / maat</option>
           {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
 
       <ul className="space-y-2">
-        {filtered.map(r => (
-          <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
-            <Link to="/kilpailut/$slug" params={{ slug: r.slug }} className="flex-1 flex items-center gap-3">
-              <span className="text-2xl">{r.flag}</span>
-              {r.round_number != null && (
-                <span className="font-display text-[10px] px-1.5 py-0.5 rounded border border-primary/60 text-primary">{roundLabel(r.round_number)}</span>
-              )}
-              <span className="font-display uppercase tracking-widest">{r.name}</span>
-              {r.race_date && <span className="text-xs text-muted-foreground ml-auto mr-3">{new Date(r.race_date).toLocaleDateString("fi-FI")}</span>}
-            </Link>
-            {admin.isAdmin && (
-              <button onClick={() => remove(r.id)} className="text-xs text-primary underline ml-3">Poista</button>
-            )}
-          </li>
-        ))}
-        {filtered.length === 0 && (
-          <li className="text-sm text-muted-foreground italic">
-            {view === "past" ? "Ei menneitä kilpailuja." : "Ei tulevia kilpailuja."}
-          </li>
-        )}
+        {filtered.map(r => {
+          const ids = highlightMap[r.slug] ?? [];
+          const unseenId = firstUnseen(ids, seen);
+          const ringState = ids.length === 0 ? "none" : unseenId ? "unseen" : "seen";
+          return (
+            <li key={r.id} className="card-dark p-4 flex items-center justify-between hover:border-primary transition">
+              <Link
+                to="/kilpailut/$slug"
+                params={{ slug: r.slug }}
+                onClick={(e) => {
+                  if (ids.length) {
+                    e.preventDefault();
+                    setViewer({ raceSlug: r.slug, startId: unseenId });
+                  }
+                }}
+                className="flex-1 flex items-center gap-3"
+              >
+                <HighlightRing state={ringState}>
+                  <span className="text-2xl leading-none">{r.flag}</span>
+                </HighlightRing>
+                {r.round_number != null && <span className="font-display text-[10px] px-1.5 py-0.5 rounded border border-primary/60 text-primary">{roundLabel(r.round_number)}</span>}
+                <span className="font-display uppercase tracking-widest">{r.name}</span>
+                {r.race_date && <span className="text-xs text-muted-foreground ml-auto mr-3">{new Date(r.race_date).toLocaleDateString("fi-FI")}</span>}
+              </Link>
+              {admin.isAdmin && <button onClick={() => remove(r.id)} className="text-xs text-primary underline ml-3">Poista</button>}
+            </li>
+          );
+        })}
+        {filtered.length === 0 && <li className="text-sm text-muted-foreground italic">{view === "past" ? "Ei menneitä kilpailuja." : "Ei tulevia kilpailuja."}</li>}
       </ul>
+
+      {viewer && <HighlightViewer raceSlug={viewer.raceSlug} startId={viewer.startId} onClose={() => setViewer(null)} />}
     </div>
   );
 }
