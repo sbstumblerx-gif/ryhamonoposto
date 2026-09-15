@@ -47,7 +47,12 @@ type RaceItem = {
 function RaceWeekendSlider() {
   const list = useServerFn(listRaces);
   const highlights = useServerFn(highlightIndex);
-  const q = useQuery({ queryKey: ["home-race-weekends"], queryFn: () => list(), staleTime: 30_000 });
+  const q = useQuery({
+    queryKey: ["home-race-weekends"],
+    queryFn: () => list(),
+    staleTime: 5_000,
+    refetchInterval: 5_000,
+  });
   const hq = useQuery({ queryKey: ["highlight-index"], queryFn: () => highlights(), staleTime: 30_000 });
   const seen = useSeenHighlights();
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -56,13 +61,15 @@ function RaceWeekendSlider() {
 
   const races = [...((q.data ?? []) as RaceItem[])].sort(compareRaceOrder);
   const liveIndex = races.findIndex(r => r.is_live === true);
-  const nextUnfinishedIndex = races.findIndex((r, i) => i > liveIndex && !r.race_content?.trim());
   const firstUnfinishedIndex = races.findIndex(r => !r.race_content?.trim());
+  const nextUnfinishedIndex = liveIndex >= 0
+    ? races.findIndex((r, i) => i > liveIndex && !r.race_content?.trim())
+    : -1;
   const focusIndex = liveIndex >= 0
     ? liveIndex
     : (firstUnfinishedIndex >= 0 ? firstUnfinishedIndex : Math.max(0, races.length - 1));
-  const hasLive = liveIndex >= 0;
   const nextIndex = liveIndex >= 0 ? nextUnfinishedIndex : focusIndex;
+  // Keep five previous weekends available to the left, but auto-position the current/next weekend at the left edge.
   const start = Math.max(0, focusIndex - 5);
   const visible = races.slice(start, Math.min(races.length, focusIndex + 10));
   const focusedOffset = Math.max(0, focusIndex - start);
@@ -185,7 +192,7 @@ function Home() {
         <div className="card-dark p-4 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Kaikki kilpailut täältä:</span>
           <a href="https://youtube.com/playlist?list=PLBRpDkep-7oJKiv3-PKvvbJRkvmFspBZd&si=9_heaCayEzxDaGts" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline font-display uppercase tracking-widest">
-            <svg viewBox="0 0 24 24" className="h-5 w-7" aria-hidden="true"><path fill="#FF0000" d="M23 12s0-3.7-.5-5.5c-.3-1-1.1-1.8-2.1-2.1C18.6 4 12 4 12 4s-6.6 0-8.4.4C2.6 4.7 1.8 5.5 1.5 6.5 1 8.3 1 12 1 12s0 3.7.5 5.5c.3 1.8 1.1 1.8 2.1 2.1C5.4 20 12 20 12 20s6.6 0 8.4-.4c1-.3 1.8-1.1 2.1-2.1.5-1.8.5-5.5.5-5.5z"/><path fill="#fff" d="M10 15.5l6-3.5-6-3.5z"/></svg>
+            <svg viewBox="0 0 24 24" className="h-5 w-7" aria-hidden="true"><path fill="#FF0000" d="M23 12s0-3.7-.5-5.5c-.3-1-1.1-1.8-2.1-2.1C18.6 4 12 4 12 4s-6.6 0-8.4.4C2.6 4 1.8 5.5 1.5 6.5 1 8.3 1 12 1 12s0 3.7.5 5.5c.3 1.8 1.1 1.8 2.1 2.1C5.4 20 12 20 12 20s6.6 0 8.4-.4c1-.3 1.8-1.1 2.1-2.1.5-1.8.5-5.5.5-5.5z"/><path fill="#fff" d="M10 15.5l6-3.5-6-3.5z"/></svg>
             YouTube-soittolista
           </a>
         </div>
