@@ -1,13 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import type { StatLine } from "@/lib/stats-compute";
 
-export const STAT_FIELDS: { key: keyof StatLine; label: string }[] = [
+export const STAT_FIELDS: { key: keyof StatLine; label: string; shortLabel?: string }[] = [
   { key: "points", label: "Pisteet" },
   { key: "wins", label: "Voitot" },
   { key: "podiums", label: "Podiumit" },
   { key: "poles", label: "Paalupaikat" },
-  { key: "driverOfTheDay", label: "Päivän kuljettaja" },
-  { key: "fastestLaps", label: "Nopeimmat kierrokset" },
+  { key: "fastestLaps", label: "Nopeimmat kierrokset", shortLabel: "FL:s" },
+  { key: "driverOfTheDay", label: "Päivän kuljettaja", shortLabel: "DOTD" },
   { key: "starts", label: "Startit" },
   { key: "dnf", label: "DNF" },
   { key: "dsq", label: "DSQ" },
@@ -54,7 +54,7 @@ export function StandingsTable({
             </th>
             {columns.map(c => (
               <th key={c.key} className="text-right px-2 py-2 font-display text-[11px] uppercase tracking-widest whitespace-nowrap">
-                {c.label}
+                {c.shortLabel ?? c.label}
               </th>
             ))}
           </tr>
