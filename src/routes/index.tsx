@@ -56,10 +56,14 @@ function RaceWeekendSlider() {
 
   const races = [...((q.data ?? []) as RaceItem[])].sort(compareRaceOrder);
   const liveIndex = races.findIndex(r => r.is_live === true);
-  const nextIndex = races.findIndex(r => !r.race_content?.trim() && (r.round_number ?? 1) > 0);
-  const focusIndex = liveIndex >= 0 ? liveIndex : (nextIndex >= 0 ? nextIndex : Math.max(0, races.length - 1));
+  const nextUnfinishedIndex = races.findIndex((r, i) => i > liveIndex && !r.race_content?.trim());
+  const firstUnfinishedIndex = races.findIndex(r => !r.race_content?.trim());
+  const focusIndex = liveIndex >= 0
+    ? liveIndex
+    : (firstUnfinishedIndex >= 0 ? firstUnfinishedIndex : Math.max(0, races.length - 1));
   const hasLive = liveIndex >= 0;
-  const start = hasLive ? Math.max(0, focusIndex - 5) : focusIndex;
+  const nextIndex = liveIndex >= 0 ? nextUnfinishedIndex : focusIndex;
+  const start = Math.max(0, focusIndex - 5);
   const visible = races.slice(start, Math.min(races.length, focusIndex + 10));
   const focusedOffset = Math.max(0, focusIndex - start);
   const index = hq.data ?? {};
@@ -88,10 +92,12 @@ function RaceWeekendSlider() {
           <div className="flex items-center gap-2 min-w-max px-1">
             {visible.map((race, i) => {
               const isFocus = i === focusedOffset;
+              const absoluteIndex = start + i;
               const ids = index[race.slug] ?? [];
               const unseenId = firstUnseen(ids, seen);
               const ringState = ids.length === 0 ? "none" : unseenId ? "unseen" : "seen";
-              const label = race.is_live ? "Käynnissä" : (!race.race_content?.trim() && isFocus ? "Seuraavana" : undefined);
+              const isNext = nextIndex >= 0 && absoluteIndex === nextIndex;
+              const label = race.is_live ? "Käynnissä" : (isNext ? "Seuraavana" : undefined);
               return (
                 <button
                   key={race.slug}
