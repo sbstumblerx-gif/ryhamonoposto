@@ -17,7 +17,7 @@ export const generateResultList = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [{ data: drivers }, { data: teams }] = await Promise.all([
-      supabaseAdmin.from("drivers").select("name, number, current_team_slug, current_team_since, former_teams"),
+      supabaseAdmin.from("drivers").select("name, number, current_team_slug, current_team_since, current_contract_until, former_teams"),
       supabaseAdmin.from("teams").select("slug, name"),
     ]);
     const teamName = new Map((teams ?? []).map(t => [t.slug, t.name] as const));
@@ -26,6 +26,7 @@ export const generateResultList = createServerFn({ method: "POST" })
       numero: d.number,
       nykyinen_tiimi: d.current_team_slug ? teamName.get(d.current_team_slug) ?? null : null,
       nykyisessa_tiimissa_alkaen: d.current_team_since,
+      nykyinen_sopimus_voimassa_asti: d.current_contract_until ?? null,
       entiset_tiimit: (Array.isArray(d.former_teams) ? d.former_teams : []).map((f: any) => ({
         tiimi: teamName.get(f?.slug) ?? f?.slug, alkaen: f?.from, asti: f?.to,
       })),
@@ -40,6 +41,7 @@ Säännöt:
 - Käytä kuljettajien nimiä täsmälleen niin kuin ne on alla olevassa listassa (korjaa kuvan kirjoitusvirheet listaa vastaaviksi).
 - Tiimi on se, jossa kuljettaja oli vuonna ${year}. Käytä ensisijaisesti nykyistä tiimiä jos "alkaen" <= ${year}, muuten päättele tiimihistoriasta.
 - Jos tiimi ei ole varmasti tiedossa, päättele paras arvaus tiimihistoriasta äläkä jätä tiimiä pois.
+- Kuljettajien sopimustieto on rekisterissä oleva fakta. current_contract_until-arvo "none" tarkoittaa Ei sopimusta, "unknown" tarkoittaa Ei tietoa ja vuosiluku tarkoittaa sopimuksen olevan voimassa kyseisen kauden loppuun. Älä päättele sopimuksen pituutta muista tiedoista, jos kentässä on arvo.
 - Älä kirjoita mitään muuta tekstiä, otsikoita tai selityksiä. Pelkkä lista.
 
 Kuljettajarekisteri (JSON):
