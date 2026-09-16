@@ -1,152 +1,19 @@
 // Automatic statistics: every driver/team stat is derived from race result lists,
 // sprint result lists and the per-session awards stored on the race itself.
-
 export const POINTS_BY_POSITION = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 export const SPRINT_POINTS_BY_POSITION = [8, 7, 6, 5, 4, 3, 2, 1];
-
-export function pointsForPosition(pos: number | null): number {
-  if (!pos || pos < 1 || pos > POINTS_BY_POSITION.length) return 0;
-  return POINTS_BY_POSITION[pos - 1] ?? 0;
-}
-
-export function sprintPointsForPosition(pos: number | null): number {
-  if (!pos || pos < 1 || pos > SPRINT_POINTS_BY_POSITION.length) return 0;
-  return SPRINT_POINTS_BY_POSITION[pos - 1] ?? 0;
-}
-
+export function pointsForPosition(pos: number | null): number { if (!pos || pos < 1 || pos > POINTS_BY_POSITION.length) return 0; return POINTS_BY_POSITION[pos - 1] ?? 0; }
+export function sprintPointsForPosition(pos: number | null): number { if (!pos || pos < 1 || pos > SPRINT_POINTS_BY_POSITION.length) return 0; return SPRINT_POINTS_BY_POSITION[pos - 1] ?? 0; }
 export type ResultStatus = "FIN" | "DNF" | "DSQ" | "DNS";
 export type ResultLine = { position: number | null; status: ResultStatus; driver: string; team: string | null };
-
-export function normalizeName(s: string): string {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "").trim();
-}
-
+export function normalizeName(s: string): string { return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "").trim(); }
 const STATUS_RE = /\b(DNF|DSQ|DQ|DNS)\b/i;
-
-export function parseResultLines(text: string | null | undefined): ResultLine[] {
-  if (!text) return [];
-  const out: ResultLine[] = [];
-  for (const rawLine of text.split("\n")) {
-    const line = rawLine.replace(/!\[[^\]]*\]\([^)]*\)/g, " ").trim();
-    if (!line) continue;
-    const m = /^(\d{1,2}|DNF|DSQ|DQ|DNS)\s*[.)\-:]\s*(.+)$/i.exec(line);
-    if (!m) continue;
-    const head = (m[1] ?? "").toUpperCase();
-    let rest = (m[2] ?? "").trim();
-    let status: ResultStatus = "FIN";
-    let position: number | null = null;
-    if (/^\d+$/.test(head)) position = Number(head);
-    else status = head === "DQ" ? "DSQ" : (head as ResultStatus);
-    const suffix = STATUS_RE.exec(rest);
-    if (suffix) {
-      const s = (suffix[1] ?? "").toUpperCase();
-      status = s === "DQ" ? "DSQ" : (s as ResultStatus);
-      rest = rest.replace(STATUS_RE, "").replace(/[()\[\]{}]/g, " ").trim();
-    }
-    if (status !== "FIN") position = null;
-    const parts = rest.split(/\s+[-–—]\s+/);
-    const driver = (parts[0] ?? "").replace(/[*_`]/g, "").trim();
-    const team = parts.length > 1 ? (parts.slice(1).join(" - ").replace(/[*_`]/g, "").trim() || null) : null;
-    if (!driver) continue;
-    out.push({ position, status, driver, team });
-  }
-  return out;
-}
-
-export function seasonYearFromName(name: string | null | undefined): number | null {
-  if (!name) return null;
-  const normalized = name.normalize("NFKC").replace(/[‐‑‒–—―]/g, "-").replace(/[⁄∕]/g, "/").trim();
-  const matches = [...normalized.matchAll(/(?<!\d)(20\d{2})(?!\d)/g)]
-    .map(m => Number(m[1]))
-    .filter(year => year >= 2000 && year <= 2099);
-  return matches[0] ?? null;
-}
-
-export function countryFromRaceName(name: string | null | undefined): string {
-  if (!name) return "";
-  return name.replace(/(?<!\d)20\d{2}(?!\d)/g, "").replace(/\s+/g, " ").trim();
-}
-
-export type StatLine = {
-  key: string;
-  slug: string | null;
-  name: string;
-  flag: string;
-  points: number;
-  wins: number;
-  podiums: number;
-  poles: number;
-  driverOfTheDay: number;
-  fastestLaps: number;
-  dnf: number;
-  dsq: number;
-  dns: number;
-  ret: number;
-  starts: number;
-  best: number | null;
-  sprintPoints: number;
-  sprintWins: number;
-  sprintPodiums: number;
-  sprintPoles: number;
-  sprintFastestLaps: number;
-  sprintDnf: number;
-  sprintDsq: number;
-  sprintDns: number;
-  sprintRet: number;
-  sprintStarts: number;
-  sprintBest: number | null;
-};
-
-export function emptyStatLine(key: string, name: string, slug: string | null, flag: string): StatLine {
-  return {
-    key, slug, name, flag,
-    points: 0, wins: 0, podiums: 0, poles: 0, driverOfTheDay: 0, fastestLaps: 0,
-    dnf: 0, dsq: 0, dns: 0, ret: 0, starts: 0, best: null,
-    sprintPoints: 0, sprintWins: 0, sprintPodiums: 0, sprintPoles: 0, sprintFastestLaps: 0,
-    sprintDnf: 0, sprintDsq: 0, sprintDns: 0, sprintRet: 0, sprintStarts: 0, sprintBest: null,
-  };
-}
-
-export function applyResult(line: StatLine, r: { position: number | null; status: ResultStatus }, session: "qualifying" | "race") {
-  if (session === "qualifying") {
-    if (r.status === "FIN" && r.position === 1) line.poles += 1;
-    return;
-  }
-  line.starts += 1;
-  if (r.status === "DNF") { line.dnf += 1; line.ret += 1; return; }
-  if (r.status === "DSQ") { line.dsq += 1; line.ret += 1; return; }
-  if (r.status === "DNS") { line.dns += 1; line.ret += 1; line.starts -= 1; return; }
-  line.points += pointsForPosition(r.position);
-  if (r.position === 1) line.wins += 1;
-  if (r.position != null && r.position <= 3) line.podiums += 1;
-  if (r.position != null && (line.best == null || r.position < line.best)) line.best = r.position;
-}
-
-export function applySprintResult(line: StatLine, r: { position: number | null; status: ResultStatus }, session: "qualifying" | "sprint") {
-  if (session === "qualifying") {
-    if (r.status === "FIN" && r.position === 1) line.sprintPoles += 1;
-    return;
-  }
-  line.sprintStarts += 1;
-  if (r.status === "DNF") { line.sprintDnf += 1; line.sprintRet += 1; return; }
-  if (r.status === "DSQ") { line.sprintDsq += 1; line.sprintRet += 1; return; }
-  if (r.status === "DNS") { line.sprintDns += 1; line.sprintRet += 1; line.sprintStarts -= 1; return; }
-  line.sprintPoints += sprintPointsForPosition(r.position);
-  if (r.position === 1) line.sprintWins += 1;
-  if (r.position != null && r.position <= 3) line.sprintPodiums += 1;
-  if (r.position != null && (line.sprintBest == null || r.position < line.sprintBest)) line.sprintBest = r.position;
-}
-
-export function compareRaceOrder(a: { name: string; round_number?: number | null }, b: { name: string; round_number?: number | null }): number {
-  const ya = seasonYearFromName(a.name) ?? Number.POSITIVE_INFINITY;
-  const yb = seasonYearFromName(b.name) ?? Number.POSITIVE_INFINITY;
-  if (ya !== yb) return ya - yb;
-  const ra = a.round_number ?? Number.POSITIVE_INFINITY;
-  const rb = b.round_number ?? Number.POSITIVE_INFINITY;
-  if (ra !== rb) return ra - rb;
-  return a.name.localeCompare(b.name);
-}
-
-export function sortStandings(rows: StatLine[]): StatLine[] {
-  return [...rows].sort((a, b) => b.points - a.points || b.wins - a.wins || b.podiums - a.podiums || a.name.localeCompare(b.name));
-}
+export function parseResultLines(text: string | null | undefined): ResultLine[] { if (!text) return []; const out: ResultLine[] = []; for (const rawLine of text.split("\n")) { const line = rawLine.replace(/!\[[^\]]*\]\([^)]*\)/g, " ").trim(); if (!line) continue; const m = /^(\d{1,2}|DNF|DSQ|DQ|DNS)\s*[.)\-:]\s*(.+)$/i.exec(line); if (!m) continue; const head = (m[1] ?? "").toUpperCase(); let rest = (m[2] ?? "").trim(); let status: ResultStatus = "FIN"; let position: number | null = null; if (/^\d+$/.test(head)) position = Number(head); else status = head === "DQ" ? "DSQ" : (head as ResultStatus); const suffix = STATUS_RE.exec(rest); if (suffix) { const s = (suffix[1] ?? "").toUpperCase(); status = s === "DQ" ? "DSQ" : (s as ResultStatus); rest = rest.replace(STATUS_RE, "").replace(/[()\[\]{}]/g, " ").trim(); } if (status !== "FIN") position = null; const parts = rest.split(/\s+[-–—]\s+/); const driver = (parts[0] ?? "").replace(/[*_`]/g, "").trim(); const team = parts.length > 1 ? (parts.slice(1).join(" - ").replace(/[*_`]/g, "").trim() || null) : null; if (!driver) continue; out.push({ position, status, driver, team }); } return out; }
+export function seasonYearFromName(name: string | null | undefined): number | null { if (!name) return null; const normalized = name.normalize("NFKC").replace(/[‐‑‒–—―]/g, "-").replace(/[⁄∕]/g, "/").trim(); const matches = [...normalized.matchAll(/(?<!\d)(20\d{2})(?!\d)/g)].map(m => Number(m[1])).filter(year => year >= 2000 && year <= 2099); return matches[0] ?? null; }
+export function countryFromRaceName(name: string | null | undefined): string { if (!name) return ""; return name.replace(/(?<!\d)20\d{2}(?!\d)/g, "").replace(/\s+/g, " ").trim(); }
+export type StatLine = { key: string; slug: string | null; name: string; flag: string; points: number; wins: number; podiums: number; poles: number; driverOfTheDay: number; fastestLaps: number; dnf: number; dsq: number; dns: number; ret: number; starts: number; best: number | null; sprintPoints: number; sprintWins: number; sprintPodiums: number; sprintPoles: number; sprintFastestLaps: number; sprintDnf: number; sprintDsq: number; sprintDns: number; sprintRet: number; sprintStarts: number; sprintBest: number | null };
+export function emptyStatLine(key: string, name: string, slug: string | null, flag: string): StatLine { return { key, slug, name, flag, points: 0, wins: 0, podiums: 0, poles: 0, driverOfTheDay: 0, fastestLaps: 0, dnf: 0, dsq: 0, dns: 0, ret: 0, starts: 0, best: null, sprintPoints: 0, sprintWins: 0, sprintPodiums: 0, sprintPoles: 0, sprintFastestLaps: 0, sprintDnf: 0, sprintDsq: 0, sprintDns: 0, sprintRet: 0, sprintStarts: 0, sprintBest: null }; }
+export function applyResult(line: StatLine, r: { position: number | null; status: ResultStatus }, session: "qualifying" | "race") { if (session === "qualifying") { if (r.status === "FIN" && r.position === 1) line.poles += 1; return; } line.starts += 1; if (r.status === "DNF") { line.dnf += 1; line.ret += 1; return; } if (r.status === "DSQ") { line.dsq += 1; line.ret += 1; return; } if (r.status === "DNS") { line.dns += 1; line.ret += 1; line.starts -= 1; return; } line.points += pointsForPosition(r.position); if (r.position === 1) line.wins += 1; if (r.position != null && r.position <= 3) line.podiums += 1; if (r.position != null && (line.best == null || r.position < line.best)) line.best = r.position; }
+export function applySprintResult(line: StatLine, r: { position: number | null; status: ResultStatus }, session: "qualifying" | "sprint") { if (session === "qualifying") { if (r.status === "FIN" && r.position === 1) line.sprintPoles += 1; return; } line.sprintStarts += 1; if (r.status === "DNF") { line.sprintDnf += 1; line.sprintRet += 1; return; } if (r.status === "DSQ") { line.sprintDsq += 1; line.sprintRet += 1; return; } if (r.status === "DNS") { line.sprintDns += 1; line.sprintRet += 1; line.sprintStarts -= 1; return; } const points = sprintPointsForPosition(r.position); line.sprintPoints += points; line.points += points; if (r.position === 1) line.sprintWins += 1; if (r.position != null && r.position <= 3) line.sprintPodiums += 1; if (r.position != null && (line.sprintBest == null || r.position < line.sprintBest)) line.sprintBest = r.position; }
+export function compareRaceOrder(a: { name: string; round_number?: number | null }, b: { name: string; round_number?: number | null }): number { const ya = seasonYearFromName(a.name) ?? Number.POSITIVE_INFINITY, yb = seasonYearFromName(b.name) ?? Number.POSITIVE_INFINITY; if (ya !== yb) return ya - yb; const ra = a.round_number ?? Number.POSITIVE_INFINITY, rb = b.round_number ?? Number.POSITIVE_INFINITY; if (ra !== rb) return ra - rb; return a.name.localeCompare(b.name); }
+export function sortStandings(rows: StatLine[]): StatLine[] { return [...rows].sort((a, b) => b.points - a.points || b.wins - a.wins || b.podiums - a.podiums || a.name.localeCompare(b.name)); }
