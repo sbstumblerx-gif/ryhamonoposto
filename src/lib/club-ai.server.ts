@@ -16,7 +16,7 @@ export function mentionsAiOff(body: string) {
 /** Compact site corpus so the club AI can actually look things up when asked. */
 async function siteCorpus(db: Admin) {
   const [drivers, teams, races, news, seasons] = await Promise.all([
-    db.from("drivers").select("slug, name, number, flag, current_team_slug, current_team_since, former_teams, info_card"),
+    db.from("drivers").select("slug, name, number, flag, current_team_slug, current_team_since, current_contract_until, former_teams, info_card"),
     db.from("teams").select("slug, name, flag, current_driver_slugs, former_lineups, info_card"),
     db.from("races").select("slug, name, flag, race_date, round_number, qualifying_content, race_content"),
     db.from("news").select("slug, title, excerpt, published_at").order("published_at", { ascending: false }).limit(20),
@@ -58,9 +58,11 @@ export async function replyInClub(db: Admin, clubId: string) {
       content:
         `Olet ${AI_NAME}, RyhäMonoposto-sarjan tekoäly, joka on liittynyt klubin ryhmächattiin. ` +
         `Vastaa aina suomeksi, lyhyesti ja rennosti kuin keskustelukaveri. ` +
-        `Jos viesti kysyy faktoja sarjasta (kuljettajat, tiimit, kisat R1–R50, tulokset, uutiset, kaudet), ` +
-        `hae vastaus alla olevasta sivuston datasta ja kerro mihin se perustuu. Jos tietoa ei löydy, sano se rehellisesti. ` +
-        `Muuten jutustele normaalisti. Älä toista käyttäjän viestiä. Pidä vastaus alle 120 sanassa.\n\nSivuston data:\n${corpus}`,
+        `Jos viesti kysyy faktoja sarjasta (kuljettajat, tiimit, sopimukset, kisat R1–R50, tulokset, uutiset, kaudet), ` +
+        `hae vastaus alla olevasta sivuston datasta ja kerro mihin se perustuu. ` +
+        `Sopimuksissa tarkista aina kuljettajan current_contract_until-kenttä: "none" = Ei sopimusta, "unknown" = Ei tietoa ja vuosiluku 2026–2040 = sopimus voimassa kyseisen kauden loppuun. ` +
+        `Älä keksi tai päättele sopimuksen päättymisvuotta, jos rekisterissä on tieto. Jos tieto on unknown tai puuttuu, sano se rehellisesti. ` +
+        `Jos tietoa ei löydy, sano se rehellisesti. Älä toista käyttäjän viestiä. Pidä vastaus alle 120 sanassa.\n\nSivuston data:\n${corpus}`,
     },
     ...history.map(m => ({
       role: m.is_ai ? ("assistant" as const) : ("user" as const),
