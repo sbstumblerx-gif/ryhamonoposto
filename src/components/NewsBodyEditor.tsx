@@ -3,13 +3,29 @@ import { useServerFn } from "@tanstack/react-start";
 import { uploadMedia } from "@/lib/upload.functions";
 import { toast } from "sonner";
 
-export function NewsBodyEditor({ value, onSave }: { value: string; onSave: (value: string) => Promise<void> | void }) {
+export function NewsBodyEditor({
+  value,
+  onSave,
+  onChange,
+  showSave = true,
+}: {
+  value: string;
+  onSave?: (value: string) => Promise<void> | void;
+  onChange?: (value: string) => void;
+  showSave?: boolean;
+}) {
   const upload = useServerFn(uploadMedia);
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [text, setText] = useState(value);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => { setText(value); setDirty(false); }, [value]);
+
+  function updateText(next: string) {
+    setText(next);
+    setDirty(true);
+    onChange?.(next);
+  }
 
   async function handleImage(file: File | undefined) {
     if (!file) return;
@@ -26,8 +42,7 @@ export function NewsBodyEditor({ value, onSave }: { value: string; onSave: (valu
       const end = textarea?.selectionEnd ?? text.length;
       const insert = `\n\n![${caption}](${url})\n\n`;
       const next = text.slice(0, start) + insert + text.slice(end);
-      setText(next);
-      setDirty(true);
+      updateText(next);
       requestAnimationFrame(() => {
         textarea?.focus();
         textarea?.setSelectionRange(start + insert.length, start + insert.length);
@@ -40,6 +55,7 @@ export function NewsBodyEditor({ value, onSave }: { value: string; onSave: (valu
   }
 
   async function save() {
+    if (!onSave) return;
     setBusy(true);
     try {
       await onSave(text);
@@ -51,13 +67,13 @@ export function NewsBodyEditor({ value, onSave }: { value: string; onSave: (valu
 
   return (
     <div className="space-y-2">
-      <textarea ref={ref} value={text} onChange={(event) => { setText(event.target.value); setDirty(true); }} placeholder="Sisältö… Enter tekee kappalejaon." rows={12} className="w-full min-h-64 bg-black/60 border border-primary/40 rounded p-2 text-sm" />
+      <textarea ref={ref} value={text} onChange={(event) => updateText(event.target.value)} placeholder="Sisältö… Enter tekee kappalejaon." rows={12} className="w-full min-h-64 bg-black/60 border border-primary/40 rounded p-2 text-sm" />
       <div className="flex flex-wrap items-center gap-2">
         <label className="inline-flex cursor-pointer items-center gap-2 rounded border border-primary/50 px-3 py-1 text-xs font-display uppercase tracking-widest hover:bg-primary/20">
           Lisää kuva kohtaan
           <input type="file" accept="image/*" disabled={busy} className="hidden" onChange={(event) => { void handleImage(event.target.files?.[0]); event.target.value = ""; }} />
         </label>
-        {dirty && (
+        {showSave && dirty && onSave && (
           <button onClick={save} disabled={busy} className="rounded bg-primary text-primary-foreground text-xs px-3 py-1 font-display uppercase tracking-widest disabled:opacity-50">
             {busy ? "Tallennetaan…" : "Tallenna"}
           </button>
