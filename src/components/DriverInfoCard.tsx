@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listTeams, updateDriver } from "@/lib/content.functions";
+import { updateDriverContract, ContractUntil, type ContractUntilValue } from "@/lib/driver-contract.functions";
 import { EditableText } from "@/components/EditableText";
 import { SmartText } from "@/components/SmartText";
 import { useEntityIndex } from "@/components/useEntityIndex";
@@ -18,16 +19,26 @@ type Driver = {
   current_team_slug: string | null;
   current_team_since: number | null;
   current_team_is_reserve?: boolean | null;
+  current_contract_until?: ContractUntilValue | null;
   former_teams: FormerTeam[] | null;
 };
 
 const YEARS = Array.from({ length: 2100 - 2025 + 1 }, (_, i) => 2025 + i);
+const CONTRACT_OPTIONS = ["none", ...Array.from({ length: 2040 - 2026 + 1 }, (_, i) => String(2026 + i)), "unknown"] as const;
+
+function contractLabel(value: ContractUntilValue | null | undefined) {
+  if (value === "none") return "Ei sopimusta";
+  if (value === "unknown") return "Ei tietoa";
+  if (value) return value;
+  return "Ei asetettu";
+}
 
 export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: boolean }) {
   const teamsQ = useQuery({ queryKey: ["teams-list"], queryFn: () => useServerFnListTeams() });
   const teams = teamsQ.data ?? [];
   const teamBySlug = useMemo(() => new Map(teams.map(t => [t.slug, t] as const)), [teams]);
   const save = useServerFn(updateDriver);
+  const saveContract = useServerFn(updateDriverContract);
   const qc = useQueryClient();
   const entities = useEntityIndex();
   const former: FormerTeam[] = Array.isArray(driver.former_teams) ? driver.former_teams : [];
@@ -39,6 +50,16 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
       toast.success("Tallennettu");
     } catch (e: any) {
       toast.error(e?.message ?? "Tallennus epäonnistui");
+    }
+  }
+
+  async function patchContract(value: ContractUntilValue | null) {
+    try {
+      await saveContract({ data: { slug: driver.slug, current_contract_until: value } });
+      await qc.invalidateQueries({ queryKey: ["driver", driver.slug] });
+      toast.success("Sopimustieto tallennettu");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sopimustiedon tallennus epäonnistui");
     }
   }
 
@@ -63,6 +84,25 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
               className="w-full bg-black/70 border border-primary/30 rounded p-2 font-display" />
           ) : <span className="font-display text-xl">{driver.flag || "—"}</span>}
         </Stat>
+      </div>
+
+      {/* Nykyinen sopimus */}
+      <div className="card-dark p-3">
+        <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-display">Nykyinen sopimus voimassa:</div>
+        {isAdmin ? (
+          <select
+            value={driver.current_contract_until ?? ""}
+            onChange={e => patchContract((e.target.value || null) as ContractUntilValue | null)}
+            className="w-full bg-black/70 border border-primary/30 rounded p-2 font-display"
+          >
+            <option value="">— Valitse —</option>
+            {CONTRACT_OPTIONS.map(value => (
+              <option key={value} value={value}>{contractLabel(value)}</option>
+            ))}
+          </select>
+        ) : (
+          <div className="font-display text-lg">{contractLabel(driver.current_contract_until)}</div>
+        )}
       </div>
 
       {/* Nykyinen tiimi */}
@@ -170,7 +210,6 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-// small helper so we don't call useServerFn inside useQuery inline
 function useServerFnListTeams() {
   return listTeams();
-                                       }
+}
