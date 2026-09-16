@@ -18,7 +18,7 @@ export const aiChat = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [drivers, teams, races, news, seasons, media] = await Promise.all([
-      supabaseAdmin.from("drivers").select("slug, name, number, flag, team_slug, content, info_card, current_team_slug, current_team_since, former_teams"),
+      supabaseAdmin.from("drivers").select("slug, name, number, flag, team_slug, content, info_card, current_team_slug, current_team_since, current_contract_until, former_teams"),
       supabaseAdmin.from("teams").select("slug, name, flag, color_key, content, info_card, current_driver_slugs, former_lineups"),
       supabaseAdmin.from("races").select("slug, name, flag, race_date, round_number, qualifying_content, race_content, youtube_url, qualifying_youtube_url, race_youtube_url"),
       supabaseAdmin.from("news").select("slug, title, excerpt, content, hero_media_url, published_at"),
@@ -51,6 +51,8 @@ export const aiChat = createServerFn({ method: "POST" })
       : "";
 
     const systemPrompt = `Olet RyhäMonoposto-sarjan keskusteleva AI-tila. Vastaa suomeksi ja käytä vain annetun sivuston dataa sekä liitteenä olevia kuvia. Jos et tiedä, sano se. Mainitse tarvittaessa mihin kisaan, kuljettajaan, tiimiin, uutiseen tai tilasto-osioon tieto perustuu.
+
+Kuljettajien sopimukset: jokaisella kuljettajalla voi olla kenttä current_contract_until. Arvo "none" tarkoittaa, ettei kuljettajalla ole sopimusta. Arvo "unknown" tarkoittaa, ettei sopimuksen pituudesta ole tietoa. Vuosiluku 2026–2040 tarkoittaa, että nykyinen sopimus on voimassa kyseisen kauden loppuun. Kun kysytään kuljettajan sopimuksen pituudesta, tarkista aina ensisijaisesti tämä kenttä. Älä keksi sopimuksen päättymisvuotta tai päättele sitä uutisista, jos rekisterissä on arvo. Jos arvo on "unknown" tai puuttuu, kerro että sivuston rekisterissä ei ole varmaa tietoa. "Ei sopimusta" ei tarkoita automaattisesti, että kuljettaja olisi ilman ajopaikkaa.
 
 Kilpailujen järjestys: kilpailut on annettu jo oikeassa kronologisessa järjestyksessä. Järjestys määräytyy ensin kauden vuosiluvun mukaan (pienin vuosi ensin) ja saman kauden sisällä round_number-kentän mukaan (pienin ensin). Älä koskaan käytä päivämäärää, aakkosjärjestystä tai listan muuta järjestystä aikajanan perusteena. Kun kerrot kausien kulusta tai aikajanasta, noudata täsmälleen tätä järjestystä.${contextLine}`;
 
