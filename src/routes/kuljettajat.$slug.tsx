@@ -7,9 +7,8 @@ import { SmartText } from "@/components/SmartText";
 import { Comments } from "@/components/Comments";
 import { MediaUpload } from "@/components/MediaUpload";
 import { EditableText } from "@/components/EditableText";
-import { MediaGallery } from "@/components/MediaGallery";
 import { EntityStats } from "@/components/EntityStats";
-
+import { DriverRaceHistory } from "@/components/RaceHistory";
 import { DriverInfoCard } from "@/components/DriverInfoCard";
 import { FollowButton } from "@/components/FollowButton";
 import { useAdmin } from "@/components/admin-store";
@@ -70,46 +69,23 @@ function DriverPage() {
           </div>
         </div>
       </div>
-
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-4"><FollowButton kind="driver" slug={slug} name={d.name} /></div>
         {d.hero_media_url && <img src={d.hero_media_url} alt={d.name} className="w-full rounded border border-primary/30 mb-4" />}
-
         {admin.isAdmin && (
           <div className="card-dark p-3 mb-4 space-y-3">
             <MediaUpload currentUrl={d.hero_media_url} onUploaded={(url) => patch({ hero_media_url: url })} label="Pääkuva" />
             <EditableText value={d.content ?? ""} multiline placeholder="Kuljettajan esittely…" onSave={(v) => patch({ content: v })} />
-            <div className="pt-2 border-t border-primary/20">
-              <button onClick={removeDriver}
-                className="text-xs border border-primary/60 rounded px-3 py-1.5 font-display uppercase tracking-widest text-primary hover:bg-primary/20">
-                Poista kuljettaja kokonaan
-              </button>
-            </div>
+            <div className="pt-2 border-t border-primary/20"><button onClick={removeDriver} className="text-xs border border-primary/60 rounded px-3 py-1.5 font-display uppercase tracking-widest text-primary hover:bg-primary/20">Poista kuljettaja kokonaan</button></div>
           </div>
         )}
-
         <SmartText text={d.content} entities={entities} className="text-sm leading-6 mb-6" />
-
         <div className="flex gap-2 mb-4 flex-wrap">
-          {TABS.map(k => (
-            <button key={k.key} onClick={() => setTab(k.key)}
-              className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k.key ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>
-              {k.label}
-            </button>
-          ))}
+          {TABS.map(k => <button key={k.key} onClick={() => setTab(k.key)} className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border ${tab === k.key ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>{k.label}</button>)}
         </div>
-
-        {tab === "info" ? (
-          <DriverInfoCard driver={d as never} isAdmin={admin.isAdmin} />
-        ) : tab === "stats" ? (
-          <EntityStats kind="drivers" slug={slug} />
-        ) : (
-          <MediaGallery scope={`driver:${slug}:${tab}`} title="Kisahistoria" />
-        )}
-
-
+        {tab === "info" ? <DriverInfoCard driver={d as never} isAdmin={admin.isAdmin} /> : tab === "stats" ? <EntityStats kind="drivers" slug={slug} /> : <DriverRaceHistory slug={slug} />}
         <Comments entityType="driver" entityId={d.id} />
       </div>
     </div>
   );
-        }
+}
