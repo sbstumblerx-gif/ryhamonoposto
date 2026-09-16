@@ -1,0 +1,27 @@
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { getDriverRaceHistory, getTeamRaceHistory, type HistoryResult, type HistoryEntry, type TeamHistoryEntry, type TeamDriverHistory } from "@/lib/race-history.functions";
+import { colorFor } from "@/lib/team-colors";
+
+function pos(r: HistoryResult | null) { if (!r) return "—"; return r.position != null ? String(r.position) : r.status; }
+function points(r: HistoryResult | null) { return r?.points ? `+${r.points}` : "0"; }
+function ResultRow({ label, result, showPoints = false }: { label: string; result: HistoryResult | null; showPoints?: boolean }) {
+  if (!result) return null;
+  return <div className="flex items-center justify-between gap-3 text-xs"><span className="text-muted-foreground">{label}</span><span className="font-display whitespace-nowrap">{pos(result)}{showPoints && <span className="ml-2 opacity-80">{points(result)}p</span>}</span></div>;
+}
+function RaceHeader({ flag, name, round, color, logo }: { flag: string; name: string; round: number | null; color: string; logo?: string | null }) {
+  return <div className="flex items-center gap-2 min-w-0 mb-3"><span className="text-xl shrink-0">{flag}</span><div className="font-display uppercase tracking-wider truncate" style={{ color }}>{name}</div><span className="text-[10px] text-muted-foreground shrink-0">R{round ?? "—"}</span>{logo && <img src={logo} alt="" className="h-7 w-7 object-contain rounded shrink-0" />}</div>;
+}
+function DriverRow({ driver, color }: { driver: { flag: string; name: string; race: HistoryResult | null; qualifying: HistoryResult | null; sprint: HistoryResult | null; sprintQualifying: HistoryResult | null }; color: string }) {
+  return <div className="border-t border-primary/10 pt-2 mt-2"><div className="flex items-center gap-2 mb-2"><span>{driver.flag}</span><span className="font-display text-xs uppercase tracking-wider" style={{ color }}>{driver.name}</span></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1"><ResultRow label="Kilpailu" result={driver.race} showPoints /><ResultRow label="Aika-ajot" result={driver.qualifying} /><ResultRow label="Sprintti" result={driver.sprint} showPoints /><ResultRow label="Sprintin aika-ajot" result={driver.sprintQualifying} /></div></div>;
+}
+function HistoryCard({ entry }: { entry: HistoryEntry }) {
+  const color = colorFor(entry.team?.color_key);
+  return <div className="card-dark p-3 border-l-2" style={{ borderLeftColor: color }}><RaceHeader flag={entry.flag} name={entry.name} round={entry.round} color={color} logo={entry.team?.logo_url} />{entry.team && <div className="text-[10px] text-muted-foreground mb-2 uppercase tracking-widest">{entry.team.name}</div>}<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1"><ResultRow label="Kilpailu" result={entry.race} showPoints /><ResultRow label="Aika-ajot" result={entry.qualifying} /><ResultRow label="Sprintti" result={entry.sprint} showPoints /><ResultRow label="Sprintin aika-ajot" result={entry.sprintQualifying} /></div></div>;
+}
+function TeamCard({ entry }: { entry: TeamHistoryEntry }) {
+  const color = colorFor(entry.team.color_key);
+  return <div className="card-dark p-3 border-l-2" style={{ borderLeftColor: color }}><RaceHeader flag={entry.flag} name={entry.name} round={entry.round} color={color} logo={entry.team.logo_url} />{entry.drivers.map(d => <DriverRow key={d.slug ?? d.name} driver={d} color={color} />)}</div>;
+}
+export function DriverRaceHistory({ slug }: { slug: string }) { const fn = useServerFn(getDriverRaceHistory); const q = useQuery({ queryKey: ["driver-race-history", slug], queryFn: () => fn({ data: { slug } }), staleTime: 30_000 }); if (q.isLoading) return <div className="text-sm text-muted-foreground">Ladataan kisahistoriaa…</div>; if (q.isError) return <div className="text-sm text-muted-foreground">Kisahistorian lataus epäonnistui.</div>; const rows = q.data ?? []; return <div className="space-y-2">{rows.length ? rows.map(r => <HistoryCard key={r.slug} entry={r} />) : <div className="card-dark p-4 text-sm text-muted-foreground italic">Ei kilpailutuloksia vielä.</div>}</div>; }
+export function TeamRaceHistory({ slug }: { slug: string }) { const fn = useServerFn(getTeamRaceHistory); const q = useQuery({ queryKey: ["team-race-history", slug], queryFn: () => fn({ data: { slug } }), staleTime: 30_000 }); if (q.isLoading) return <div className="text-sm text-muted-foreground">Ladataan kisahistoriaa…</div>; if (q.isError) return <div className="text-sm text-muted-foreground">Kisahistorian lataus epäonnistui.</div>; const rows = q.data ?? []; return <div className="space-y-2">{rows.length ? rows.map(r => <TeamCard key={r.slug} entry={r} />) : <div className="card-dark p-4 text-sm text-muted-foreground italic">Ei kilpailutuloksia vielä.</div>}</div>; }
