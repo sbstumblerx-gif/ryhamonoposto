@@ -3,29 +3,28 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyFollows, toggleFollow } from "@/lib/follows.functions";
+import { entityFollowStats } from "@/lib/following.functions";
 
 export function FollowButton({ kind, slug, name }: { kind: "driver" | "team"; slug: string; name: string }) {
   const listFn = useServerFn(listMyFollows);
+  const statsFn = useServerFn(entityFollowStats);
   const toggleFn = useServerFn(toggleFollow);
   const [uid, setUid] = useState<string | null>(null);
   const [on, setOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [followers, setFollowers] = useState<number>(0);
 
-  async function refresh() {
+  async function refreshStats() {
     try {
-      const res = await fetch(`/api/follow-stats?entity_type=${kind}&entity_slug=${encodeURIComponent(slug)}`);
-      if (res.ok) {
-        const json = await res.json();
-        setFollowers(Number(json.follower_count ?? 0));
-      }
+      const result = await statsFn({ data: { entity_type: kind, entity_slug: slug } });
+      setFollowers(Number(result.follower_count ?? 0));
     } catch { /* stats are supplementary */ }
   }
 
   useEffect(() => {
     let alive = true;
     supabase.auth.getUser().then(({ data }) => { if (alive) setUid(data.user?.id ?? null); });
-    void refresh();
+    void refreshStats();
     return () => { alive = false; };
   }, [kind, slug]);
 
@@ -44,7 +43,7 @@ export function FollowButton({ kind, slug, name }: { kind: "driver" | "team"; sl
     try {
       const r: any = await toggleFn({ data: { entity_type: kind, entity_slug: slug } });
       setOn(!!r.following);
-      await refresh();
+      await refreshStats();
       toast.success(r.following ? `Seuraat nyt: ${name}` : `Seuranta poistettu: ${name}`);
     } catch (e: any) { toast.error(e?.message ?? "Toiminto epäonnistui"); }
     finally { setBusy(false); }
