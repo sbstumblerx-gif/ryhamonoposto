@@ -9,21 +9,47 @@ import { GlobalSearch } from "./GlobalSearch";
 import { unreadNotificationCount } from "@/lib/clubs.functions";
 import { supabase } from "@/integrations/supabase/client";
 
-const NAV = [
-  { to: "/", label: "Etusivu" },
-  { to: "/profiili", label: "Profiili" },
-  { to: "/kilpailut", label: "Kilpailut" },
-  { to: "/kuljettajat", label: "Kuljettajat" },
-  { to: "/tiimit", label: "Tiimit" },
-  { to: "/tilastot", label: "Tilastot" },
-  { to: "/uutiset", label: "Uutiset" },
-  { to: "/veikkaa", label: "Veikkaa" },
-  { to: "/aanestykset", label: "Äänestykset" },
-  { to: "/klubit", label: "Klubit" },
-  { to: "/kokoelma", label: "Kokoelma" },
-  { to: "/ilmoitukset", label: "Ilmoitukset" },
-  { to: "/tekoalytila", label: "Tekoälytila" },
-] as const;
+type NavItem = { to: string; label: string; icon: string };
+type NavSection = { label: string; items: NavItem[] };
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: "Data ja tilastot",
+    items: [
+      { to: "/kuljettajat", label: "Kuljettajat", icon: "🏎️" },
+      { to: "/tiimit", label: "Tiimit", icon: "👥" },
+      { to: "/kilpailut", label: "Kilpailut", icon: "🏁" },
+      { to: "/tilastot", label: "Tilastot", icon: "📊" },
+      { to: "/sopimukset", label: "Sopimukset", icon: "📝" },
+      { to: "/uutiset", label: "Uutiset", icon: "📰" },
+    ],
+  },
+  {
+    label: "Yhteisö",
+    items: [
+      { to: "/ystavat", label: "Ystävät", icon: "👫" },
+      { to: "/klubit", label: "Klubit", icon: "🎟️" },
+      { to: "/aanestykset", label: "Äänestykset", icon: "🗳️" },
+      { to: "/postaukset", label: "Postaukset", icon: "🌍" },
+    ],
+  },
+  {
+    label: "Osallistu",
+    items: [
+      { to: "/veikkaa", label: "Veikkaa", icon: "🎰" },
+      { to: "/kokoelma", label: "Kokoelma", icon: "🗂️" },
+      { to: "/pelaa", label: "Pelaa", icon: "🎮" },
+    ],
+  },
+  {
+    label: "Minä",
+    items: [
+      { to: "/profiili", label: "Profiili", icon: "👤" },
+      { to: "/seuratut", label: "Seuratut", icon: "♥️" },
+      { to: "/omat-postaukset", label: "Omat postaukset", icon: "📁" },
+    ],
+  },
+];
 
 function useUnreadCount() {
   const [uid, setUid] = useState<string | null>(null);
@@ -42,6 +68,9 @@ export function SiteHeader() {
   const logout = useAdminLogout();
   const [menuOpen, setMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>(
+    Object.fromEntries(NAV_SECTIONS.map((section) => [section.label, true]))
+  );
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const unread = useUnreadCount();
   const title = "";
@@ -53,6 +82,10 @@ export function SiteHeader() {
 
   const pageContext = `Käyttäjä on sivulla: ${pathname}${title ? ` (${title})` : ""}. Vastaa ensin sivun sisällön pohjalta, hae tarvittaessa lisätietoa muualta sivustolta.`;
   const isAiPage = pathname === "/tekoalytila" || pathname === "/";
+
+  const toggleSection = (label: string) => {
+    setSectionsOpen((current) => ({ ...current, [label]: !current[label] }));
+  };
 
   return (
     <>
@@ -80,11 +113,48 @@ export function SiteHeader() {
       {menuOpen && (
         <div className="fixed inset-0 z-50" onClick={() => setMenuOpen(false)}>
           <div className="absolute inset-0 bg-black/70" />
-          <aside onClick={(e) => e.stopPropagation()} className="absolute top-0 left-0 h-full w-72 max-w-[85vw] bg-black border-r border-primary/60 p-5 flex flex-col gap-2 shadow-2xl">
-            <div className="flex items-center justify-between mb-2"><img src={logoAsset.url} alt="RyhäMonoposto" className="h-8 w-auto" /><button aria-label="Sulje" onClick={() => setMenuOpen(false)} className="text-xl text-muted-foreground hover:text-primary">×</button></div>
+          <aside onClick={(e) => e.stopPropagation()} className="absolute top-0 left-0 h-full w-80 max-w-[88vw] bg-black border-r border-primary/60 p-5 flex flex-col shadow-2xl overflow-y-auto">
+            <div className="flex items-center justify-between mb-2"><img src={logoAsset.url} alt="RyhäMonoposto" className="h-8 w-auto" /><button aria-label="Sulje" onClick={() => setMenuOpen(false)} className="text-2xl text-muted-foreground hover:text-primary">×</button></div>
             <div className="hairline-red mb-2" />
-            <nav className="flex flex-col gap-1">
-              {NAV.map((n) => <Link key={n.to} to={n.to} className="font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-transparent hover:border-primary/60 hover:bg-primary/10 flex items-center justify-between gap-2" activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2 rounded border border-primary bg-primary/20 text-primary flex items-center justify-between gap-2" }}><span>{n.label}</span>{n.to === "/ilmoitukset" && unread > 0 && <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">{unread > 99 ? "99+" : unread}</span>}</Link>)}
+
+            <nav className="flex flex-col">
+              <Link to="/" className="font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded hover:bg-primary/10 flex items-center gap-3" activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded bg-primary/15 text-primary flex items-center gap-3" }}>
+                <span>🏠</span><span>Etusivu</span>
+              </Link>
+              <Link to="/ilmoitukset" className="font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded hover:bg-primary/10 flex items-center justify-between gap-3" activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded bg-primary/15 text-primary flex items-center justify-between gap-3" }}>
+                <span className="flex items-center gap-3"><span>✉️</span><span>Ilmoitukset</span></span>
+                {unread > 0 && <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">{unread > 99 ? "99+" : unread}</span>}
+              </Link>
+              <Link to="/tekoalytila" className="font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded hover:bg-primary/10 flex items-center gap-3" activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded bg-primary/15 text-primary flex items-center gap-3" }}>
+                <span>🤖</span><span>Tekoälytila</span>
+              </Link>
+
+              <div className="hairline-red my-3" />
+
+              {NAV_SECTIONS.map((section) => {
+                const isOpen = sectionsOpen[section.label];
+                return (
+                  <div key={section.label} className="mb-1">
+                    <button type="button" onClick={() => toggleSection(section.label)} aria-expanded={isOpen} className="w-full flex items-center justify-between px-3 py-2 rounded text-primary hover:bg-primary/10 font-display uppercase tracking-widest text-xs">
+                      <span className="flex items-center gap-2"><span>{isOpen ? "🔽" : "▶️"}</span><span>{section.label}</span></span>
+                    </button>
+                    {isOpen && (
+                      <div className="mt-0.5 pl-1">
+                        {section.items.map((item) => (
+                          <Link key={item.to} to={item.to} className="font-display uppercase tracking-widest text-sm px-3 py-2 rounded hover:bg-primary/10 flex items-center gap-3" activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2 rounded bg-primary/15 text-primary flex items-center gap-3" }}>
+                            <span className="w-5 text-center shrink-0">{item.icon}</span><span>{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <div className="hairline-red my-3" />
+              <Link to="/asetukset" className="font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded hover:bg-primary/10 flex items-center gap-3" activeProps={{ className: "font-display uppercase tracking-widest text-sm px-3 py-2.5 rounded bg-primary/15 text-primary flex items-center gap-3" }}>
+                <span>⚙️</span><span>Asetukset</span>
+              </Link>
             </nav>
           </aside>
         </div>
