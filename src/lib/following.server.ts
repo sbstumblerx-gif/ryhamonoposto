@@ -27,7 +27,7 @@ export async function followingOverview(userId: string) {
     db.from("drivers").select("slug, name, flag, color_key, current_team_slug, team_slug"),
     db.from("teams").select("slug, name, flag, color_key, logo_url, current_driver_slugs"),
     db.from("fan_point_events").select("entity_type, entity_slug, points, created_at").gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-    db.from("races").select("slug, name, flag, round_number, race_content, race_date").not("race_content", "is", null),
+    db.from("races").select("slug, name, flag, round_number, race_content, race_date"),
   ]);
   if (fe) throw fe; if (de) throw de; if (te) throw te; if (ee) throw ee; if (re) throw re;
 
@@ -67,7 +67,11 @@ export async function followingOverview(userId: string) {
     return { ...e, score };
   }).filter(e => e.score > 0).sort((a, b) => b.score - a.score || b.fan_points - a.fan_points || a.name.localeCompare(b.name)).slice(0, 3);
 
-  const orderedRaces = [...(races ?? [])].sort(compareRaceOrder).reverse().filter((r: any) => r.round_number !== 0);
+  // Pick the latest race that actually has result data, not merely the latest race row in the database.
+  const orderedRaces = [...(races ?? [])]
+    .filter((r: any) => r.round_number !== 0 && parseResultLines(r.race_content).length > 0)
+    .sort(compareRaceOrder)
+    .reverse();
   const latest = orderedRaces[0] ?? null;
   let report: any = null;
   if (latest) {
