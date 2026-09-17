@@ -1,15 +1,7 @@
 import { compareRaceOrder, normalizeName, parseResultLines, pointsForPosition } from "./stats-compute";
 import type { FollowKind } from "./follows.server";
 
-type Entity = {
-  entity_type: FollowKind;
-  entity_slug: string;
-  name: string;
-  flag: string;
-  color_key: string;
-  logo_url?: string | null;
-  current_team_slug?: string | null;
-};
+type Entity = { entity_type: FollowKind; entity_slug: string; name: string; flag: string; color_key: string; logo_url?: string | null; current_team_slug?: string | null };
 
 function aggregateEvents(events: any[]) {
   const now = Date.now();
@@ -51,11 +43,11 @@ export async function followingOverview(userId: string) {
   const eventAgg = aggregateEvents(events ?? []);
   const stats = (e: Entity) => {
     const s = eventAgg.get(`${e.entity_type}:${e.entity_slug}`) ?? { last7: 0, recent24: 0, previous24: 0 };
-    return { ...e, fan_points: s.last7, trend: s.recent24 > s.previous24 ? "up" : s.recent24 < s.previous24 ? "down" : "flat" };
+    return { ...e, fan_points: s.last7, recent24: s.recent24, previous24: s.previous24, trend: s.recent24 > s.previous24 ? "up" : s.recent24 < s.previous24 ? "down" : "flat" };
   };
   const scored = entities.map(stats);
-  const driversTrend = scored.filter(e => e.entity_type === "driver").sort((a, b) => b.fan_points - a.fan_points || b.recent24 - b.recent24 || a.name.localeCompare(b.name));
-  const teamsTrend = scored.filter(e => e.entity_type === "team").sort((a, b) => b.fan_points - a.fan_points || a.name.localeCompare(b.name));
+  const driversTrend = scored.filter(e => e.entity_type === "driver").sort((a, b) => b.fan_points - a.fan_points || b.recent24 - a.recent24 || a.name.localeCompare(b.name));
+  const teamsTrend = scored.filter(e => e.entity_type === "team").sort((a, b) => b.fan_points - a.fan_points || b.recent24 - a.recent24 || a.name.localeCompare(b.name));
 
   const followed = (follows ?? []).map((f: any) => {
     const e = f.entity_type === "driver" ? driverBySlug.get(f.entity_slug) : teamBySlug.get(f.entity_slug);
@@ -67,18 +59,13 @@ export async function followingOverview(userId: string) {
   const followedTeamSlugs = new Set(followedTeams.map((t: any) => t.slug));
   const followedFlags = new Set((follows ?? []).map((f: any) => f.entity_type === "driver" ? driverBySlug.get(f.entity_slug)?.flag : teamBySlug.get(f.entity_slug)?.flag).filter(Boolean));
   const followedCurrentTeams = new Set(followedDrivers.map((d: any) => d.current_team_slug ?? d.team_slug).filter(Boolean));
-  const suggestions = scored
-    .filter(e => !followKey.has(`${e.entity_type}:${e.entity_slug}`))
-    .map(e => {
-      let score = 0;
-      if (e.flag && followedFlags.has(e.flag)) score += 3;
-      if (e.entity_type === "driver" && e.current_team_slug && (followedCurrentTeams.has(e.current_team_slug) || followedTeamSlugs.has(e.current_team_slug))) score += 5;
-      if (e.entity_type === "team" && e.flag && followedFlags.has(e.flag)) score += 2;
-      return { ...e, score };
-    })
-    .filter(e => e.score > 0)
-    .sort((a, b) => b.score - a.score || b.fan_points - a.fan_points || a.name.localeCompare(b.name))
-    .slice(0, 3);
+  const suggestions = scored.filter(e => !followKey.has(`${e.entity_type}:${e.entity_slug}`)).map(e => {
+    let score = 0;
+    if (e.flag && followedFlags.has(e.flag)) score += 3;
+    if (e.entity_type === "driver" && e.current_team_slug && (followedCurrentTeams.has(e.current_team_slug) || followedTeamSlugs.has(e.current_team_slug))) score += 5;
+    if (e.entity_type === "team" && e.flag && followedFlags.has(e.flag)) score += 2;
+    return { ...e, score };
+  }).filter(e => e.score > 0).sort((a, b) => b.score - a.score || b.fan_points - a.fan_points || a.name.localeCompare(b.name)).slice(0, 3);
 
   const orderedRaces = [...(races ?? [])].sort(compareRaceOrder).reverse().filter((r: any) => r.round_number !== 0);
   const latest = orderedRaces[0] ?? null;
