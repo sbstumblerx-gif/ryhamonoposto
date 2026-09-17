@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { aiChat } from "@/lib/ai-search.functions";
 import {
@@ -21,6 +21,21 @@ type Props = {
   compact?: boolean;
 };
 
+function workQueue(text: string) {
+  const q = text.toLowerCase();
+  const tasks: string[] = [];
+  if (/kuljett|kuski|driver/.test(q)) tasks.push("Etsitään kuljettajat...");
+  if (/tiim|team|talli/.test(q)) tasks.push("Etsitään tiimit...");
+  if (/uut|news/.test(q)) tasks.push("Etsitään uutiset...");
+  if (/sopim|contract/.test(q)) tasks.push("Etsitään sopimukset...");
+  if (/tilast|piste|pisteet|mestaru|sijoit|ennätys/.test(q)) tasks.push("Etsitään tilastot...");
+  if (/madrid/.test(q)) tasks.push("Etsitään Madrid 2026...");
+  if (tasks.length === 0) {
+    tasks.push("Etsitään kuljettajat...", "Etsitään tiimit...", "Etsitään uutiset...", "Etsitään tilastot...");
+  }
+  return tasks;
+}
+
 export function AiChatPanel({
   pageContext,
   initialConversationId = null,
@@ -35,8 +50,17 @@ export function AiChatPanel({
   const [messages, setMessages] = useState<AiMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [workStep, setWorkStep] = useState(0);
+  const [workItems, setWorkItems] = useState<string[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load messages when active conversation changes (external)
+  function scrollToBottom(behavior: ScrollBehavior = "smooth") {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }
+
+  // Load messages when active conversation changes and open at the newest message.
   useEffect(() => {
     if (activeId) {
       const c = getConvo(activeId);
@@ -44,20 +68,37 @@ export function AiChatPanel({
     } else {
       setMessages([]);
     }
+    requestAnimationFrame(() => scrollToBottom("auto"));
   }, [activeId]);
 
   useEffect(() => {
     onConversationChange?.(activeId);
   }, [activeId, onConversationChange]);
 
-  // If active conversation is edited elsewhere, sync
+  // If active conversation is edited elsewhere, sync and keep the newest message visible.
   useEffect(() => {
     if (!activeId) return;
     const c = convos.find((x) => x.id === activeId);
     if (c && c.messages.length !== messages.length) {
       setMessages(c.messages);
+      requestAnimationFrame(() => scrollToBottom("auto"));
     }
   }, [convos, activeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the conversation anchored to the newest message as it changes.
+  useEffect(() => {
+    requestAnimationFrame(() => scrollToBottom(busy ? "smooth" : "auto"));
+  }, [messages.length, busy, workStep]);
+
+  // Animate the small search/work queue while the AI is answering.
+  useEffect(() => {
+    if (!busy || workItems.length === 0) return;
+    setWorkStep(0);
+    const timer = window.setInterval(() => {
+      setWorkStep((step) => Math.min(step + 1, workItems.length - 1));
+    }, 650);
+    return () => window.clearInterval(timer);
+  }, [busy, workItems.length]);
 
   const activeTitle = useMemo(() => {
     if (!activeId) return "Uusi keskustelu";
@@ -71,7 +112,10 @@ export function AiChatPanel({
     const next: AiMsg[] = [...messages, { role: "user", content: text }];
     setMessages(next);
     setInput("");
+    setWorkItems(workQueue(text));
+    setWorkStep(0);
     setBusy(true);
+    requestAnimationFrame(() => scrollToBottom("smooth"));
     try {
       const res = await run({
         data: {
@@ -79,9 +123,8 @@ export function AiChatPanel({
           pageContext: pageContext ?? undefined,
         },
       });
-      const finalMsgs: AiMsg[] = [...next, { role: "assistant", content: res.answer }];
+      const finalMsgs: AiMsg[] = [...next, { role: "assistant", content: res.answer, sources: res.sources }];
       setMessages(finalMsgs);
-      // Auto-persist if already saved
       if (activeId) {
         const existing = getConvo(activeId);
         upsertConvo({
@@ -150,6 +193,7 @@ export function AiChatPanel({
           value={activeId ?? ""}
           onChange={(e) => setActiveId(e.target.value || null)}
           className="flex-1 min-w-[160px] bg-black/70 border border-primary/30 rounded p-1.5 text-xs font-display uppercase tracking-widest"
+          aria-label="Valitse AI-keskustelu"
         >
           <option value="">Uusi keskustelu</option>
           {convos.map((c) => (
@@ -174,7 +218,10 @@ export function AiChatPanel({
         )}
       </div>
 
-      <div className={`space-y-2 overflow-y-auto pr-1 ${compact ? "max-h-56" : "max-h-80"}`}>
+      <div
+        ref={scrollRef}
+        className={`space-y-3 overflow-y-auto pr-1 ${compact ? "max-h-56" : "max-h-80"}`}
+      >
         {messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {pageContext
@@ -183,18 +230,53 @@ export function AiChatPanel({
           </p>
         ) : (
           messages.map((m, i) => (
-            <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
+            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`inline-block max-w-[92%] rounded border px-3 py-2 text-sm whitespace-pre-wrap ${
+                className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-6 whitespace-pre-wrap shadow-sm ${
                   m.role === "user"
-                    ? "border-primary/50 bg-primary/20"
-                    : "border-primary/30 bg-black/60"
+                    ? "rounded-br-md bg-white text-black border border-black/10"
+                    : "rounded-bl-md bg-primary text-white border border-primary/80"
                 }`}
               >
-                {m.content}
+                <div className="font-medium">{m.content}</div>
+                {m.role === "assistant" && m.sources && m.sources.length > 0 && (
+                  <details className="mt-3 border-t border-white/25 pt-2">
+                    <summary className="cursor-pointer select-none text-xs font-semibold tracking-wide text-white/95 hover:text-white">
+                      Näytä lähteet ({m.sources.length})
+                    </summary>
+                    <div className="mt-2 space-y-1.5">
+                      {m.sources.map((source) => (
+                        <Link
+                          key={`${source.url}-${source.title}`}
+                          to={source.url as any}
+                          className="block rounded-lg bg-black/15 px-2.5 py-1.5 text-xs text-white underline decoration-white/50 underline-offset-2 hover:bg-black/25"
+                        >
+                          {source.title} ↗
+                        </Link>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </div>
             </div>
           ))
+        )}
+
+        {busy && (
+          <div className="flex justify-start">
+            <div className="max-w-[92%] rounded-2xl rounded-bl-md bg-primary text-white border border-primary/80 px-4 py-3 shadow-sm">
+              <div className="font-medium text-sm leading-6">Vastaa</div>
+              <div className="mt-2 space-y-1 text-xs text-white/90">
+                {workItems.slice(0, workStep + 1).map((item, index) => (
+                  <div key={`${item}-${index}`} className="flex items-center gap-2">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-white/90" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+                <div className="pt-1 text-white/70">Analysoidaan tietoja…</div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -203,11 +285,11 @@ export function AiChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={pageContext ? "Kysy tästä sivusta…" : "Kysy tarkemmin sarjasta…"}
-          className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm"
+          className="flex-1 bg-black/70 border border-primary/30 rounded-xl p-2.5 text-sm"
         />
         <button
           disabled={busy || !input.trim()}
-          className="bg-primary text-primary-foreground rounded px-4 py-2 text-xs font-display uppercase tracking-widest disabled:opacity-50"
+          className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-xs font-display uppercase tracking-widest disabled:opacity-50"
         >
           {busy ? "Vastaa…" : "Lähetä"}
         </button>
