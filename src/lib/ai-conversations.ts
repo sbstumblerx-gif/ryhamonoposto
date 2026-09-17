@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 
-export type AiMsg = { role: "user" | "assistant"; content: string };
+export type AiSource = {
+  title: string;
+  url: string;
+};
+
+export type AiMsg = {
+  role: "user" | "assistant";
+  content: string;
+  sources?: AiSource[];
+};
 export type AiConvo = {
   id: string;
   title: string;
