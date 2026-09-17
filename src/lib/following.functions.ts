@@ -10,6 +10,10 @@ export const entityFollowStats = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ entity_type: z.enum(["driver", "team"]), entity_slug: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => (await import("./entity-follow-stats.server")).entityFollowStats(data.entity_type, data.entity_slug));
 
+export const entityFanStats = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ entity_type: z.enum(["driver", "team"]), entity_slug: z.string().min(1) }).parse(d))
+  .handler(async ({ data }) => (await import("./entity-fan-stats.server")).entityFanStats(data.entity_type, data.entity_slug));
+
 export const followingPublications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => (await import("./following-publications.server")).followingPublications(context.userId));
