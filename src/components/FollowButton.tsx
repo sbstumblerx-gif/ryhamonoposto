@@ -3,22 +3,28 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyFollows, toggleFollow } from "@/lib/follows.functions";
-import { entityFollowStats } from "@/lib/following.functions";
+import { entityFanStats, entityFollowStats } from "@/lib/following.functions";
 
 export function FollowButton({ kind, slug, name }: { kind: "driver" | "team"; slug: string; name: string }) {
   const listFn = useServerFn(listMyFollows);
-  const statsFn = useServerFn(entityFollowStats);
+  const followStatsFn = useServerFn(entityFollowStats);
+  const fanStatsFn = useServerFn(entityFanStats);
   const toggleFn = useServerFn(toggleFollow);
   const [uid, setUid] = useState<string | null>(null);
   const [on, setOn] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [followers, setFollowers] = useState<number>(0);
+  const [followers, setFollowers] = useState(0);
+  const [fanPoints, setFanPoints] = useState(0);
 
   async function refreshStats() {
     try {
-      const result = await statsFn({ data: { entity_type: kind, entity_slug: slug } });
-      setFollowers(Number(result.follower_count ?? 0));
-    } catch { /* stats are supplementary */ }
+      const [followStats, fanStats] = await Promise.all([
+        followStatsFn({ data: { entity_type: kind, entity_slug: slug } }),
+        fanStatsFn({ data: { entity_type: kind, entity_slug: slug } }),
+      ]);
+      setFollowers(Number(followStats.follower_count ?? 0));
+      setFanPoints(Number(fanStats.fan_points ?? 0));
+    } catch { /* supplementary counters */ }
   }
 
   useEffect(() => {
@@ -57,6 +63,7 @@ export function FollowButton({ kind, slug, name }: { kind: "driver" | "team"; sl
         {on ? "Seurataan" : "Seuraa"}
       </button>
       <span className="text-[10px] text-muted-foreground">{followers} {followers === 1 ? "käyttäjä seuraa" : "käyttäjää seuraa"}</span>
+      <span className="text-[10px] text-muted-foreground">{fanPoints} fanipistettä</span>
     </div>
   );
 }
