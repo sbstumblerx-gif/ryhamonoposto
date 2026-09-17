@@ -8,4 +8,4 @@ export const followingOverview = createServerFn({ method: "GET" })
 
 export const entityFollowStats = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ entity_type: z.enum(["driver", "team"]), entity_slug: z.string().min(1) }).parse(d))
-  .handler(async ({ data }) => (await import("./following.server")).entityFollowStats(data.entity_type, data.entity_slug));
+  .handler(async ({ data }) => (await import("./entity-follow-stats.server")).entityFollowStats(data.entity_type, data.entity_slug));
