@@ -37,7 +37,7 @@ export const getDriver = createServerFn({ method: "GET" })
 
 export const listTeams = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin.from("teams").select("id, slug, name, flag, color_key, content, hero_media_url, logo_url, info_card, current_driver_slugs, former_lineups").order("name");
+  const { data, error } = await supabaseAdmin.from("teams").select("id, slug, name, flag, color_key, content, hero_media_url, logo_url, info_card, current_driver_slugs, former_lineups, engine_supplier, engine_contract_year").order("name");
   if (error) throw error;
   return data ?? [];
 });
