@@ -25,6 +25,12 @@ function contractEndText(year: number | null | undefined) {
   return year <= 2025 ? `Vanheni ${year}` : `Vanhenee ${year}`;
 }
 
+function contractPeriodText(start: number | null | undefined, end: number | null | undefined) {
+  const startText = start ? `Alkoi ${start}` : "Alkamisaikaa ei määritetty";
+  const endText = end ? contractEndText(end) : "Erääntymisaikaa ei määritetty";
+  return `${startText} · ${endText}`;
+}
+
 function contractText(value: string | null | undefined) {
   if (!value) return "Ei asetettu";
   if (value === "none") return "Ei sopimusta";
@@ -47,6 +53,7 @@ function CircuitContract({ circuit, admin, onSaved }: {
   onSaved: () => void;
 }) {
   const save = useServerFn(updateCircuitContract);
+  const [startYear, setStartYear] = useState<number | "">(circuit.contract_start_year ?? "");
   const [year, setYear] = useState<number | "">(circuit.contract_year ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -56,6 +63,7 @@ function CircuitContract({ circuit, admin, onSaved }: {
       await save({ data: {
         slug: circuit.slug,
         contract_status: year === "" ? "unknown" : Number(year) <= 2025 ? "expired" : "active",
+        contract_start_year: startYear === "" ? null : Number(startYear),
         contract_year: year === "" ? null : Number(year),
       }});
       onSaved();
@@ -73,10 +81,15 @@ function CircuitContract({ circuit, admin, onSaved }: {
         <div>
           <div className="font-display uppercase tracking-widest text-base">{circuit.name}</div>
           <div className={`text-sm mt-1 ${circuit.contract_status === "active" ? "text-primary" : circuit.contract_status === "expired" ? "text-red-400" : "text-muted-foreground"}`}>
-            {contractEndText(circuit.contract_year)}
+            {contractPeriodText(circuit.contract_start_year, circuit.contract_year)}
           </div>
         </div>
         {admin && <div className="flex flex-wrap items-center gap-2">
+          <select value={startYear} onChange={e => setStartYear(e.target.value === "" ? "" : Number(e.target.value))}
+            className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
+            <option value="">Alkamisaika</option>
+            {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
           <select value={year} onChange={e => setYear(e.target.value === "" ? "" : Number(e.target.value))}
             className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
             <option value="">Ei määritetty</option>
@@ -123,7 +136,7 @@ export function ContractsPage() {
 
   async function changeEngine(slug: string, value: string, year: number | null) {
     try {
-      await saveEngine({ data: { slug, engine_supplier: value === "" ? null : value as any, engine_contract_year: year } });
+      await saveEngine({ data: { slug, engine_supplier: value === "" ? null : value as any, engine_contract_start_year: teamBySlug.get(slug)?.engine_contract_start_year ?? null, engine_contract_year: year } });
       await qc.invalidateQueries({ queryKey: ["contracts-teams"] });
       toast.success("Moottori päivitetty");
     } catch (e: any) {
@@ -218,18 +231,23 @@ export function ContractsPage() {
                       {team.logo_url && <img src={team.logo_url} alt="" className="h-10 w-10 object-contain" />}
                       <div>
                         <div className="font-display uppercase tracking-widest" style={{ color }}>{team.name}</div>
-                        <div className="text-xs text-muted-foreground mt-1">Moottori: {team.engine_supplier ?? "Ei määritetty"}{team.engine_contract_year ? ` · ${contractEndText(team.engine_contract_year)}` : ""}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Moottori: {team.engine_supplier ?? "Ei määritetty"}{team.engine_contract_year || team.engine_contract_start_year ? ` · ${contractPeriodText(team.engine_contract_start_year, team.engine_contract_year)}` : ""}</div>
                       </div>
                     </div>
                     {admin.isAdmin && <div className="flex flex-wrap gap-2">
-                      <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value, e.target.value === "" ? null : (team.engine_contract_year ?? null))}
+                      <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value, team.engine_contract_year ?? null)}
                         className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
                         <option value="">Ei määritetty</option>
                         {engineOptions.map(engine => <option key={engine} value={engine}>{engine}</option>)}
                       </select>
-                      <select value={team.engine_contract_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", team.engine_supplier ? (e.target.value === "" ? null : Number(e.target.value)) : null)}
+                      <select value={team.engine_contract_start_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", team.engine_contract_year ?? null)}
                         className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
-                        <option value="">Ei sopimuskautta</option>
+                        <option value="">Alkamisaika</option>
+                        {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                      <select value={team.engine_contract_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", e.target.value === "" ? null : Number(e.target.value))}
+                        className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
+                        <option value="">Erääntymisaika</option>
                         {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                       </select>
                     </div>}
