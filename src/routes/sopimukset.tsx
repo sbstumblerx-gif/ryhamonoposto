@@ -134,9 +134,9 @@ export function ContractsPage() {
     return (sort === "expiring" ? av - bv : bv - av) || a.name.localeCompare(b.name, "fi");
   });
 
-  async function changeEngine(slug: string, value: string, year: number | null) {
+  async function changeEngine(slug: string, value: string, startYear: number | null, year: number | null) {
     try {
-      await saveEngine({ data: { slug, engine_supplier: value === "" ? null : value as any, engine_contract_start_year: teamBySlug.get(slug)?.engine_contract_start_year ?? null, engine_contract_year: year } });
+      await saveEngine({ data: { slug, engine_supplier: value === "" ? null : value as any, engine_contract_start_year: startYear, engine_contract_year: year } });
       await qc.invalidateQueries({ queryKey: ["contracts-teams"] });
       toast.success("Moottori päivitetty");
     } catch (e: any) {
@@ -235,17 +235,17 @@ export function ContractsPage() {
                       </div>
                     </div>
                     {admin.isAdmin && <div className="flex flex-wrap gap-2">
-                      <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value, team.engine_contract_year ?? null)}
+                      <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value, team.engine_contract_start_year ?? null, team.engine_contract_year ?? null)}
                         className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
                         <option value="">Ei määritetty</option>
                         {engineOptions.map(engine => <option key={engine} value={engine}>{engine}</option>)}
                       </select>
-                      <select value={team.engine_contract_start_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", team.engine_contract_year ?? null)}
+                      <select value={team.engine_contract_start_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", e.target.value === "" ? null : Number(e.target.value), team.engine_contract_year ?? null)}
                         className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
                         <option value="">Alkamisaika</option>
                         {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                       </select>
-                      <select value={team.engine_contract_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", e.target.value === "" ? null : Number(e.target.value))}
+                      <select value={team.engine_contract_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", team.engine_contract_start_year ?? null, e.target.value === "" ? null : Number(e.target.value))}
                         className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
                         <option value="">Erääntymisaika</option>
                         {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
