@@ -18,6 +18,12 @@ export const Route = createFileRoute("/sopimukset")({
 
 type Tab = "drivers" | "engines" | "circuits";
 type SortMode = "expiring" | "longest";
+const CONTRACT_YEARS = Array.from({ length: 16 }, (_, i) => 2025 + i);
+
+function contractEndText(year: number | null | undefined) {
+  if (!year) return "Sopimusta ei ole määritetty";
+  return year <= 2025 ? `Vanheni ${year}` : `Vanhenee ${year}`;
+}
 
 function contractText(value: string | null | undefined) {
   if (!value) return "Ei asetettu";
@@ -41,7 +47,6 @@ function CircuitContract({ circuit, admin, onSaved }: {
   onSaved: () => void;
 }) {
   const save = useServerFn(updateCircuitContract);
-  const [status, setStatus] = useState<"active" | "expired" | "unknown">(circuit.contract_status);
   const [year, setYear] = useState<number | "">(circuit.contract_year ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -50,8 +55,8 @@ function CircuitContract({ circuit, admin, onSaved }: {
     try {
       await save({ data: {
         slug: circuit.slug,
-        contract_status: status,
-        contract_year: status === "unknown" ? null : (year === "" ? null : Number(year)),
+        contract_status: year === "" ? "unknown" : Number(year) <= 2025 ? "expired" : "active",
+        contract_year: year === "" ? null : Number(year),
       }});
       onSaved();
       toast.success(`${circuit.name}: sopimus päivitetty`);
@@ -68,21 +73,15 @@ function CircuitContract({ circuit, admin, onSaved }: {
         <div>
           <div className="font-display uppercase tracking-widest text-base">{circuit.name}</div>
           <div className={`text-sm mt-1 ${circuit.contract_status === "active" ? "text-primary" : circuit.contract_status === "expired" ? "text-red-400" : "text-muted-foreground"}`}>
-            {circuit.contract_status === "active" && circuit.contract_year ? `Sopimus voimassa kauden ${circuit.contract_year} loppuun` :
-             circuit.contract_status === "expired" && circuit.contract_year ? `Sopimus umpeutui kauden ${circuit.contract_year} lopussa` :
-             "Sopimusta ei ole vielä määritetty"}
+            {contractEndText(circuit.contract_year)}
           </div>
         </div>
         {admin && <div className="flex flex-wrap items-center gap-2">
-          <select value={status} onChange={e => setStatus(e.target.value as any)}
-            className="bg-black/70 border border-primary/30 rounded p-2 text-xs">
-            <option value="active">Voimassa asti</option>
-            <option value="expired">Umpeutui</option>
-            <option value="unknown">Ei määritetty</option>
+          <select value={year} onChange={e => setYear(e.target.value === "" ? "" : Number(e.target.value))}
+            className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
+            <option value="">Ei määritetty</option>
+            {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          {status !== "unknown" && <input type="number" min={2020} max={2100} value={year}
-            onChange={e => setYear(e.target.value === "" ? "" : Number(e.target.value))}
-            placeholder="Vuosi" className="w-24 bg-black/70 border border-primary/30 rounded p-2 text-xs" />}
           <button disabled={saving} onClick={submit}
             className="bg-primary text-primary-foreground rounded px-3 py-2 text-xs font-display uppercase tracking-widest disabled:opacity-50">
             {saving ? "Tallennetaan…" : "Tallenna"}
@@ -122,9 +121,9 @@ export function ContractsPage() {
     return (sort === "expiring" ? av - bv : bv - av) || a.name.localeCompare(b.name, "fi");
   });
 
-  async function changeEngine(slug: string, value: string) {
+  async function changeEngine(slug: string, value: string, year: number | null) {
     try {
-      await saveEngine({ data: { slug, engine_supplier: value === "" ? null : value as any } });
+      await saveEngine({ data: { slug, engine_supplier: value === "" ? null : value as any, engine_contract_year: year } });
       await qc.invalidateQueries({ queryKey: ["contracts-teams"] });
       toast.success("Moottori päivitetty");
     } catch (e: any) {
@@ -219,14 +218,21 @@ export function ContractsPage() {
                       {team.logo_url && <img src={team.logo_url} alt="" className="h-10 w-10 object-contain" />}
                       <div>
                         <div className="font-display uppercase tracking-widest" style={{ color }}>{team.name}</div>
-                        <div className="text-xs text-muted-foreground mt-1">Moottori: {team.engine_supplier ?? "Ei määritetty"}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Moottori: {team.engine_supplier ?? "Ei määritetty"}{team.engine_contract_year ? ` · ${contractEndText(team.engine_contract_year)}` : ""}</div>
                       </div>
                     </div>
-                    {admin.isAdmin && <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value)}
-                      className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
-                      <option value="">Ei määritetty</option>
-                      {engineOptions.map(engine => <option key={engine} value={engine}>{engine}</option>)}
-                    </select>}
+                    {admin.isAdmin && <div className="flex flex-wrap gap-2">
+                      <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value, team.engine_contract_year ?? null)}
+                        className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
+                        <option value="">Ei määritetty</option>
+                        {engineOptions.map(engine => <option key={engine} value={engine}>{engine}</option>)}
+                      </select>
+                      <select value={team.engine_contract_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", e.target.value === "" ? null : Number(e.target.value))}
+                        className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
+                        <option value="">Ei sopimuskautta</option>
+                        {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    </div>}
                   </div>
                 </div>
               );
