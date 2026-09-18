@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { listDrivers, listTeams } from "@/lib/content.functions";
+import { getActiveSeason } from "@/lib/seasons.functions";
 import { updateDriverContract } from "@/lib/driver-contract.functions";
 import { listCircuitContracts, updateCircuitContract, updateTeamEngine, engineOptions } from "@/lib/contract-resources.functions";
 import { colorFor } from "@/lib/team-colors";
@@ -21,14 +22,15 @@ type Tab = "drivers" | "engines" | "circuits";
 type SortMode = "expiring" | "longest";
 const CONTRACT_YEARS = Array.from({ length: 16 }, (_, i) => 2025 + i);
 
-function contractEndText(year: number | null | undefined) {
+function contractEndText(year: number | null | undefined, activeYear?: number | null) {
   if (!year) return "Sopimusta ei ole määritetty";
-  return year <= 2025 ? `Vanheni ${year}` : `Vanhenee ${year}`;
+  if (activeYear == null) return `Päättyy ${year}`;
+  return year < activeYear ? `Vanheni ${year}` : year === activeYear ? `Vanhenee ${year} (aktiivisen kauden lopussa)` : `Vanhenee ${year}`;
 }
 
-function contractPeriodText(start: number | null | undefined, end: number | null | undefined) {
+function contractPeriodText(start: number | null | undefined, end: number | null | undefined, activeYear?: number | null) {
   const startText = start ? `Alkoi ${start}` : "Alkamisaikaa ei määritetty";
-  const endText = end ? contractEndText(end) : "Erääntymisaikaa ei määritetty";
+  const endText = end ? contractEndText(end, activeYear) : "Erääntymisaikaa ei määritetty";
   return `${startText} · ${endText}`;
 }
 
@@ -43,15 +45,16 @@ function contractYear(value: string | null | undefined) {
   return value && /^20\\d{2}$/.test(value) ? Number(value) : null;
 }
 
-function yearsRemaining(value: string | null | undefined) {
+function yearsRemaining(value: string | null | undefined, activeYear?: number | null) {
   const year = contractYear(value);
-  return year == null ? null : Math.max(0, year - new Date().getFullYear());
+  return year == null || activeYear == null ? null : Math.max(0, year - activeYear);
 }
 
 function CircuitContract({ circuit, admin, onSaved }: {
   circuit: any;
   admin: boolean;
   onSaved: () => void;
+  activeYear: number | null;
 }) {
   const save = useServerFn(updateCircuitContract);
   const [startYear, setStartYear] = useState<number | "">(circuit.contract_start_year ?? "");
@@ -63,7 +66,7 @@ function CircuitContract({ circuit, admin, onSaved }: {
     try {
       await save({ data: {
         slug: circuit.slug,
-        contract_status: year === "" ? "unknown" : Number(year) <= 2025 ? "expired" : "active",
+        contract_status: year === "" ? "unknown" : activeYear != null && Number(year) < activeYear ? "expired" : "active",
         contract_start_year: startYear === "" ? null : Number(startYear),
         contract_year: year === "" ? null : Number(year),
       }});
@@ -82,7 +85,7 @@ function CircuitContract({ circuit, admin, onSaved }: {
         <div>
           <div className="font-display uppercase tracking-widest text-base">{circuit.name}</div>
           <div className={`text-sm mt-1 ${circuit.contract_status === "active" ? "text-primary" : circuit.contract_status === "expired" ? "text-red-400" : "text-muted-foreground"}`}>
-            {contractPeriodText(circuit.contract_start_year, circuit.contract_year)}
+            {contractPeriodText(circuit.contract_start_year, circuit.contract_year, activeYear)}
           </div>
         </div>
         {admin && <div className="flex flex-wrap items-center gap-2">
@@ -110,6 +113,7 @@ export function ContractsPage() {
   const driversFn = useServerFn(listDrivers);
   const teamsFn = useServerFn(listTeams);
   const circuitsFn = useServerFn(listCircuitContracts);
+  const activeSeasonFn = useServerFn(getActiveSeason);
   const saveEngine = useServerFn(updateTeamEngine);
   const saveDriverContract = useServerFn(updateDriverContract);
   const qc = useQueryClient();
@@ -119,10 +123,12 @@ export function ContractsPage() {
   const driversQ = useQuery({ queryKey: ["contracts-drivers"], queryFn: () => driversFn() });
   const teamsQ = useQuery({ queryKey: ["contracts-teams"], queryFn: () => teamsFn() });
   const circuitsQ = useQuery({ queryKey: ["contracts-circuits"], queryFn: () => circuitsFn() });
+  const activeSeasonQ = useQuery({ queryKey: ["active-season"], queryFn: () => activeSeasonFn(), staleTime: 30_000 });
 
   const teams = teamsQ.data ?? [];
   const drivers = driversQ.data ?? [];
   const circuits = circuitsQ.data ?? [];
+  const activeYear = activeSeasonQ.data?.sort_order ?? null;
   const teamBySlug = new Map(teams.map(t => [t.slug, t]));
 
   const sorted = [...drivers].sort((a: any, b: any) => {
@@ -195,7 +201,7 @@ export function ContractsPage() {
               const team = driver.current_team_slug ? teamBySlug.get(driver.current_team_slug) : null;
               const color = colorFor(team?.color_key ?? driver.color_key);
               const year = contractYear(driver.current_contract_until);
-              const remaining = yearsRemaining(driver.current_contract_until);
+              const remaining = yearsRemaining(driver.current_contract_until, activeYear);
               return (
                 <div key={driver.slug} className="card-dark p-4 border-l-2 hover:border-primary transition" style={{ borderLeftColor: color }}>
                   <Link to="/kuljettajat/$slug" params={{ slug: driver.slug }} className="block">
@@ -215,9 +221,9 @@ export function ContractsPage() {
                     </div>
                     <div className="sm:text-right shrink-0">
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Sopimus voimassa</div>
-                      <div className="font-display text-lg" style={{ color }}>{contractPeriodText(driver.contract_start_year, year)}</div>
+                      <div className="font-display text-lg" style={{ color }}>{contractPeriodText(driver.contract_start_year, year, activeYear)}</div>
                       {year != null && <div className="text-xs text-muted-foreground mt-1">
-                        {remaining === 0 ? "Päättyy tämän kauden lopussa" : `${remaining} kautta jäljellä`}
+                        {remaining === 0 ? "Päättyy aktiivisen kauden lopussa" : `${remaining} kautta aktiiviseen kauteen`}
                       </div>}
                     </div>
                   </div>
@@ -254,7 +260,7 @@ export function ContractsPage() {
                       {team.logo_url && <img src={team.logo_url} alt="" className="h-10 w-10 object-contain" />}
                       <div>
                         <div className="font-display uppercase tracking-widest" style={{ color }}>{team.name}</div>
-                        <div className="text-xs text-muted-foreground mt-1">Moottori: {team.engine_supplier ?? "Ei määritetty"}{team.engine_contract_year || team.engine_contract_start_year ? ` · ${contractPeriodText(team.engine_contract_start_year, team.engine_contract_year)}` : ""}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Moottori: {team.engine_supplier ?? "Ei määritetty"}{team.engine_contract_year || team.engine_contract_start_year ? ` · ${contractPeriodText(team.engine_contract_start_year, team.engine_contract_year, activeYear)}` : ""}</div>
                       </div>
                     </div>
                     {admin.isAdmin && <div className="flex flex-wrap gap-2">
@@ -289,7 +295,7 @@ export function ContractsPage() {
           </div>
           <div className="space-y-3">
             {circuits.map((circuit: any) => <CircuitContract key={circuit.slug} circuit={circuit} admin={admin.isAdmin}
-              onSaved={() => qc.invalidateQueries({ queryKey: ["contracts-circuits"] })} />)}
+              onSaved={() => qc.invalidateQueries({ queryKey: ["contracts-circuits"] })} activeYear={activeYear} />)}
           </div>
         </>
       )}
