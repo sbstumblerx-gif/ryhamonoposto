@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { listOfficialPosts } from "@/lib/official-posts.functions";
-import { supabase } from "@/integrations/supabase/client";
-import { OfficialPostCard } from "@/components/OfficialPostCard";
-export const Route=createFileRoute("/postaukset")({head:()=>({meta:[{title:"Postaukset — RyhäMonoposto"}]}),component:PostsPage});
-function PostsPage(){const list=useServerFn(listOfficialPosts);const posts=useQuery({queryKey:["official-posts"],queryFn:()=>list(),refetchInterval:30000});const entities=useQuery({queryKey:["official-post-entities"],queryFn:async()=>{const[{data:d},{data:t}]=await Promise.all([supabase.from("drivers").select("slug,name"),supabase.from("teams").select("slug,name")]);return [...(d??[]).map(x=>({...x,type:"driver" as const})),...(t??[]).map(x=>({...x,type:"team" as const}))]}});return <main className="mx-auto max-w-3xl px-4 py-8 space-y-5"><header><h1 className="font-display uppercase tracking-widest text-2xl text-primary">Postaukset</h1><p className="text-sm text-muted-foreground mt-2">Viralliset kuljettaja- ja tiimijulkaisut.</p><div className="hairline-red mt-3"/></header>{posts.isLoading?<p className="text-sm text-muted-foreground">Ladataan julkaisuja…</p>:!(posts.data??[]).length?<div className="card-dark p-6 text-sm text-muted-foreground">Ei vielä virallisia julkaisuja.</div>:<div className="space-y-3">{(posts.data??[]).map((p:any)=><OfficialPostCard key={p.id} post={p} entities={(entities.data??[]) as any}/>)}</div>}</main>}
+
+export const Route = createFileRoute("/postaukset")({
+  head: () => ({ meta: [{ title: "Postaukset — RyhäMonoposto" }] }),
+  component: PostsPage,
+});
+
+function PostsPage() {
+  return <main className="mx-auto max-w-4xl px-4 py-8"><div className="card-dark p-6 border-l-2 border-primary"><div className="text-2xl mb-2">🌍</div><h1 className="font-display uppercase tracking-widest text-primary text-xl">Postaukset</h1><p className="mt-3 text-sm text-muted-foreground">Yhteisön postausnäkymä rakennetaan myöhemmin.</p></div></main>;
+}

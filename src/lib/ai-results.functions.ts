@@ -12,8 +12,8 @@ export const generateResultList = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error("Missing OPENAI_API_KEY");
+    const key = process.env['LOVABLE_API_KEY'];
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [{ data: drivers }, { data: teams }] = await Promise.all([
@@ -47,11 +47,11 @@ Säännöt:
 Kuljettajarekisteri (JSON):
 ${JSON.stringify(roster)}`;
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: "gpt-5.6-luna",
+        model: "google/gemini-3-flash-preview",
         messages: [{
           role: "user",
           content: [

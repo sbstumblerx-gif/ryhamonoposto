@@ -5,45 +5,11 @@ export const listSeasons = createServerFn({ method: "GET" }).handler(async () =>
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("seasons")
-    .select("id, slug, name, sort_order, is_active")
+    .select("id, slug, name, sort_order")
     .order("sort_order", { ascending: false });
   if (error) throw error;
   return data ?? [];
 });
-
-export const getActiveSeason = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("seasons")
-    .select("id, slug, name, sort_order, is_active")
-    .eq("is_active", true)
-    .maybeSingle();
-  if (error) throw error;
-  return data ?? null;
-});
-
-export const setActiveSeason = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
-    const { requireAdmin } = await import("./admin-session.server");
-    await requireAdmin();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { error: resetError } = await supabaseAdmin
-      .from("seasons")
-      .update({ is_active: false })
-      .eq("is_active", true);
-    if (resetError) throw resetError;
-
-    const { data: row, error } = await supabaseAdmin
-      .from("seasons")
-      .update({ is_active: true })
-      .eq("id", data.id)
-      .select("id, slug, name, sort_order, is_active")
-      .single();
-    if (error) throw error;
-    return row;
-  });
 
 export const getSeason = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ slug: z.string() }).parse(d))

@@ -12,28 +12,20 @@ export type StandingsResult = {
   seasonTeams: Record<string, StatLine[]>;
   seasons: number[];
   sessionCount: number;
-  activeSeason: { slug: string; name: string; year: number } | null;
 };
 
 export const getStandings = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ year: z.number().int().nullable().optional() }).parse(d ?? {}))
   .handler(async ({ data }): Promise<StandingsResult> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: activeSeason, error: activeSeasonError }, { data: races, error: raceError }, { data: drivers, error: driverError }, { data: teams, error: teamError }] = await Promise.all([
-      supabaseAdmin.from("seasons").select("slug, name, sort_order, is_active").eq("is_active", true).maybeSingle(),
+    const [{ data: races, error: raceError }, { data: drivers, error: driverError }, { data: teams, error: teamError }] = await Promise.all([
       supabaseAdmin.from("races").select("name, round_number, qualifying_content, race_content, driver_of_the_day_slug, fastest_lap_driver_slug, is_sprint_weekend, sprint_qualifying_content, sprint_content, sprint_fastest_lap_driver_slug" as any),
       supabaseAdmin.from("drivers").select("slug, name, flag, current_team_slug, team_slug"),
       supabaseAdmin.from("teams").select("slug, name, flag"),
     ]);
-    if (activeSeasonError) throw activeSeasonError;
     if (raceError) throw raceError;
     if (driverError) throw driverError;
     if (teamError) throw teamError;
-
-    // An omitted year means "current standings": always use the explicitly selected active season.
-    // Passing year: null remains reserved for the dedicated whole-history view.
-    const hasExplicitYear = Object.prototype.hasOwnProperty.call(data, "year");
-    const requestedYear = hasExplicitYear ? data.year : (activeSeason?.sort_order ?? null);
 
     const driverByName = new Map((drivers ?? []).map(d => [normalizeName(d.name), d] as const));
     const driverBySlug = new Map((drivers ?? []).map(d => [d.slug, d] as const));
@@ -68,7 +60,7 @@ export const getStandings = createServerFn({ method: "GET" })
       if (race.round_number === 0) continue;
       const year = seasonYearFromName(race.name); if (!year) continue;
       seasons.add(year);
-      if (requestedYear != null && year !== requestedYear) continue;
+      if (data.year != null && year !== data.year) continue;
       let seasonD = seasonDriverRows.get(year); if (!seasonD) { seasonD = new Map(); seasonDriverRows.set(year, seasonD); }
       let seasonT = seasonTeamRows.get(year); if (!seasonT) { seasonT = new Map(); seasonTeamRows.set(year, seasonT); }
 
@@ -136,13 +128,5 @@ export const getStandings = createServerFn({ method: "GET" })
     }
 
     const toRecord = (source: Map<number, Map<string, StatLine>>) => Object.fromEntries([...source.entries()].map(([year, rows]) => [String(year), sortStandings([...rows.values()])]));
-    return {
-      drivers: sortStandings([...driverRows.values()]),
-      teams: sortStandings([...teamRows.values()]),
-      seasonDrivers: toRecord(seasonDriverRows),
-      seasonTeams: toRecord(seasonTeamRows),
-      seasons: [...seasons].sort((a, b) => b - a),
-      sessionCount,
-      activeSeason: activeSeason ? { slug: activeSeason.slug, name: activeSeason.name, year: activeSeason.sort_order } : null,
-    };
+    return { drivers: sortStandings([...driverRows.values()]), teams: sortStandings([...teamRows.values()]), seasonDrivers: toRecord(seasonDriverRows), seasonTeams: toRecord(seasonTeamRows), seasons: [...seasons].sort((a, b) => b - a), sessionCount };
   });

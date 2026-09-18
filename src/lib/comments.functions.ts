@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { removeFanPointEvent } from "./fan-points.server";
 
 export const listComments = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ entity_type: z.string(), entity_id: z.string() }).parse(d))
@@ -37,7 +36,6 @@ export const adminDeleteComment = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("comments").delete().eq("id", data.id);
     if (error) throw error;
-    await removeFanPointEvent(`comment:${data.id}`);
     return { ok: true };
   });
 
@@ -47,9 +45,7 @@ export const adminDeleteProfile = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: commentRows } = await supabaseAdmin.from("comments").select("id").eq("user_id", data.user_id);
     await supabaseAdmin.from("comments").delete().eq("user_id", data.user_id);
-    for (const row of commentRows ?? []) await removeFanPointEvent(`comment:${row.id}`);
     await supabaseAdmin.from("profiles").delete().eq("id", data.user_id);
     await supabaseAdmin.auth.admin.deleteUser(data.user_id);
     return { ok: true };

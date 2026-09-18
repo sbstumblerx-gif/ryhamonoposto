@@ -13,43 +13,18 @@ const sourceSchema = z.object({
 });
 
 function parseAiPayload(raw: string) {
-  const cleaned = raw
-    .trim()
-    .replace(/^\`\`\`(?:json)?\\s*/i, "")
-    .replace(/\\s*\`\`\`$/i, "")
-    .trim();
-
   try {
-    const parsed = JSON.parse(cleaned);
+    const parsed = JSON.parse(raw);
     if (parsed && typeof parsed.answer === "string") {
       return {
         answer: parsed.answer,
-        sourceKeys: Array.isArray(parsed.sourceKeys)
-          ? parsed.sourceKeys.filter((x: unknown): x is string => typeof x === "string")
-          : [],
+        sourceKeys: Array.isArray(parsed.sourceKeys) ? parsed.sourceKeys.filter((x: unknown): x is string => typeof x === "string") : [],
       };
     }
   } catch {
-    const start = cleaned.indexOf("{");
-    const end = cleaned.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        const parsed = JSON.parse(cleaned.slice(start, end + 1));
-        if (parsed && typeof parsed.answer === "string") {
-          return {
-            answer: parsed.answer,
-            sourceKeys: Array.isArray(parsed.sourceKeys)
-              ? parsed.sourceKeys.filter((x: unknown): x is string => typeof x === "string")
-              : [],
-          };
-        }
-      } catch {
-        // Fall through to plain-text compatibility below.
-      }
-    }
+    // Keep compatibility if the model returns plain text despite the JSON instruction.
   }
-
-  return { answer: raw.trim(), sourceKeys: [] as string[] };
+  return { answer: raw, sourceKeys: [] as string[] };
 }
 
 export const aiChat = createServerFn({ method: "POST" })
@@ -58,41 +33,23 @@ export const aiChat = createServerFn({ method: "POST" })
     pageContext: z.string().max(500).optional(),
   }).parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error("Missing OPENAI_API_KEY");
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [drivers, teams, races, news, seasons, media, activeSeasonResult] = await Promise.all([
+    const [drivers, teams, races, news, seasons, media] = await Promise.all([
       supabaseAdmin.from("drivers").select("slug, name, number, flag, team_slug, content, info_card, current_team_slug, current_team_since, current_contract_until, former_teams"),
       supabaseAdmin.from("teams").select("slug, name, flag, color_key, content, info_card, current_driver_slugs, former_lineups"),
       supabaseAdmin.from("races").select("slug, name, flag, race_date, round_number, qualifying_content, race_content, youtube_url, qualifying_youtube_url, race_youtube_url"),
       supabaseAdmin.from("news").select("slug, title, excerpt, content, hero_media_url, published_at"),
       supabaseAdmin.from("seasons").select("slug, name"),
       supabaseAdmin.from("media_items").select("scope, url, caption").order("created_at", { ascending: false }).limit(30),
-      supabaseAdmin.from("seasons").select("slug, name, sort_order, is_active").eq("is_active", true).maybeSingle(),
     ]);
 
-    const activeSeason = activeSeasonResult.data ?? null;
-    const activeYear = activeSeason?.sort_order ?? null;
-    const orderedRaces = [...(races.data ?? [])].sort(compareRaceOrder);
-    const currentSeasonRaces = activeYear == null
-      ? []
-      : orderedRaces.filter(r => {
-          const match = String(r.name ?? "").match(/(20\\d{2})/);
-          return match ? Number(match[1]) === activeYear : false;
-        });
-
     const corpus = {
-      active_season: activeSeason
-        ? { slug: activeSeason.slug, name: activeSeason.name, year: activeYear }
-        : null,
-      current_standings_scope: activeYear == null
-        ? "Aktiivista kautta ei ole valittu."
-        : `MM-sarjan nykytilanne tarkoittaa aina aktiivista kautta ${activeYear}. Käytä current_season_races-dataa, älä koko historiaa.`,
       drivers: drivers.data ?? [],
       teams: teams.data ?? [],
-      races: orderedRaces,
-      current_season_races: currentSeasonRaces,
+      races: [...(races.data ?? [])].sort(compareRaceOrder),
       news: news.data ?? [],
       seasons: seasons.data ?? [],
       media_index: (media.data ?? []).map(m => ({ scope: m.scope, caption: m.caption })),
@@ -122,8 +79,6 @@ export const aiChat = createServerFn({ method: "POST" })
 
     const systemPrompt = `Olet RyhäMonoposto-sarjan keskusteleva AI-tila. Vastaa suomeksi ja käytä vain annetun sivuston dataa sekä liitteenä olevia kuvia. Jos et tiedä, sano se. Mainitse tarvittaessa mihin kisaan, kuljettajaan, tiimiin, uutiseen tai tilasto-osioon tieto perustuu.
 
-Aktiivinen kausi: active_season kertoo aina sen kauden, jota sivusto pitää nykyisenä kilpailukautena. Kun kysytään "MM-sarjan johtajaa", "standings", "nykyistä pistetilannetta" tai muuta nykyiseen mestaruustilanteeseen viittaavaa asiaa, käytä AINA active_season-vuotta ja current_season_races-dataa. Älä koskaan laske nykyistä mestaruustilannetta koko races-historiasta. Jos active_season puuttuu, sano että aktiivista kautta ei ole määritetty.
-
 Kuljettajien sopimukset: jokaisella kuljettajalla voi olla kenttä current_contract_until. Arvo "none" tarkoittaa, ettei kuljettajalla ole sopimusta. Arvo "unknown" tarkoittaa, ettei sopimuksen pituudesta ole tietoa. Vuosiluku 2026–2040 tarkoittaa, että nykyinen sopimus on voimassa kyseisen kauden loppuun. Kun kysytään kuljettajan sopimuksen pituudesta, tarkista aina ensisijaisesti tämä kenttä. Älä keksi sopimuksen päättymisvuotta tai päättele sitä uutisista, jos rekisterissä on arvo. Jos arvo on "unknown" tai puuttuu, kerro että sivuston rekisterissä ei ole varmaa tietoa. "Ei sopimusta" ei tarkoita automaattisesti, että kuljettaja olisi ilman ajopaikkaa.
 
 Kilpailujen järjestys: kilpailut on annettu jo oikeassa kronologisessa järjestyksessä. Järjestys määräytyy ensin kauden vuosiluvun mukaan (pienin vuosi ensin) ja saman kauden sisällä round_number-kentän mukaan (pienin ensin). Älä koskaan käytä päivämäärää, aakkosjärjestystä tai listan muuta järjestystä aikajanan perusteena. Kun kerrot kausien kulusta tai aikajanasta, noudata täsmälleen tätä järjestystä.
@@ -136,14 +91,14 @@ Lähteet: sinulla on käytössäsi alla oleva sourceCatalog. Vastauksen lopussa 
       ...data.messages.map((message) => ({ role: message.role, content: message.content })),
     ];
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gpt-5.6-luna",
+        model: "google/gemini-3-flash-preview",
         messages,
       }),
     });

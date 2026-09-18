@@ -15,37 +15,25 @@ export function mentionsAiOff(body: string) {
 
 /** Compact site corpus so the club AI can actually look things up when asked. */
 async function siteCorpus(db: Admin) {
-  const [drivers, teams, races, news, seasons, activeSeasonResult] = await Promise.all([
+  const [drivers, teams, races, news, seasons] = await Promise.all([
     db.from("drivers").select("slug, name, number, flag, current_team_slug, current_team_since, current_contract_until, former_teams, info_card"),
     db.from("teams").select("slug, name, flag, current_driver_slugs, former_lineups, info_card"),
     db.from("races").select("slug, name, flag, race_date, round_number, qualifying_content, race_content"),
     db.from("news").select("slug, title, excerpt, published_at").order("published_at", { ascending: false }).limit(20),
-    db.from("seasons").select("slug, name, sort_order, is_active"),
-    db.from("seasons").select("slug, name, sort_order, is_active").eq("is_active", true).maybeSingle(),
+    db.from("seasons").select("slug, name"),
   ]);
-  const activeSeason = activeSeasonResult.data ?? null;
-  const activeYear = activeSeason?.sort_order ?? null;
-  const currentSeasonRaces = activeYear == null
-    ? []
-    : (races.data ?? []).filter((r: any) => {
-        const match = String(r.name ?? "").match(/(20\\d{2})/);
-        return match ? Number(match[1]) === activeYear : false;
-      });
-
   return JSON.stringify({
     drivers: drivers.data ?? [],
     teams: teams.data ?? [],
     races: [...(races.data ?? [])].sort(compareRaceOrder),
     news: news.data ?? [],
     seasons: seasons.data ?? [],
-    active_season: activeSeason ? { slug: activeSeason.slug, name: activeSeason.name, year: activeYear } : null,
-    current_season_races: currentSeasonRaces,
   }).slice(0, 60000);
 }
 
 /** Generate and store the AI's reply to the latest club message. */
 export async function replyInClub(db: Admin, clubId: string) {
-  const key = process.env.OPENAI_API_KEY;
+  const key = process.env["LOVABLE_API_KEY"];
   if (!key) return;
 
   const { data: recent } = await db
@@ -72,9 +60,7 @@ export async function replyInClub(db: Admin, clubId: string) {
         `Vastaa aina suomeksi, lyhyesti ja rennosti kuin keskustelukaveri. ` +
         `Jos viesti kysyy faktoja sarjasta (kuljettajat, tiimit, sopimukset, kisat R1–R50, tulokset, uutiset, kaudet), ` +
         `hae vastaus alla olevasta sivuston datasta ja kerro mihin se perustuu. ` +
-        `Nykyinen mestaruustilanne tarkoittaa aina active_season-vuotta. Älä koskaan käytä koko kilpailuhistoriaa nykyisen MM-sarjatilanteen laskemiseen, vaan käytä current_season_races-dataa.
-
-Sopimuksissa tarkista aina kuljettajan current_contract_until-kenttä: "none" = Ei sopimusta, "unknown" = Ei tietoa ja vuosiluku 2026–2040 = sopimus voimassa kyseisen kauden loppuun. ` +
+        `Sopimuksissa tarkista aina kuljettajan current_contract_until-kenttä: "none" = Ei sopimusta, "unknown" = Ei tietoa ja vuosiluku 2026–2040 = sopimus voimassa kyseisen kauden loppuun. ` +
         `Älä keksi tai päättele sopimuksen päättymisvuotta, jos rekisterissä on tieto. Jos tieto on unknown tai puuttuu, sano se rehellisesti. ` +
         `Jos tietoa ei löydy, sano se rehellisesti. Älä toista käyttäjän viestiä. Pidä vastaus alle 120 sanassa.\n\nSivuston data:\n${corpus}`,
     },
@@ -86,13 +72,13 @@ Sopimuksissa tarkista aina kuljettajan current_contract_until-kenttä: "none" = 
 
   let answer = "";
   try {
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "gpt-5.6-luna", messages }),
+      body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages }),
     });
     if (resp.status === 429) answer = "Liikaa pyyntöjä juuri nyt — yritä hetken päästä uudelleen.";
-    else if (resp.status === 402) answer = "OpenAI API -käytön saldo tai laskutus ei ole käytettävissä juuri nyt.";
+    else if (resp.status === 402) answer = "AI-krediitit ovat lopussa.";
     else if (!resp.ok) answer = "En saanut yhteyttä tekoälyyn juuri nyt.";
     else {
       const json = await resp.json();

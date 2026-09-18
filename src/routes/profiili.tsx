@@ -51,8 +51,8 @@ function ProfilePage() {
     try {
       await unfollowFn({ data: { entity_type: f.entity_type, entity_slug: f.entity_slug } });
       await loadFollows();
-      toast.success("Seuranta poistettu");
-    } catch (e: any) { toast.error(e?.message ?? "Seurannan poisto epäonnistui"); }
+      toast.success("Rooli poistettu");
+    } catch (e: any) { toast.error(e?.message ?? "Roolin poisto epäonnistui"); }
     finally { setBusy(false); }
   }
 
@@ -130,9 +130,9 @@ function ProfilePage() {
       </section>
 
       <section className="card-dark p-4 space-y-3">
-        <h2 className="font-display uppercase tracking-widest text-sm text-primary">♥️ Seuratut</h2>
-        <p className="text-xs text-muted-foreground">Seuraamasi kuljettajat ja tiimit. Saat jatkossa myös ilmoituksia seuraamiesi kohteiden julkaisuista ja muista tapahtumista.</p>
-        {follows.length === 0 ? <p className="text-xs text-muted-foreground">Et seuraa vielä ketään.</p> : (
+        <h2 className="font-display uppercase tracking-widest text-sm text-primary">❤️ Roolini</h2>
+        <p className="text-xs text-muted-foreground">Ota rooleja kuljettajien ja tiimien sivuilta sydän-ikonista. Saat ilmoituksen aina, kun rooliasi vastaava kuljettaja tai tiimi mainitaan uutisessa.</p>
+        {follows.length === 0 ? <p className="text-xs text-muted-foreground">Ei rooleja vielä.</p> : (
           <ul className="space-y-1">
             {follows.map(f => (
               <li key={`${f.entity_type}:${f.entity_slug}`} className="flex items-center justify-between gap-2 border border-primary/20 rounded px-2 py-1.5">
