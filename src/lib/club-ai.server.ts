@@ -23,6 +23,15 @@ async function siteCorpus(db: Admin) {
     db.from("seasons").select("slug, name, sort_order, is_active"),
     db.from("seasons").select("slug, name, sort_order, is_active").eq("is_active", true).maybeSingle(),
   ]);
+  const activeSeason = activeSeasonResult.data ?? null;
+  const activeYear = activeSeason?.sort_order ?? null;
+  const currentSeasonRaces = activeYear == null
+    ? []
+    : (races.data ?? []).filter((r: any) => {
+        const match = String(r.name ?? "").match(/(20\\d{2})/);
+        return match ? Number(match[1]) === activeYear : false;
+      });
+
   return JSON.stringify({
     drivers: drivers.data ?? [],
     teams: teams.data ?? [],
