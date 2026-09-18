@@ -40,15 +40,16 @@ export const updateTeamEngine = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     slug: z.string(),
     engine_supplier: Engine.nullable(),
+    engine_contract_year: z.number().int().min(2020).max(2100).nullable(),
   }).parse(d))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin.from("teams")
-      .update({ engine_supplier: data.engine_supplier } as any)
+      .update({ engine_supplier: data.engine_supplier, engine_contract_year: data.engine_contract_year } as any)
       .eq("slug", data.slug)
-      .select("slug,name,engine_supplier")
+      .select("slug,name,engine_supplier,engine_contract_year")
       .single();
     if (error) throw error;
     return row;
