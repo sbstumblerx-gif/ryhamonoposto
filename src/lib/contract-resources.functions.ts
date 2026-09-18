@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const Engine = z.enum(["Mercedes-AMG", "Honda", "Audi", "Ferrari", "Epic PT"]);
+const Engine = z.enum(["Mercedes-AMG", "Honda", "Audi", "Ferrari", "Renault", "Epic PT"]);
 const CircuitStatus = z.enum(["active", "expired", "unknown"]);
 
 export const listCircuitContracts = createServerFn({ method: "GET" }).handler(async () => {
