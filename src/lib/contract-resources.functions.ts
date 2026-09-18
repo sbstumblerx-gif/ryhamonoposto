@@ -6,7 +6,7 @@ const CircuitStatus = z.enum(["active", "expired", "unknown"]);
 
 export const listCircuitContracts = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin.from("circuit_contracts").select("id,slug,name,contract_status,contract_year").order("id");
+  const { data, error } = await supabaseAdmin.from("circuit_contracts").select("id,slug,name,contract_status,contract_start_year,contract_year").order("id");
   if (error) throw error;
   return data ?? [];
 });
@@ -15,22 +15,26 @@ export const updateCircuitContract = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     slug: z.string(),
     contract_status: CircuitStatus,
+    contract_start_year: z.number().int().min(2020).max(2100).nullable(),
     contract_year: z.number().int().min(2020).max(2100).nullable(),
   }).parse(d))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
-    if (data.contract_status === "unknown" && data.contract_year !== null) {
-      throw new Error("Tuntemattomalla sopimuksella ei voi olla vuotta.");
+    if (data.contract_status === "unknown" && (data.contract_start_year !== null || data.contract_year !== null)) {
+      throw new Error("Määrittämättömällä sopimuksella ei voi olla sopimusvuosia.");
     }
     if (data.contract_status !== "unknown" && data.contract_year === null) {
-      throw new Error("Valitse sopimukselle vuosi.");
+      throw new Error("Valitse sopimukselle erääntymisvuosi.");
+    }
+    if (data.contract_start_year !== null && data.contract_year !== null && data.contract_start_year > data.contract_year) {
+      throw new Error("Alkamisaika ei voi olla erääntymisaikaa myöhemmin.");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin.from("circuit_contracts")
-      .update({ contract_status: data.contract_status, contract_year: data.contract_year, updated_at: new Date().toISOString() })
+      .update({ contract_status: data.contract_status, contract_start_year: data.contract_start_year, contract_year: data.contract_year, updated_at: new Date().toISOString() })
       .eq("slug", data.slug)
-      .select("id,slug,name,contract_status,contract_year")
+      .select("id,slug,name,contract_status,contract_start_year,contract_year")
       .single();
     if (error) throw error;
     return row;
@@ -40,16 +44,24 @@ export const updateTeamEngine = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     slug: z.string(),
     engine_supplier: Engine.nullable(),
+    engine_contract_start_year: z.number().int().min(2020).max(2100).nullable(),
     engine_contract_year: z.number().int().min(2020).max(2100).nullable(),
   }).parse(d))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
+    if (data.engine_contract_start_year !== null && data.engine_contract_year !== null && data.engine_contract_start_year > data.engine_contract_year) {
+      throw new Error("Alkamisaika ei voi olla erääntymisaikaa myöhemmin.");
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin.from("teams")
-      .update({ engine_supplier: data.engine_supplier, engine_contract_year: data.engine_contract_year } as any)
+      .update({
+        engine_supplier: data.engine_supplier,
+        engine_contract_start_year: data.engine_contract_start_year,
+        engine_contract_year: data.engine_contract_year,
+      } as any)
       .eq("slug", data.slug)
-      .select("slug,name,engine_supplier,engine_contract_year")
+      .select("slug,name,engine_supplier,engine_contract_start_year,engine_contract_year")
       .single();
     if (error) throw error;
     return row;
