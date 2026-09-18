@@ -222,12 +222,12 @@ export function ContractsPage() {
                       </div>
                     </div>
                     {admin.isAdmin && <div className="flex flex-wrap gap-2">
-                      <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value, team.engine_contract_year ?? null)}
+                      <select value={team.engine_supplier ?? ""} onChange={e => changeEngine(team.slug, e.target.value, e.target.value === "" ? null : (team.engine_contract_year ?? null))}
                         className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
                         <option value="">Ei määritetty</option>
                         {engineOptions.map(engine => <option key={engine} value={engine}>{engine}</option>)}
                       </select>
-                      <select value={team.engine_contract_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", e.target.value === "" ? null : Number(e.target.value))}
+                      <select value={team.engine_contract_year ?? ""} onChange={e => changeEngine(team.slug, team.engine_supplier ?? "", team.engine_supplier ? (e.target.value === "" ? null : Number(e.target.value)) : null)}
                         className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
                         <option value="">Ei sopimuskautta</option>
                         {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
