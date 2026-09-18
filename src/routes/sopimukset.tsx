@@ -43,10 +43,16 @@ export function ContractsPage() {
   const teamBySlug = new Map(teams.map(t => [t.slug, t]));
 
   const sorted = [...drivers].sort((a: any, b: any) => {
+    const aNone = a.current_contract_until === "none";
+    const bNone = b.current_contract_until === "none";
+
+    // "Ei sopimusta" is always last, regardless of sort direction.
+    if (aNone !== bNone) return aNone ? 1 : -1;
+
     const ay = contractYear(a.current_contract_until);
     const by = contractYear(b.current_contract_until);
-    const av = ay ?? (a.current_contract_until === "none" ? -1 : 9999);
-    const bv = by ?? (b.current_contract_until === "none" ? -1 : 9999);
+    const av = ay ?? 9999;
+    const bv = by ?? 9999;
     return (sort === "expiring" ? av - bv : bv - av) || a.name.localeCompare(b.name, "fi");
   });
 
