@@ -4,15 +4,24 @@ import { gzipSync, gunzipSync } from "node:zlib";
 import { requireAdmin } from "@/lib/admin-session.server";
 
 const TABLES = [
-  "card_packs",
+  "clubs",
+  "profiles",
+  "user_roles",
+  "teams",
+  "drivers",
+  "seasons",
+  "races",
   "cards",
+  "prediction_sessions",
+  "predictions",
+  "polls",
+  "poll_options",
+  "poll_votes",
   "club_join_requests",
   "club_members",
-  "club_message_reactions",
   "club_messages",
-  "clubs",
+  "club_message_reactions",
   "comments",
-  "drivers",
   "duel_drafts",
   "duel_matches",
   "follows",
@@ -23,20 +32,15 @@ const TABLES = [
   "media_items",
   "news",
   "notifications",
-  "poll_options",
-  "poll_votes",
-  "polls",
-  "prediction_sessions",
-  "predictions",
-  "profiles",
-  "races",
-  "seasons",
   "stats_pages",
-  "teams",
+  "card_packs",
   "user_cards",
-  "user_roles",
   "user_vault",
 ] as const;
+
+const RESTORE_CONFLICT: Record<string, string> = {
+  user_vault: "user_id",
+};
 
 const PAGE_SIZE = 1000;
 
@@ -94,12 +98,13 @@ export const createDatabaseBackup = createServerFn({ method: "POST" })
 
     let storageManifest: unknown[] = [];
     try {
-      const { data, error } = await supabaseAdmin
+      const storageDb = supabaseAdmin as any;
+      const { data, error } = await storageDb
         .from("storage.objects")
         .select("id,bucket_id,name,created_at,updated_at,last_accessed_at,metadata");
       if (!error) storageManifest = data ?? [];
     } catch {
-      // Storage metadata is supplementary; database backup remains usable.
+      // Storage metadata is supplementary.
     }
 
     const payload = {
@@ -166,13 +171,9 @@ export const restoreDatabaseBackup = createServerFn({ method: "POST" })
       throw new Error("Tiedosto ei ole kelvollinen RyhäMonoposto-varmuuskopio.");
     }
 
-    const requestedTables = new Set(TABLES);
     const restored: Record<string, number> = {};
 
-    // Upsert in dependency-friendly order. This intentionally does not delete
-    // rows that are absent from the backup, so a bad restore cannot wipe data.
     for (const table of TABLES) {
-      if (!requestedTables.has(table)) continue;
       const rows = backup.tables[table] ?? [];
       if (!rows.length) {
         restored[table] = 0;
@@ -181,7 +182,8 @@ export const restoreDatabaseBackup = createServerFn({ method: "POST" })
 
       for (let offset = 0; offset < rows.length; offset += 500) {
         const chunk = rows.slice(offset, offset + 500);
-        const { error } = await supabaseAdmin.from(table).upsert(chunk, { onConflict: "id" });
+        const onConflict = RESTORE_CONFLICT[table] ?? "id";
+        const { error } = await supabaseAdmin.from(table).upsert(chunk, { onConflict });
         if (error) {
           throw new Error(`Restore failed for ${table}: ${error.message}`);
         }
