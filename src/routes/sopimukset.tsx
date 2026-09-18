@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { listDrivers, listTeams } from "@/lib/content.functions";
+import { updateDriverContract } from "@/lib/driver-contract.functions";
 import { listCircuitContracts, updateCircuitContract, updateTeamEngine, engineOptions } from "@/lib/contract-resources.functions";
 import { colorFor } from "@/lib/team-colors";
 import { useAdmin } from "@/components/admin-store";
@@ -110,6 +111,7 @@ export function ContractsPage() {
   const teamsFn = useServerFn(listTeams);
   const circuitsFn = useServerFn(listCircuitContracts);
   const saveEngine = useServerFn(updateTeamEngine);
+  const saveDriverContract = useServerFn(updateDriverContract);
   const qc = useQueryClient();
   const admin = useAdmin();
   const [tab, setTab] = useState<Tab>("drivers");
@@ -133,6 +135,16 @@ export function ContractsPage() {
     const bv = by ?? 9999;
     return (sort === "expiring" ? av - bv : bv - av) || a.name.localeCompare(b.name, "fi");
   });
+
+  async function changeDriverContract(slug: string, startYear: number | null, endValue: string | null) {
+    try {
+      await saveDriverContract({ data: { slug, contract_start_year: startYear, current_contract_until: endValue as any } });
+      await qc.invalidateQueries({ queryKey: ["contracts-drivers"] });
+      toast.success("Kuljettajasopimus päivitetty");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Kuljettajasopimuksen tallennus epäonnistui");
+    }
+  }
 
   async function changeEngine(slug: string, value: string, startYear: number | null, year: number | null) {
     try {
@@ -185,8 +197,8 @@ export function ContractsPage() {
               const year = contractYear(driver.current_contract_until);
               const remaining = yearsRemaining(driver.current_contract_until);
               return (
-                <Link key={driver.slug} to="/kuljettajat/$slug" params={{ slug: driver.slug }}
-                  className="card-dark block p-4 border-l-2 hover:border-primary transition" style={{ borderLeftColor: color }}>
+                <div key={driver.slug} className="card-dark p-4 border-l-2 hover:border-primary transition" style={{ borderLeftColor: color }}>
+                  <Link to="/kuljettajat/$slug" params={{ slug: driver.slug }} className="block">
                   <div className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <span className="text-2xl shrink-0">{driver.flag}</span>
@@ -203,13 +215,24 @@ export function ContractsPage() {
                     </div>
                     <div className="sm:text-right shrink-0">
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-display">Sopimus voimassa</div>
-                      <div className="font-display text-lg" style={{ color }}>{contractText(driver.current_contract_until)}</div>
+                      <div className="font-display text-lg" style={{ color }}>{contractPeriodText(driver.contract_start_year, year)}</div>
                       {year != null && <div className="text-xs text-muted-foreground mt-1">
                         {remaining === 0 ? "Päättyy tämän kauden lopussa" : `${remaining} kautta jäljellä`}
                       </div>}
                     </div>
                   </div>
-                </Link>
+                  </Link>
+                  {admin.isAdmin && <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <select value={driver.contract_start_year ?? ""} onChange={e => changeDriverContract(driver.slug, e.target.value === "" ? null : Number(e.target.value), driver.current_contract_until ?? null)} className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
+                      <option value="">Alkamisaika</option>
+                      {CONTRACT_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select value={driver.current_contract_until ?? ""} onChange={e => changeDriverContract(driver.slug, driver.contract_start_year ?? null, e.target.value === "" ? null : e.target.value)} className="bg-black/70 border border-primary/30 rounded p-2 text-xs font-display uppercase tracking-widest">
+                      <option value="">Ei sopimusta</option>
+                      {CONTRACT_YEARS.filter(y => y >= 2026).map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>}
+                </div>
               );
             })}
             {!sorted.length && <div className="card-dark p-5 text-sm text-muted-foreground italic">Ei kuljettajia.</div>}
