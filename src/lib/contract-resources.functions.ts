@@ -6,9 +6,17 @@ const CircuitStatus = z.enum(["active", "expired", "unknown"]);
 
 export const listCircuitContracts = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin.from("circuit_contracts").select("id,slug,name,contract_status,contract_start_year,contract_year").order("id");
+  const [{ data, error }, { data: activeSeason, error: activeSeasonError }] = await Promise.all([
+    supabaseAdmin.from("circuit_contracts").select("id,slug,name,contract_status,contract_start_year,contract_year").order("id"),
+    supabaseAdmin.from("seasons").select("sort_order").eq("is_active", true).maybeSingle(),
+  ]);
   if (error) throw error;
-  return data ?? [];
+  if (activeSeasonError) throw activeSeasonError;
+  const activeYear = activeSeason?.sort_order ?? null;
+  return (data ?? []).map(row => ({
+    ...row,
+    contract_status: row.contract_year == null ? "unknown" : activeYear != null && row.contract_year < activeYear ? "expired" : "active",
+  }));
 });
 
 export const updateCircuitContract = createServerFn({ method: "POST" })
@@ -31,8 +39,15 @@ export const updateCircuitContract = createServerFn({ method: "POST" })
       throw new Error("Alkamisaika ei voi olla erääntymisaikaa myöhemmin.");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: activeSeason, error: activeSeasonError } = await supabaseAdmin
+      .from("seasons").select("sort_order").eq("is_active", true).maybeSingle();
+    if (activeSeasonError) throw activeSeasonError;
+    const activeYear = activeSeason?.sort_order ?? null;
+    const effectiveStatus = data.contract_year === null
+      ? "unknown"
+      : activeYear != null && data.contract_year < activeYear ? "expired" : "active";
     const { data: row, error } = await supabaseAdmin.from("circuit_contracts")
-      .update({ contract_status: data.contract_status, contract_start_year: data.contract_start_year, contract_year: data.contract_year, updated_at: new Date().toISOString() })
+      .update({ contract_status: effectiveStatus, contract_start_year: data.contract_start_year, contract_year: data.contract_year, updated_at: new Date().toISOString() })
       .eq("slug", data.slug)
       .select("id,slug,name,contract_status,contract_start_year,contract_year")
       .single();
