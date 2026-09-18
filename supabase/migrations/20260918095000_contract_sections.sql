@@ -7,7 +7,7 @@ ALTER TABLE public.teams
 
 ALTER TABLE public.teams
   ADD CONSTRAINT teams_engine_supplier_check
-  CHECK (engine_supplier IS NULL OR engine_supplier IN ('Mercedes-AMG','Honda','Audi','Ferrari','Epic PT'));
+  CHECK (engine_supplier IS NULL OR engine_supplier IN ('Mercedes-AMG','Honda','Audi','Ferrari','Renault','Epic PT'));
 
 CREATE TABLE IF NOT EXISTS public.circuit_contracts (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
