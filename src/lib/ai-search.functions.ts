@@ -13,18 +13,43 @@ const sourceSchema = z.object({
 });
 
 function parseAiPayload(raw: string) {
+  const cleaned = raw
+    .trim()
+    .replace(/^\`\`\`(?:json)?\\s*/i, "")
+    .replace(/\\s*\`\`\`$/i, "")
+    .trim();
+
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(cleaned);
     if (parsed && typeof parsed.answer === "string") {
       return {
         answer: parsed.answer,
-        sourceKeys: Array.isArray(parsed.sourceKeys) ? parsed.sourceKeys.filter((x: unknown): x is string => typeof x === "string") : [],
+        sourceKeys: Array.isArray(parsed.sourceKeys)
+          ? parsed.sourceKeys.filter((x: unknown): x is string => typeof x === "string")
+          : [],
       };
     }
   } catch {
-    // Keep compatibility if the model returns plain text despite the JSON instruction.
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        const parsed = JSON.parse(cleaned.slice(start, end + 1));
+        if (parsed && typeof parsed.answer === "string") {
+          return {
+            answer: parsed.answer,
+            sourceKeys: Array.isArray(parsed.sourceKeys)
+              ? parsed.sourceKeys.filter((x: unknown): x is string => typeof x === "string")
+              : [],
+          };
+        }
+      } catch {
+        // Fall through to plain-text compatibility below.
+      }
+    }
   }
-  return { answer: raw, sourceKeys: [] as string[] };
+
+  return { answer: raw.trim(), sourceKeys: [] as string[] };
 }
 
 export const aiChat = createServerFn({ method: "POST" })
