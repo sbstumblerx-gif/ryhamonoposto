@@ -20,6 +20,7 @@ type Driver = {
   current_team_since: number | null;
   current_team_is_reserve?: boolean | null;
   current_contract_until?: ContractUntilValue | null;
+  contract_start_year?: number | null;
   former_teams: FormerTeam[] | null;
 };
 
@@ -53,9 +54,9 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
     }
   }
 
-  async function patchContract(value: ContractUntilValue | null) {
+  async function patchContract(contractStartYear: number | null, value: ContractUntilValue | null) {
     try {
-      await saveContract({ data: { slug: driver.slug, current_contract_until: value } });
+      await saveContract({ data: { slug: driver.slug, contract_start_year: contractStartYear, current_contract_until: value } });
       await qc.invalidateQueries({ queryKey: ["driver", driver.slug] });
       toast.success("Sopimustieto tallennettu");
     } catch (e: any) {
@@ -88,20 +89,33 @@ export function DriverInfoCard({ driver, isAdmin }: { driver: Driver; isAdmin: b
 
       {/* Nykyinen sopimus */}
       <div className="card-dark p-3">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-display">Nykyinen sopimus voimassa:</div>
+        <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-display">Nykyinen sopimus</div>
         {isAdmin ? (
-          <select
-            value={driver.current_contract_until ?? ""}
-            onChange={e => patchContract((e.target.value || null) as ContractUntilValue | null)}
-            className="w-full bg-black/70 border border-primary/30 rounded p-2 font-display"
-          >
-            <option value="">— Valitse —</option>
-            {CONTRACT_OPTIONS.map(value => (
-              <option key={value} value={value}>{contractLabel(value)}</option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={driver.contract_start_year ?? ""}
+              onChange={e => patchContract(e.target.value ? Number(e.target.value) : null, driver.current_contract_until ?? null)}
+              className="flex-1 min-w-[150px] bg-black/70 border border-primary/30 rounded p-2 font-display"
+            >
+              <option value="">— Alkamisaika —</option>
+              {YEARS.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <select
+              value={driver.current_contract_until ?? ""}
+              onChange={e => patchContract(driver.contract_start_year ?? null, (e.target.value || null) as ContractUntilValue | null)}
+              className="flex-1 min-w-[150px] bg-black/70 border border-primary/30 rounded p-2 font-display"
+            >
+              <option value="">— Päättymisaika —</option>
+              {CONTRACT_OPTIONS.map(value => (
+                <option key={value} value={value}>{contractLabel(value)}</option>
+              ))}
+            </select>
+          </div>
         ) : (
-          <div className="font-display text-lg">{contractLabel(driver.current_contract_until)}</div>
+          <div className="font-display text-lg">
+            {driver.contract_start_year ? `Alkoi ${driver.contract_start_year} · ` : ""}
+            {contractLabel(driver.current_contract_until)}
+          </div>
         )}
       </div>
 
