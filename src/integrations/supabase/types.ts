@@ -338,6 +338,7 @@ export type Database = {
           color_key: string
           content: string | null
           created_at: string
+          current_contract_until: string | null
           current_team_is_reserve: boolean
           current_team_since: number | null
           current_team_slug: string | null
@@ -356,6 +357,7 @@ export type Database = {
           color_key: string
           content?: string | null
           created_at?: string
+          current_contract_until?: string | null
           current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           color_key?: string
           content?: string | null
           created_at?: string
+          current_contract_until?: string | null
           current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
@@ -480,6 +483,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fan_point_events: {
+        Row: {
+          created_at: string
+          entity_slug: string
+          entity_type: string
+          event_key: string | null
+          id: string
+          points: number
+        }
+        Insert: {
+          created_at?: string
+          entity_slug: string
+          entity_type: string
+          event_key?: string | null
+          id?: string
+          points: number
+        }
+        Update: {
+          created_at?: string
+          entity_slug?: string
+          entity_type?: string
+          event_key?: string | null
+          id?: string
+          points?: number
+        }
+        Relationships: []
       }
       follows: {
         Row: {
@@ -709,6 +739,7 @@ export type Database = {
           club_id: string | null
           created_at: string
           id: string
+          link: string | null
           read: boolean
           title: string
           type: string
@@ -719,6 +750,7 @@ export type Database = {
           club_id?: string | null
           created_at?: string
           id?: string
+          link?: string | null
           read?: boolean
           title: string
           type: string
@@ -729,6 +761,7 @@ export type Database = {
           club_id?: string | null
           created_at?: string
           id?: string
+          link?: string | null
           read?: boolean
           title?: string
           type?: string
@@ -743,6 +776,65 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      official_entity_post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "official_entity_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "official_entity_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      official_entity_posts: {
+        Row: {
+          body: string
+          created_at: string
+          entity_slug: string
+          entity_type: string
+          id: string
+          media_url: string | null
+          published: boolean
+          verified_official: boolean
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          entity_slug: string
+          entity_type: string
+          id?: string
+          media_url?: string | null
+          published?: boolean
+          verified_official?: boolean
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          entity_slug?: string
+          entity_type?: string
+          id?: string
+          media_url?: string | null
+          published?: boolean
+          verified_official?: boolean
+        }
+        Relationships: []
       }
       poll_options: {
         Row: {
@@ -962,6 +1054,7 @@ export type Database = {
           flag: string
           id: string
           is_live: boolean
+          is_sprint_weekend: boolean
           name: string
           qualifying_content: string | null
           qualifying_media_url: string | null
@@ -974,6 +1067,13 @@ export type Database = {
           race_youtube_url: string | null
           round_number: number | null
           slug: string
+          sprint_content: string | null
+          sprint_fastest_lap_driver_slug: string | null
+          sprint_media_url: string | null
+          sprint_qualifying_content: string | null
+          sprint_qualifying_media_url: string | null
+          sprint_qualifying_youtube_url: string | null
+          sprint_youtube_url: string | null
           updated_at: string
           youtube_url: string | null
         }
@@ -984,6 +1084,7 @@ export type Database = {
           flag?: string
           id?: string
           is_live?: boolean
+          is_sprint_weekend?: boolean
           name: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
@@ -996,6 +1097,13 @@ export type Database = {
           race_youtube_url?: string | null
           round_number?: number | null
           slug: string
+          sprint_content?: string | null
+          sprint_fastest_lap_driver_slug?: string | null
+          sprint_media_url?: string | null
+          sprint_qualifying_content?: string | null
+          sprint_qualifying_media_url?: string | null
+          sprint_qualifying_youtube_url?: string | null
+          sprint_youtube_url?: string | null
           updated_at?: string
           youtube_url?: string | null
         }
@@ -1006,6 +1114,7 @@ export type Database = {
           flag?: string
           id?: string
           is_live?: boolean
+          is_sprint_weekend?: boolean
           name?: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
@@ -1018,6 +1127,13 @@ export type Database = {
           race_youtube_url?: string | null
           round_number?: number | null
           slug?: string
+          sprint_content?: string | null
+          sprint_fastest_lap_driver_slug?: string | null
+          sprint_media_url?: string | null
+          sprint_qualifying_content?: string | null
+          sprint_qualifying_media_url?: string | null
+          sprint_qualifying_youtube_url?: string | null
+          sprint_youtube_url?: string | null
           updated_at?: string
           youtube_url?: string | null
         }
@@ -1080,6 +1196,8 @@ export type Database = {
           content: string | null
           created_at: string
           current_driver_slugs: Json
+          engine_contract_year: number | null
+          engine_supplier: string | null
           flag: string
           former_lineups: Json
           hero_media_url: string | null
@@ -1095,6 +1213,8 @@ export type Database = {
           content?: string | null
           created_at?: string
           current_driver_slugs?: Json
+          engine_contract_year?: number | null
+          engine_supplier?: string | null
           flag?: string
           former_lineups?: Json
           hero_media_url?: string | null
@@ -1110,6 +1230,8 @@ export type Database = {
           content?: string | null
           created_at?: string
           current_driver_slugs?: Json
+          engine_contract_year?: number | null
+          engine_supplier?: string | null
           flag?: string
           former_lineups?: Json
           hero_media_url?: string | null
