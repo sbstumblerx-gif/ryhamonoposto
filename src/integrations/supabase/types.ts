@@ -338,6 +338,7 @@ export type Database = {
           color_key: string
           content: string | null
           created_at: string
+          current_contract_until: string | null
           current_team_is_reserve: boolean
           current_team_since: number | null
           current_team_slug: string | null
@@ -356,6 +357,7 @@ export type Database = {
           color_key: string
           content?: string | null
           created_at?: string
+          current_contract_until?: string | null
           current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           color_key?: string
           content?: string | null
           created_at?: string
+          current_contract_until?: string | null
           current_team_is_reserve?: boolean
           current_team_since?: number | null
           current_team_slug?: string | null
@@ -962,6 +965,7 @@ export type Database = {
           flag: string
           id: string
           is_live: boolean
+          is_sprint_weekend: boolean
           name: string
           qualifying_content: string | null
           qualifying_media_url: string | null
@@ -974,6 +978,13 @@ export type Database = {
           race_youtube_url: string | null
           round_number: number | null
           slug: string
+          sprint_content: string | null
+          sprint_fastest_lap_driver_slug: string | null
+          sprint_media_url: string | null
+          sprint_qualifying_content: string | null
+          sprint_qualifying_media_url: string | null
+          sprint_qualifying_youtube_url: string | null
+          sprint_youtube_url: string | null
           updated_at: string
           youtube_url: string | null
         }
@@ -984,6 +995,7 @@ export type Database = {
           flag?: string
           id?: string
           is_live?: boolean
+          is_sprint_weekend?: boolean
           name: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
@@ -996,6 +1008,13 @@ export type Database = {
           race_youtube_url?: string | null
           round_number?: number | null
           slug: string
+          sprint_content?: string | null
+          sprint_fastest_lap_driver_slug?: string | null
+          sprint_media_url?: string | null
+          sprint_qualifying_content?: string | null
+          sprint_qualifying_media_url?: string | null
+          sprint_qualifying_youtube_url?: string | null
+          sprint_youtube_url?: string | null
           updated_at?: string
           youtube_url?: string | null
         }
@@ -1006,6 +1025,7 @@ export type Database = {
           flag?: string
           id?: string
           is_live?: boolean
+          is_sprint_weekend?: boolean
           name?: string
           qualifying_content?: string | null
           qualifying_media_url?: string | null
@@ -1018,6 +1038,13 @@ export type Database = {
           race_youtube_url?: string | null
           round_number?: number | null
           slug?: string
+          sprint_content?: string | null
+          sprint_fastest_lap_driver_slug?: string | null
+          sprint_media_url?: string | null
+          sprint_qualifying_content?: string | null
+          sprint_qualifying_media_url?: string | null
+          sprint_qualifying_youtube_url?: string | null
+          sprint_youtube_url?: string | null
           updated_at?: string
           youtube_url?: string | null
         }
