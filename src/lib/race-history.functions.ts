@@ -23,7 +23,7 @@ export const getDriverRaceHistory = createServerFn({ method: "GET" }).inputValid
   const driver = (drivers ?? []).find(d => d.slug === data.slug); if (!driver) return [];
   const teamByName = new Map((teams ?? []).map(t => [normalizeName(t.name), t] as const));
   const teamBySlug = new Map((teams ?? []).map(t => [t.slug, t] as const));
-  return [...(races ?? [])].sort(compareRaceOrder).reverse().filter(r => r.round_number !== 0).flatMap(r => {
+  return [...((races ?? []) as any[])].sort(compareRaceOrder).reverse().filter(r => r.round_number !== 0).flatMap((r: any) => {
     const year = seasonYearFromName(r.name); const all = (text: string | null | undefined) => parseResultLines(text); const match = (lines: any[]) => lines.find(l => normalizeName(l.driver) === normalizeName(driver.name));
     const raceLine = match(all(r.race_content)); const qLine = match(all(r.qualifying_content)); const sprintLine = r.is_sprint_weekend ? match(all((r as any).sprint_content)) : null; const sprintQLine = r.is_sprint_weekend ? match(all((r as any).sprint_qualifying_content)) : null;
     const team = (raceLine?.team ? teamByName.get(normalizeName(raceLine.team)) : undefined) ?? (qLine?.team ? teamByName.get(normalizeName(qLine.team)) : undefined) ?? (sprintLine?.team ? teamByName.get(normalizeName(sprintLine.team)) : undefined) ?? (sprintQLine?.team ? teamByName.get(normalizeName(sprintQLine.team)) : undefined) ?? historicalTeam(driver, year, teamBySlug);
@@ -42,7 +42,7 @@ export const getTeamRaceHistory = createServerFn({ method: "GET" }).inputValidat
   if (re) throw re; if (de) throw de; if (te) throw te;
   const team = (teams ?? []).find(t => t.slug === data.slug); if (!team) return [];
   const teamByName = new Map((teams ?? []).map(t => [normalizeName(t.name), t] as const)); const driverByName = new Map((drivers ?? []).map(d => [normalizeName(d.name), d] as const));
-  return [...(races ?? [])].sort(compareRaceOrder).reverse().filter(r => r.round_number !== 0).flatMap(r => {
+  return [...((races ?? []) as any[])].sort(compareRaceOrder).reverse().filter(r => r.round_number !== 0).flatMap((r: any) => {
     const sessions = [parseResultLines(r.race_content), parseResultLines(r.qualifying_content), r.is_sprint_weekend ? parseResultLines((r as any).sprint_content) : [], r.is_sprint_weekend ? parseResultLines((r as any).sprint_qualifying_content) : []];
     const teamMatches = sessions.map(lines => lines.filter(l => { const parsedTeam = l.team ? teamByName.get(normalizeName(l.team)) : undefined; return parsedTeam?.slug === team.slug; }));
     const names = [...new Set(teamMatches.flat().map(l => normalizeName(l.driver)))];

@@ -135,10 +135,10 @@ Lähteet: sinulla on käytössäsi alla oleva sourceCatalog. Vastauksen lopussa 
     const parsed = parseAiPayload(String(json.choices?.[0]?.message?.content ?? ""));
     const allowed = new Set(sourceCatalog.map(s => s.key));
     const sources = parsed.sourceKeys
-      .filter(key => allowed.has(key))
-      .map(key => sourceCatalog.find(s => s.key === key))
-      .filter((source): source is { key: string; title: string; url: string } => Boolean(source))
-      .map(({ title, url }) => ({ title, url }));
+      .filter((key: string) => allowed.has(key))
+      .map((key: string) => sourceCatalog.find(s => s.key === key))
+      .filter((source: any): source is { key: string; title: string; url: string } => Boolean(source))
+      .map(({ title, url }: { title: string; url: string }) => ({ title, url }));
 
     return { answer: parsed.answer, sources };
   });

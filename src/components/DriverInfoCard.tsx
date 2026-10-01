@@ -25,7 +25,7 @@ type Driver = {
 };
 
 const YEARS = Array.from({ length: 2100 - 2025 + 1 }, (_, i) => 2025 + i);
-const CONTRACT_OPTIONS = ["none", ...Array.from({ length: 2040 - 2026 + 1 }, (_, i) => String(2026 + i)), "unknown"] as const;
+const CONTRACT_OPTIONS = ["none", ...Array.from({ length: 2040 - 2026 + 1 }, (_, i) => String(2026 + i)), "unknown"] as ContractUntilValue[];
 
 function contractLabel(value: ContractUntilValue | null | undefined) {
   if (value === "none") return "Ei sopimusta";
