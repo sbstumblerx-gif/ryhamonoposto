@@ -47,7 +47,7 @@ export const getStandings = createServerFn({ method: "GET" })
     const seasons = new Set<number>();
     let sessionCount = 0;
 
-    const orderedRaces = [...(races ?? [])].sort(compareRaceOrder);
+    const orderedRaces = [...((races ?? []) as any[])].sort(compareRaceOrder);
     const getOrCreate = (map: Map<string, StatLine>, key: string, name: string, slug: string | null, flag: string) => {
       let row = map.get(key);
       if (!row) { row = emptyStatLine(key, name, slug, flag); map.set(key, row); }
