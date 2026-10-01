@@ -50,7 +50,7 @@ function yearsRemaining(value: string | null | undefined, activeYear?: number | 
   return year == null || activeYear == null ? null : Math.max(0, year - activeYear);
 }
 
-function CircuitContract({ circuit, admin, onSaved }: {
+function CircuitContract({ circuit, admin, onSaved, activeYear }: {
   circuit: any;
   admin: boolean;
   onSaved: () => void;

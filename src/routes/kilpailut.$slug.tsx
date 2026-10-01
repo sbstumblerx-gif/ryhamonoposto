@@ -26,7 +26,7 @@ function RaceDetail() {
   const driversQuery = useQuery({ queryKey: ["drivers"], queryFn: () => list() }); const q = useQuery({ queryKey: ["race", slug], queryFn: () => get({ data: { slug } }) });
   const [tab, setTab] = useState<Session>("race"); const [aiBusy, setAiBusy] = useState(false);
   if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
-  const r = q.data; if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
+  const r = q.data as NonNullable<typeof q.data>; if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
   const isWinterTest = r.round_number === 0; const sprint = r as typeof r & SprintRace; const isSprint = !!sprint.is_sprint_weekend && !isWinterTest; const effectiveTab: Session = isWinterTest ? "race" : tab;
   const special = r as typeof r & { driver_of_the_day_slug?: string | null; fastest_lap_driver_slug?: string | null };
   async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null; qualifying_youtube_url: string | null; race_youtube_url: string | null; round_number: number | null; driver_of_the_day_slug: string | null; fastest_lap_driver_slug: string | null }>) {
