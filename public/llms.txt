@@ -7,33 +7,33 @@ Tämä tiedosto auttaa tekoälyagentteja ja muita koneellisia lukijoita löytäm
 ## Koneellisesti luettava sisältö
 
 Koko julkinen tietokanta:
-https://ryhamonoposto.fi/data
+/data
 
 Kuljettajien hakemisto:
-https://ryhamonoposto.fi/data/kuljettajat
+/data/kuljettajat
 
 Tiimien hakemisto:
-https://ryhamonoposto.fi/data/tiimit
+/data/tiimit
 
 Kilpailujen hakemisto:
-https://ryhamonoposto.fi/data/kilpailut
+/data/kilpailut
 
 Uutisten hakemisto:
-https://ryhamonoposto.fi/data/uutiset
+/data/uutiset
 
 ## Yksittäiset kohteet
 
 Kuljettajat:
-https://ryhamonoposto.fi/data/kuljettajat/{slug}
+/data/kuljettajat/{slug}
 
 Tiimit:
-https://ryhamonoposto.fi/data/tiimit/{slug}
+/data/tiimit/{slug}
 
 Kilpailut:
-https://ryhamonoposto.fi/data/kilpailut/{slug}
+/data/kilpailut/{slug}
 
 Uutiset:
-https://ryhamonoposto.fi/data/uutiset/{slug}
+/data/uutiset/{slug}
 
 ## Tietokentät
 
@@ -55,4 +55,4 @@ Päivämäärät ja kilpailutulokset voivat muuttua, kun ylläpito päivittää 
 
 ## Normaali sivusto
 
-https://ryhamonoposto.fi/
+/
