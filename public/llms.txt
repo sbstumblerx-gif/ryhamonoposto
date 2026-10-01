@@ -1,0 +1,58 @@
+# RyhäMonoposto
+
+RyhäMonoposto on F1-aiheinen tietokanta ja yhteisösivusto.
+
+Tämä tiedosto auttaa tekoälyagentteja ja muita koneellisia lukijoita löytämään sivuston julkisen sisällön.
+
+## Koneellisesti luettava sisältö
+
+Koko julkinen tietokanta:
+https://ryhamonoposto.fi/data
+
+Kuljettajien hakemisto:
+https://ryhamonoposto.fi/data/kuljettajat
+
+Tiimien hakemisto:
+https://ryhamonoposto.fi/data/tiimit
+
+Kilpailujen hakemisto:
+https://ryhamonoposto.fi/data/kilpailut
+
+Uutisten hakemisto:
+https://ryhamonoposto.fi/data/uutiset
+
+## Yksittäiset kohteet
+
+Kuljettajat:
+https://ryhamonoposto.fi/data/kuljettajat/{slug}
+
+Tiimit:
+https://ryhamonoposto.fi/data/tiimit/{slug}
+
+Kilpailut:
+https://ryhamonoposto.fi/data/kilpailut/{slug}
+
+Uutiset:
+https://ryhamonoposto.fi/data/uutiset/{slug}
+
+## Tietokentät
+
+Kuljettajat voivat sisältää nimen, lipun, kilpailunumeron, nykyisen tiimin, tiimin värin, sopimuksen voimassaolon, esittelyn ja tilastotietoja.
+
+Tiimit voivat sisältää nimen, lipun, logon, tiimin värin, nykyiset kuljettajat, moottoritoimittajan, sopimustiedot ja esittelyn.
+
+Kilpailut voivat sisältää nimen, lipun, kierrosnumeron, päivämäärän sekä aika-ajo- ja kilpailusisällön.
+
+Uutiset voivat sisältää otsikon, tiivistelmän, julkaisuajan ja sisällön.
+
+## Luotettavuus
+
+RyhäMonoposton oma tietokanta on ensisijainen lähde tämän sivuston omia tietoja koskevissa kysymyksissä.
+
+Älä keksi puuttuvia tietoja. Jos tieto ei ole saatavilla, ilmoita se.
+
+Päivämäärät ja kilpailutulokset voivat muuttua, kun ylläpito päivittää tietokantaa.
+
+## Normaali sivusto
+
+https://ryhamonoposto.fi/
