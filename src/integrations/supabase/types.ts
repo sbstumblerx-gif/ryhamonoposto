@@ -118,6 +118,36 @@ export type Database = {
         }
         Relationships: []
       }
+      circuit_contracts: {
+        Row: {
+          contract_start_year: number | null
+          contract_status: string
+          contract_year: number | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          contract_start_year?: number | null
+          contract_status?: string
+          contract_year?: number | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          contract_start_year?: number | null
+          contract_status?: string
+          contract_year?: number | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       club_join_requests: {
         Row: {
           club_id: string
@@ -337,6 +367,7 @@ export type Database = {
         Row: {
           color_key: string
           content: string | null
+          contract_start_year: number | null
           created_at: string
           current_contract_until: string | null
           current_team_is_reserve: boolean
@@ -356,6 +387,7 @@ export type Database = {
         Insert: {
           color_key: string
           content?: string | null
+          contract_start_year?: number | null
           created_at?: string
           current_contract_until?: string | null
           current_team_is_reserve?: boolean
@@ -375,6 +407,7 @@ export type Database = {
         Update: {
           color_key?: string
           content?: string | null
+          contract_start_year?: number | null
           created_at?: string
           current_contract_until?: string | null
           current_team_is_reserve?: boolean
@@ -1143,6 +1176,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           name: string
           slug: string
           sort_order: number
@@ -1151,6 +1185,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           slug: string
           sort_order?: number
@@ -1159,6 +1194,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           slug?: string
           sort_order?: number
@@ -1196,6 +1232,7 @@ export type Database = {
           content: string | null
           created_at: string
           current_driver_slugs: Json
+          engine_contract_start_year: number | null
           engine_contract_year: number | null
           engine_supplier: string | null
           flag: string
@@ -1213,6 +1250,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           current_driver_slugs?: Json
+          engine_contract_start_year?: number | null
           engine_contract_year?: number | null
           engine_supplier?: string | null
           flag?: string
@@ -1230,6 +1268,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           current_driver_slugs?: Json
+          engine_contract_start_year?: number | null
           engine_contract_year?: number | null
           engine_supplier?: string | null
           flag?: string
