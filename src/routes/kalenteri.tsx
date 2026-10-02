@@ -65,7 +65,7 @@ function CalendarPage() {
       <select value={month} onChange={e => setMonth(Number(e.target.value))} className="bg-black/70 border border-primary/40 rounded p-2 text-sm font-display uppercase tracking-widest">{MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}</select>
       <select value={year} onChange={e => setYear(Number(e.target.value))} className="bg-black/70 border border-primary/40 rounded p-2 text-sm font-display">{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select>
       <button onClick={() => shift(1)} aria-label="Seuraava kuukausi" className="px-3 py-2 border border-primary/40 rounded hover:bg-primary/20">›</button>
-      <div className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground font-display">T = Testaus · P = Vapaat harjoitukset · T = Testaus · P = Vapaat harjoitukset · SQ = Sprintin aika-ajot · S = Sprintti · Q = Aika-ajot · R = Kilpailu</div>
+      <div className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground font-display">T = Testaus · P = Vapaat harjoitukset · SQ = Sprintin aika-ajot · S = Sprintti · Q = Aika-ajot · R = Kilpailu</div>
     </div>
     <div className="grid grid-cols-7 gap-1">
       {DAYS.map(d => <div key={d} className="text-center text-[10px] font-display uppercase tracking-widest text-muted-foreground py-1">{d}</div>)}
