@@ -13,7 +13,7 @@ export const Route = createFileRoute("/data/kuljettajat/$slug")({
 });
 
 function DriverDataPage() {
-  const d = Route.useLoaderData();
+  const d = Route.useLoaderData() as any;
   if (!d) return <pre className="mx-auto max-w-5xl px-4 py-8">Kuljettajaa ei löydy.</pre>;
   const contract = "current_contract_until" in d ? d.current_contract_until : null;
 

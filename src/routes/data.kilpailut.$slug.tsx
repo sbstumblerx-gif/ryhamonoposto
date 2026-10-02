@@ -8,7 +8,7 @@ export const Route = createFileRoute("/data/kilpailut/$slug")({
 });
 
 function RaceDataPage() {
-  const r = Route.useLoaderData();
+  const r = Route.useLoaderData() as any;
   if (!r) return <pre className="mx-auto max-w-5xl px-4 py-8">Kilpailua ei löydy.</pre>;
   return <main className="mx-auto max-w-5xl px-4 py-8"><pre className="whitespace-pre-wrap break-words font-mono text-sm leading-6">{[
     "RYHÄMONOPOSTO — KILPAILU",
