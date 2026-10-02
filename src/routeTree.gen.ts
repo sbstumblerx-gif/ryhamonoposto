@@ -24,6 +24,7 @@ import { Route as OmatPostauksetRouteImport } from './routes/omat-postaukset'
 import { Route as KuljettajatRouteImport } from './routes/kuljettajat'
 import { Route as KokoelmaRouteImport } from './routes/kokoelma'
 import { Route as KilpailutRouteImport } from './routes/kilpailut'
+import { Route as KalenteriRouteImport } from './routes/kalenteri'
 import { Route as IlmoituksetRouteImport } from './routes/ilmoitukset'
 import { Route as GraphicsRouteImport } from './routes/graphics'
 import { Route as DataRouteImport } from './routes/data'
@@ -127,6 +128,11 @@ const KokoelmaRoute = KokoelmaRouteImport.update({
 const KilpailutRoute = KilpailutRouteImport.update({
   id: '/kilpailut',
   path: '/kilpailut',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KalenteriRoute = KalenteriRouteImport.update({
+  id: '/kalenteri',
+  path: '/kalenteri',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IlmoituksetRoute = IlmoituksetRouteImport.update({
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/data': typeof DataRouteWithChildren
   '/graphics': typeof GraphicsRouteWithChildren
   '/ilmoitukset': typeof IlmoituksetRoute
+  '/kalenteri': typeof KalenteriRoute
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kokoelma': typeof KokoelmaRoute
   '/kuljettajat': typeof KuljettajatRouteWithChildren
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/data': typeof DataRouteWithChildren
   '/graphics': typeof GraphicsRouteWithChildren
   '/ilmoitukset': typeof IlmoituksetRoute
+  '/kalenteri': typeof KalenteriRoute
   '/kokoelma': typeof KokoelmaRoute
   '/omat-postaukset': typeof OmatPostauksetRoute
   '/pelaa': typeof PelaaRoute
@@ -371,6 +379,7 @@ export interface FileRoutesById {
   '/data': typeof DataRouteWithChildren
   '/graphics': typeof GraphicsRouteWithChildren
   '/ilmoitukset': typeof IlmoituksetRoute
+  '/kalenteri': typeof KalenteriRoute
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kokoelma': typeof KokoelmaRoute
   '/kuljettajat': typeof KuljettajatRouteWithChildren
@@ -419,6 +428,7 @@ export interface FileRouteTypes {
     | '/data'
     | '/graphics'
     | '/ilmoitukset'
+    | '/kalenteri'
     | '/kilpailut'
     | '/kokoelma'
     | '/kuljettajat'
@@ -465,6 +475,7 @@ export interface FileRouteTypes {
     | '/data'
     | '/graphics'
     | '/ilmoitukset'
+    | '/kalenteri'
     | '/kokoelma'
     | '/omat-postaukset'
     | '/pelaa'
@@ -506,6 +517,7 @@ export interface FileRouteTypes {
     | '/data'
     | '/graphics'
     | '/ilmoitukset'
+    | '/kalenteri'
     | '/kilpailut'
     | '/kokoelma'
     | '/kuljettajat'
@@ -553,6 +565,7 @@ export interface RootRouteChildren {
   DataRoute: typeof DataRouteWithChildren
   GraphicsRoute: typeof GraphicsRouteWithChildren
   IlmoituksetRoute: typeof IlmoituksetRoute
+  KalenteriRoute: typeof KalenteriRoute
   KilpailutRoute: typeof KilpailutRouteWithChildren
   KokoelmaRoute: typeof KokoelmaRoute
   KuljettajatRoute: typeof KuljettajatRouteWithChildren
@@ -681,6 +694,13 @@ declare module '@tanstack/react-router' {
       path: '/kilpailut'
       fullPath: '/kilpailut'
       preLoaderRoute: typeof KilpailutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kalenteri': {
+      id: '/kalenteri'
+      path: '/kalenteri'
+      fullPath: '/kalenteri'
+      preLoaderRoute: typeof KalenteriRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ilmoitukset': {
@@ -995,6 +1015,7 @@ const rootRouteChildren: RootRouteChildren = {
   DataRoute: DataRouteWithChildren,
   GraphicsRoute: GraphicsRouteWithChildren,
   IlmoituksetRoute: IlmoituksetRoute,
+  KalenteriRoute: KalenteriRoute,
   KilpailutRoute: KilpailutRouteWithChildren,
   KokoelmaRoute: KokoelmaRoute,
   KuljettajatRoute: KuljettajatRouteWithChildren,
