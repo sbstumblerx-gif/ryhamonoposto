@@ -1079,6 +1079,38 @@ export type Database = {
           },
         ]
       }
+      race_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          race_id: string
+          session_date: string
+          session_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          race_id: string
+          session_date: string
+          session_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          race_id?: string
+          session_date?: string
+          session_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_sessions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       races: {
         Row: {
           created_at: string
