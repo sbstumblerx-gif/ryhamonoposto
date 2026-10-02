@@ -8,7 +8,7 @@ export const Route = createFileRoute("/data/uutiset/$slug")({
 });
 
 function NewsDataPage() {
-  const n = Route.useLoaderData();
+  const n = Route.useLoaderData() as any;
   if (!n) return <pre className="mx-auto max-w-5xl px-4 py-8">Uutista ei löydy.</pre>;
   return <main className="mx-auto max-w-5xl px-4 py-8"><pre className="whitespace-pre-wrap break-words font-mono text-sm leading-6">{[
     "RYHÄMONOPOSTO — UUTINEN",

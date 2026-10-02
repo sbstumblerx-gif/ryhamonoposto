@@ -8,7 +8,7 @@ export const Route = createFileRoute("/data/tiimit/$slug")({
 });
 
 function TeamDataPage() {
-  const t = Route.useLoaderData();
+  const t = Route.useLoaderData() as any;
   if (!t) return <pre className="mx-auto max-w-5xl px-4 py-8">Tiimiä ei löydy.</pre>;
 
   return (
