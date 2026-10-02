@@ -56,7 +56,7 @@ function DataIndexPage() {
                 <strong>{t.name}</strong>
                 {" — "}lippu: {t.flag || "Ei tiedossa"}
                 {" — "}väri: {t.color_key}
-                {" — "}kuljettajat: {(t.current_driver_slugs ?? []).join(", ") || "Ei tiedossa"}
+                {" — "}kuljettajat: {((t.current_driver_slugs ?? []) as any[]).join(", ") || "Ei tiedossa"}
                 {" — "}sivu: /tiimit/{t.slug}
                 {" — "}data: /data/tiimit/{t.slug}
               </div>
