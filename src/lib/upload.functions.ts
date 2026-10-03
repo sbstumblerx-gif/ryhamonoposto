@@ -97,3 +97,26 @@ export const uploadUserMedia = createServerFn({ method: "POST" })
     if (sErr) throw sErr;
     return { url: signed.signedUrl, key };
   });
+
+export const createUserMediaUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => SignedMediaInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const cleanName = data.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const key = `user-posts/${context.userId}/${Date.now()}-${cleanName}`;
+    const { data: signed, error } = await supabaseAdmin.storage.from("media").createSignedUploadUrl(key);
+    if (error) throw error;
+    return { key, token: signed.token };
+  });
+
+export const finalizeUserMediaUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ key: z.string().min(1).max(500) }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!data.key.startsWith(`user-posts/${context.userId}/`)) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage.from("media").createSignedUrl(data.key, 60 * 60 * 24 * 365 * 10);
+    if (error) throw error;
+    return { url: signed.signedUrl };
+  });

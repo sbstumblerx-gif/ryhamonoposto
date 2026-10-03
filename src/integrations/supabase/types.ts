@@ -838,6 +838,7 @@ export type Database = {
       }
       official_entity_posts: {
         Row: {
+          author_id: string | null
           body: string
           created_at: string
           entity_slug: string
@@ -848,6 +849,7 @@ export type Database = {
           verified_official: boolean
         }
         Insert: {
+          author_id?: string | null
           body?: string
           created_at?: string
           entity_slug: string
@@ -858,6 +860,7 @@ export type Database = {
           verified_official?: boolean
         }
         Update: {
+          author_id?: string | null
           body?: string
           created_at?: string
           entity_slug?: string
