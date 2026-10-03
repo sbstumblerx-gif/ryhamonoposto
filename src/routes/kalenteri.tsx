@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { listCalendarSessions, addCalendarSession, deleteCalendarSession, SESSION_TYPES, type CalendarSession, type SessionType } from "@/lib/calendar.functions";
 import { listRaces } from "@/lib/content.functions";
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/kalenteri")({
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ] }),
+  validateSearch: (s: Record<string, unknown>): { date?: string } => (typeof s.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.date) ? { date: s.date } : {}),
   component: CalendarPage,
 });
 
@@ -38,6 +39,8 @@ function CalendarPage() {
   const [openDay, setOpenDay] = useState<string | null>(null);
   const [raceId, setRaceId] = useState(""), [type, setType] = useState<SessionType>("R"), [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { date: focusDate } = Route.useSearch();
+  useEffect(() => { if (!focusDate) return; const y = Number(focusDate.slice(0, 4)), m = Number(focusDate.slice(5, 7)) - 1; if (y >= 2026 && y <= 2040) { setYear(y); setMonth(m); setOpenDay(focusDate); } }, [focusDate]);
 
   const byDay = useMemo(() => { const m = new Map<string, CalendarSession[]>(); for (const s of q.data ?? []) { const a = m.get(s.session_date) ?? []; a.push(s); m.set(s.session_date, a); } return m; }, [q.data]);
   const first = new Date(year, month, 1), offset = (first.getDay() + 6) % 7, daysIn = new Date(year, month + 1, 0).getDate();

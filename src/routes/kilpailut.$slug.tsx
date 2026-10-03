@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { getRaceExtras, saveRaceExtra, deleteRaceExtra } from "@/lib/race-extra.functions";
+import { SESSION_TYPES } from "@/lib/calendar.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRace, upsertRace, listDrivers } from "@/lib/content.functions";
@@ -18,16 +20,29 @@ export const Route = createFileRoute("/kilpailut/$slug")({ head: ({ params }) =>
 function youtubeEmbedUrl(url: string | null | undefined): string | null { if (!url) return null; try { const u = new URL(url); let id = ""; if (u.hostname.includes("youtu.be")) id = u.pathname.slice(1); else if (u.searchParams.get("v")) id = u.searchParams.get("v") ?? ""; else if (u.pathname.startsWith("/embed/")) id = u.pathname.split("/embed/")[1] ?? ""; else if (u.pathname.startsWith("/shorts/")) id = u.pathname.split("/shorts/")[1] ?? ""; return id ? `https://www.youtube.com/embed/${id.split(/[?&]/)[0]}` : null; } catch { return null; } }
 function YouTubePreview({ url }: { url: string | null | undefined }) { const embed = youtubeEmbedUrl(url); if (!embed) return null; return <div className="mt-2 aspect-video w-full rounded overflow-hidden border border-primary/30 bg-black"><iframe src={embed} title="YouTube-esikatselu" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full" /></div>; }
 
-type Session = "sprintQualifying" | "sprint" | "qualifying" | "race";
+type Session = string;
 type SprintRace = { is_sprint_weekend?: boolean | null; sprint_qualifying_content?: string | null; sprint_content?: string | null; sprint_qualifying_media_url?: string | null; sprint_media_url?: string | null; sprint_qualifying_youtube_url?: string | null; sprint_youtube_url?: string | null; sprint_fastest_lap_driver_slug?: string | null };
 
 function RaceDetail() {
   const { slug } = Route.useParams(); const get = useServerFn(getRace); const save = useServerFn(upsertRace); const saveSprint = useServerFn(updateSprint); const list = useServerFn(listDrivers); const genResults = useServerFn(generateResultList); const qc = useQueryClient(); const admin = useAdmin(); const entities = useEntityIndex();
   const driversQuery = useQuery({ queryKey: ["drivers"], queryFn: () => list() }); const q = useQuery({ queryKey: ["race", slug], queryFn: () => get({ data: { slug } }) });
+  const extrasFn = useServerFn(getRaceExtras), saveExtra = useServerFn(saveRaceExtra), delExtra = useServerFn(deleteRaceExtra);
+  const raceId = (q.data as any)?.id as string | undefined;
+  const ex = useQuery({ queryKey: ["race-extras", raceId], queryFn: () => extrasFn({ data: { race_id: raceId! } }), enabled: !!raceId });
   const [tab, setTab] = useState<Session>("race"); const [aiBusy, setAiBusy] = useState(false);
   if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
   const r = q.data as NonNullable<typeof q.data>; if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
-  const isWinterTest = r.round_number === 0; const sprint = r as typeof r & SprintRace; const isSprint = !!sprint.is_sprint_weekend && !isWinterTest; const effectiveTab: Session = isWinterTest ? "race" : tab;
+  const isWinterTest = r.round_number === 0; const sprint = r as typeof r & SprintRace; const isSprint = !!sprint.is_sprint_weekend && !isWinterTest; const extras = ex.data?.extras ?? []; const schedule = ex.data?.schedule ?? [];
+  const seasonYear = Number((r.race_date ?? "").slice(0, 4)) || Number(r.name.match(/(20\d\d)/)?.[1] ?? 0);
+  const hasPractice = !isWinterTest && seasonYear >= 2027;
+  const testDays = isWinterTest ? Math.max(1, ...extras.filter(e => e.kind === "test").map(e => e.day_number)) : 0;
+  const effectiveTab: Session = isWinterTest ? (/^test[2-5]$/.test(tab) && Number(tab.slice(4)) <= testDays ? tab : "race") : (tab === "practice" && !hasPractice ? "race" : tab);
+  const extraKind: "test" | "practice" | null = effectiveTab === "practice" ? "practice" : effectiveTab.startsWith("test") ? "test" : null;
+  const extraDay = extraKind === "test" ? Number(effectiveTab.slice(4)) : 1;
+  const extra = extraKind ? extras.find(e => e.kind === extraKind && e.day_number === extraDay) : undefined;
+  async function patchExtra(p: { content?: string; youtube_url?: string | null }, kind = extraKind!, day = extraDay) { await saveExtra({ data: { race_id: r.id, kind, day_number: day, ...p } }); await qc.invalidateQueries({ queryKey: ["race-extras", r.id] }); toast.success("Tallennettu"); }
+  async function addTestDay() { if (testDays >= 5) return; await patchExtra({ content: "" }, "test", testDays + 1); setTab(`test${testDays + 1}`); }
+  async function removeTestDay() { const last = extras.find(e => e.kind === "test" && e.day_number === testDays); if (!last || !confirm(`Poistetaanko testipäivä ${testDays}?`)) return; await delExtra({ data: { id: last.id } }); setTab("race"); await qc.invalidateQueries({ queryKey: ["race-extras", r.id] }); }
   const special = r as typeof r & { driver_of_the_day_slug?: string | null; fastest_lap_driver_slug?: string | null };
   async function patch(partial: Partial<{ qualifying_content: string; race_content: string; qualifying_media_url: string | null; race_media_url: string | null; youtube_url: string | null; qualifying_youtube_url: string | null; race_youtube_url: string | null; round_number: number | null; driver_of_the_day_slug: string | null; fastest_lap_driver_slug: string | null }>) {
     await save({ data: { id: r.id, name: r.name, flag: r.flag, race_date: r.race_date, round_number: partial.round_number !== undefined ? partial.round_number : (r.round_number ?? null), qualifying_content: partial.qualifying_content ?? r.qualifying_content ?? "", race_content: partial.race_content ?? r.race_content ?? "", qualifying_media_url: partial.qualifying_media_url ?? r.qualifying_media_url ?? null, race_media_url: partial.race_media_url ?? r.race_media_url ?? null, youtube_url: partial.youtube_url ?? r.youtube_url ?? null, qualifying_youtube_url: partial.qualifying_youtube_url ?? r.qualifying_youtube_url ?? null, race_youtube_url: partial.race_youtube_url ?? r.race_youtube_url ?? null, driver_of_the_day_slug: partial.driver_of_the_day_slug !== undefined ? partial.driver_of_the_day_slug : (special.driver_of_the_day_slug ?? null), fastest_lap_driver_slug: partial.fastest_lap_driver_slug !== undefined ? partial.fastest_lap_driver_slug : (special.fastest_lap_driver_slug ?? null) } as any });
@@ -42,13 +57,21 @@ function RaceDetail() {
   const drivers = driversQuery.data ?? [];
   const sessionLabel = effectiveTab === "sprintQualifying" ? "sprintin aika-ajot" : effectiveTab === "sprint" ? "sprintti" : effectiveTab === "qualifying" ? "aika-ajot" : "kisa";
   const isSprintSession = effectiveTab === "sprintQualifying" || effectiveTab === "sprint";
-  const tabs: Session[] = isSprint ? ["sprintQualifying", "sprint", "qualifying", "race"] : ["qualifying", "race"];
+  const tabs: Session[] = isWinterTest ? ["race", ...Array.from({ length: testDays - 1 }, (_, i) => `test${i + 2}`)] : [...(hasPractice ? ["practice"] : []), ...(isSprint ? ["sprintQualifying", "sprint", "qualifying", "race"] : ["qualifying", "race"])];
+  const tabLabel = (k: string) => isWinterTest ? (k === "race" ? "Päivä 1" : `Päivä ${k.slice(4)}`) : k === "practice" ? "Vapaat harjoitukset" : k === "sprintQualifying" ? "Sprintin aika-ajo" : k === "sprint" ? "Sprintti" : k === "qualifying" ? "Aika-ajo" : "Kisa";
 
   return <div className="mx-auto max-w-4xl px-4 py-8">
     <div className="flex items-center gap-3 flex-wrap"><span className="text-3xl">{r.flag}</span>{r.round_number != null && <span className="font-display text-sm px-2 py-1 rounded border border-primary/60 text-primary">{isWinterTest ? "TALVITESTIT" : `R${r.round_number}`}</span>}<h1 className="font-display uppercase tracking-widest text-2xl md:text-3xl">{r.name}</h1>{isSprint && <img src="/images/sprint/ChatGPT Image 16.9.2026 klo 09.46.02.png" alt="Sprinttiviikonloppu" className="h-10 w-auto max-w-20 object-contain" />}</div>
     <div className="hairline-red mt-3 mb-6" />
     <RaceHighlights raceSlug={slug} />
-    {!isWinterTest && <div className="flex gap-2 mb-4 overflow-x-auto pb-1">{tabs.map(k => <button key={k} onClick={() => setTab(k)} className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border whitespace-nowrap ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>{k === "sprintQualifying" ? "Sprintin aika-ajo" : k === "sprint" ? "Sprintti" : k === "qualifying" ? "Aika-ajo" : "Kisa"}</button>)}</div>}
+    {schedule.length > 0 && <section className="card-dark p-3 mb-5"><div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Aikataulu</div><div className="grid gap-1">{schedule.map(s => <Link key={s.id} to="/kalenteri" search={{ date: s.session_date }} className="flex items-center gap-3 rounded px-2 py-2 hover:bg-primary/10 border border-transparent hover:border-primary/30"><span className="font-display text-xs w-8 text-center rounded border border-primary/50 text-primary py-0.5">{s.session_type}</span><span className="text-sm flex-1">{(SESSION_TYPES as any)[s.session_type] ?? s.session_type}</span><span className="text-xs text-muted-foreground capitalize">{new Date(s.session_date + "T12:00:00").toLocaleDateString("fi-FI", { weekday: "short", day: "numeric", month: "numeric", year: "numeric" })}</span><span className="text-primary text-xs">📅</span></Link>)}</div></section>}
+    {(tabs.length > 1 || (isWinterTest && admin.isAdmin)) && <div className="flex gap-2 mb-4 overflow-x-auto pb-1">{tabs.map(k => <button key={k} onClick={() => setTab(k)} className={`px-4 py-2 text-xs font-display uppercase tracking-widest rounded border whitespace-nowrap ${effectiveTab === k ? "bg-primary text-primary-foreground border-primary" : "border-primary/40 hover:border-primary"}`}>{tabLabel(k)}</button>)}{isWinterTest && admin.isAdmin && testDays < 5 && <button onClick={() => void addTestDay()} className="px-3 py-2 text-xs font-display uppercase tracking-widest rounded border border-dashed border-primary/50 whitespace-nowrap">+ Testipäivä</button>}{isWinterTest && admin.isAdmin && testDays > 1 && <button onClick={() => void removeTestDay()} className="px-3 py-2 text-xs rounded border border-primary/30 text-muted-foreground whitespace-nowrap">Poista päivä {testDays}</button>}</div>}
+    {extraKind ? <>
+      {extra?.youtube_url && <YouTubePreview url={extra.youtube_url} />}
+      {admin.isAdmin && <div className="card-dark p-3 my-4 space-y-3"><p className="text-xs text-muted-foreground italic">{extraKind === "test" ? `Testipäivä ${extraDay}` : "Vapaat harjoitukset"} — vain tulosliuska, ei vaikuta tilastoihin.</p><div className="flex items-center gap-2"><span className="text-xs uppercase tracking-widest text-muted-foreground">YouTube-linkki</span><input key={`${effectiveTab}-yt-${extra?.youtube_url ?? ""}`} defaultValue={extra?.youtube_url ?? ""} onBlur={e => { const v = e.target.value.trim() || null; if (v !== (extra?.youtube_url ?? null)) void patchExtra({ youtube_url: v }); }} placeholder="https://youtu.be/…" className="flex-1 bg-black/70 border border-primary/30 rounded p-2 text-sm" /></div><EditableText value={extra?.content ?? ""} multiline placeholder="Kirjoita tulosliuska… nimet linkittyvät automaattisesti." onSave={v => patchExtra({ content: v })} /></div>}
+      <SmartText text={extra?.content ?? ""} entities={entities} className="text-sm leading-6 mt-4" />
+      {!extra?.content && !admin.isAdmin && <p className="text-sm text-muted-foreground">Ei vielä tuloksia.</p>}
+    </> : <>
     {activeMedia && <img src={activeMedia} alt="" className="w-full rounded border border-primary/30 mb-4" />}
     {activeYoutube && <YouTubePreview url={activeYoutube} />}
     {admin.isAdmin && <div className="card-dark p-3 mb-4 space-y-3">
@@ -63,6 +86,7 @@ function RaceDetail() {
       <EditableText value={activeContent} multiline placeholder={isSprintSession ? "Kirjoita sprintin tulostiedot… nimet linkittyvät automaattisesti." : isWinterTest ? "Kirjoita talvitestien tulosliuska… nimet linkittyvät automaattisesti." : "Kirjoita tulostiedot… nimet linkittyvät automaattisesti."} onSave={v => isSprintSession ? patchSprint(effectiveTab === "sprintQualifying" ? { sprint_qualifying_content: v } : { sprint_content: v }) : patch(effectiveTab === "qualifying" ? { qualifying_content: v } : { race_content: v })} />
     </div>}
     <SmartText text={activeContent} entities={entities} className="text-sm leading-6" />
+    </>}
     {!isWinterTest && (special.driver_of_the_day_slug || special.fastest_lap_driver_slug || sprint.sprint_fastest_lap_driver_slug) && <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-2">{special.driver_of_the_day_slug && <div className="card-dark p-3"><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Päivän kuljettaja</div><div className="font-display text-primary mt-1">{drivers.find(d => d.slug === special.driver_of_the_day_slug)?.name ?? "–"}</div></div>}{special.fastest_lap_driver_slug && <div className="card-dark p-3"><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Nopein kierros</div><div className="font-display text-primary mt-1">{drivers.find(d => d.slug === special.fastest_lap_driver_slug)?.name ?? "–"}</div></div>}{sprint.sprint_fastest_lap_driver_slug && <div className="card-dark p-3"><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Sprintin nopein kierros</div><div className="font-display text-primary mt-1">{drivers.find(d => d.slug === sprint.sprint_fastest_lap_driver_slug)?.name ?? "–"}</div></div>}</div>}
     <Comments entityType={`race:${effectiveTab}`} entityId={r.id} />
   </div>;
