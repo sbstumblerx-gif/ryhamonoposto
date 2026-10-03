@@ -1082,6 +1082,47 @@ export type Database = {
           },
         ]
       }
+      race_extra_sessions: {
+        Row: {
+          content: string
+          created_at: string
+          day_number: number
+          id: string
+          kind: string
+          race_id: string
+          updated_at: string
+          youtube_url: string | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          kind: string
+          race_id: string
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          kind?: string
+          race_id?: string
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_extra_sessions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       race_sessions: {
         Row: {
           created_at: string
