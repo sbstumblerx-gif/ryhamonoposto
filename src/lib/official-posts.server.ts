@@ -36,3 +36,15 @@ export async function commentOfficialPost(userId: string, postId: string, body: 
 export async function createUserPost(userId: string, body: string, media_url?: string | null) { const database = await db(); const { data, error } = await database.from("official_entity_posts").insert({ entity_type: "user", entity_slug: userId, author_id: userId, body: body.trim(), media_url: media_url ?? null, verified_official: false, published: true }).select().single(); if (error) throw error; return data; }
 export async function listMyPosts(userId: string) { const database = await db(); const { data, error } = await database.from("official_entity_posts").select("id, entity_type, entity_slug, author_id, body, media_url, created_at, verified_official").eq("author_id", userId).order("created_at", { ascending: false }).limit(100); if (error) throw error; return enrichPosts(database, data ?? [], userId); }
 export async function deleteMyPost(userId: string, postId: string) { const database = await db(); const { error } = await database.from("official_entity_posts").delete().eq("id", postId).eq("author_id", userId); if (error) throw error; return { ok: true }; }
+
+
+export async function adminDeleteOfficialPost(postId: string) {
+  await requireAdmin();
+  const database = await db();
+  const { data: post, error: findError } = await database.from("official_entity_posts").select("id").eq("id", postId).maybeSingle();
+  if (findError) throw findError;
+  if (!post) throw new Error("Julkaisua ei löytynyt");
+  const { error } = await database.from("official_entity_posts").delete().eq("id", postId);
+  if (error) throw error;
+  return { ok: true };
+}
