@@ -44,6 +44,14 @@ export async function adminDeleteOfficialPost(postId: string) {
   const { data: post, error: findError } = await database.from("official_entity_posts").select("id").eq("id", postId).maybeSingle();
   if (findError) throw findError;
   if (!post) throw new Error("Julkaisua ei löytynyt");
+
+  await database.from("fan_point_events").delete().like("event_key", `like:${postId}:%`);
+  const { data: comments } = await database.from("comments").select("id").eq("entity_type", "official_post").eq("entity_id", postId);
+  for (const comment of comments ?? []) {
+    await removeFanPointEvent(`comment:${comment.id}`);
+  }
+  await database.from("comments").delete().eq("entity_type", "official_post").eq("entity_id", postId);
+
   const { error } = await database.from("official_entity_posts").delete().eq("id", postId);
   if (error) throw error;
   return { ok: true };
