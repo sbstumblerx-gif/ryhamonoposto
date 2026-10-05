@@ -48,3 +48,8 @@ export const deleteMyPost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ post_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => (await import("./official-posts.server")).deleteMyPost(context.userId, data.post_id));
+
+
+export const adminDeleteOfficialPost = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ post_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => (await import("./official-posts.server")).adminDeleteOfficialPost(data.post_id));
