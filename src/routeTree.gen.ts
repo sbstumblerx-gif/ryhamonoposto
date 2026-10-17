@@ -20,6 +20,7 @@ import { Route as KalenteriRouteImport } from './routes/kalenteri'
 import { Route as KilpailutRouteImport } from './routes/kilpailut'
 import { Route as KokoelmaRouteImport } from './routes/kokoelma'
 import { Route as KuljettajatRouteImport } from './routes/kuljettajat'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as OmatPostauksetRouteImport } from './routes/omat-postaukset'
 import { Route as PelaaRouteImport } from './routes/pelaa'
 import { Route as PostauksetRouteImport } from './routes/postaukset'
@@ -32,6 +33,7 @@ import { Route as TilastotRouteImport } from './routes/tilastot'
 import { Route as UutisetRouteImport } from './routes/uutiset'
 import { Route as VeikkaaRouteImport } from './routes/veikkaa'
 import { Route as YstavatRouteImport } from './routes/ystavat'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as GraphicsIdRouteImport } from './routes/graphics.$id'
 import { Route as KayttajatIdRouteImport } from './routes/kayttajat.$id'
 import { Route as KilpailutIndexRouteImport } from './routes/kilpailut.index'
@@ -110,6 +112,11 @@ const KuljettajatRoute = KuljettajatRouteImport.update({
   path: '/kuljettajat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OmatPostauksetRoute = OmatPostauksetRouteImport.update({
   id: '/omat-postaukset',
   path: '/omat-postaukset',
@@ -170,6 +177,12 @@ const YstavatRoute = YstavatRouteImport.update({
   path: '/ystavat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GraphicsIdRoute = GraphicsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -293,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kokoelma': typeof KokoelmaRoute
   '/kuljettajat': typeof KuljettajatRouteWithChildren
+  '/mcp': typeof McpRoute
   '/omat-postaukset': typeof OmatPostauksetRoute
   '/pelaa': typeof PelaaRoute
   '/postaukset': typeof PostauksetRoute
@@ -305,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/uutiset': typeof UutisetRouteWithChildren
   '/veikkaa': typeof VeikkaaRoute
   '/ystavat': typeof YstavatRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/graphics/$id': typeof GraphicsIdRoute
   '/kayttajat/$id': typeof KayttajatIdRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
@@ -338,6 +353,7 @@ export interface FileRoutesByTo {
   '/ilmoitukset': typeof IlmoituksetRoute
   '/kalenteri': typeof KalenteriRoute
   '/kokoelma': typeof KokoelmaRoute
+  '/mcp': typeof McpRoute
   '/omat-postaukset': typeof OmatPostauksetRoute
   '/pelaa': typeof PelaaRoute
   '/postaukset': typeof PostauksetRoute
@@ -347,6 +363,7 @@ export interface FileRoutesByTo {
   '/tekoalytila': typeof TekoalytilaRoute
   '/veikkaa': typeof VeikkaaRoute
   '/ystavat': typeof YstavatRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/graphics/$id': typeof GraphicsIdRoute
   '/kayttajat/$id': typeof KayttajatIdRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
@@ -383,6 +400,7 @@ export interface FileRoutesById {
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kokoelma': typeof KokoelmaRoute
   '/kuljettajat': typeof KuljettajatRouteWithChildren
+  '/mcp': typeof McpRoute
   '/omat-postaukset': typeof OmatPostauksetRoute
   '/pelaa': typeof PelaaRoute
   '/postaukset': typeof PostauksetRoute
@@ -395,6 +413,7 @@ export interface FileRoutesById {
   '/uutiset': typeof UutisetRouteWithChildren
   '/veikkaa': typeof VeikkaaRoute
   '/ystavat': typeof YstavatRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/graphics/$id': typeof GraphicsIdRoute
   '/kayttajat/$id': typeof KayttajatIdRoute
   '/kilpailut/$slug': typeof KilpailutSlugRoute
@@ -432,6 +451,7 @@ export interface FileRouteTypes {
     | '/kilpailut'
     | '/kokoelma'
     | '/kuljettajat'
+    | '/mcp'
     | '/omat-postaukset'
     | '/pelaa'
     | '/postaukset'
@@ -444,6 +464,7 @@ export interface FileRouteTypes {
     | '/uutiset'
     | '/veikkaa'
     | '/ystavat'
+    | '/.well-known/oauth-protected-resource'
     | '/graphics/$id'
     | '/kayttajat/$id'
     | '/kilpailut/$slug'
@@ -477,6 +498,7 @@ export interface FileRouteTypes {
     | '/ilmoitukset'
     | '/kalenteri'
     | '/kokoelma'
+    | '/mcp'
     | '/omat-postaukset'
     | '/pelaa'
     | '/postaukset'
@@ -486,6 +508,7 @@ export interface FileRouteTypes {
     | '/tekoalytila'
     | '/veikkaa'
     | '/ystavat'
+    | '/.well-known/oauth-protected-resource'
     | '/graphics/$id'
     | '/kayttajat/$id'
     | '/kilpailut/$slug'
@@ -521,6 +544,7 @@ export interface FileRouteTypes {
     | '/kilpailut'
     | '/kokoelma'
     | '/kuljettajat'
+    | '/mcp'
     | '/omat-postaukset'
     | '/pelaa'
     | '/postaukset'
@@ -533,6 +557,7 @@ export interface FileRouteTypes {
     | '/uutiset'
     | '/veikkaa'
     | '/ystavat'
+    | '/.well-known/oauth-protected-resource'
     | '/graphics/$id'
     | '/kayttajat/$id'
     | '/kilpailut/$slug'
@@ -569,6 +594,7 @@ export interface RootRouteChildren {
   KilpailutRoute: typeof KilpailutRouteWithChildren
   KokoelmaRoute: typeof KokoelmaRoute
   KuljettajatRoute: typeof KuljettajatRouteWithChildren
+  McpRoute: typeof McpRoute
   OmatPostauksetRoute: typeof OmatPostauksetRoute
   PelaaRoute: typeof PelaaRoute
   PostauksetRoute: typeof PostauksetRoute
@@ -581,6 +607,7 @@ export interface RootRouteChildren {
   UutisetRoute: typeof UutisetRouteWithChildren
   VeikkaaRoute: typeof VeikkaaRoute
   YstavatRoute: typeof YstavatRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   KayttajatIdRoute: typeof KayttajatIdRoute
   KlubitIdRoute: typeof KlubitIdRoute
   KlubitunnisteTagRoute: typeof KlubitunnisteTagRoute
@@ -668,6 +695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KuljettajatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/omat-postaukset': {
       id: '/omat-postaukset'
       path: '/omat-postaukset'
@@ -750,6 +784,13 @@ declare module '@tanstack/react-router' {
       path: '/ystavat'
       fullPath: '/ystavat'
       preLoaderRoute: typeof YstavatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/graphics/$id': {
@@ -1019,6 +1060,7 @@ const rootRouteChildren: RootRouteChildren = {
   KilpailutRoute: KilpailutRouteWithChildren,
   KokoelmaRoute: KokoelmaRoute,
   KuljettajatRoute: KuljettajatRouteWithChildren,
+  McpRoute: McpRoute,
   OmatPostauksetRoute: OmatPostauksetRoute,
   PelaaRoute: PelaaRoute,
   PostauksetRoute: PostauksetRoute,
@@ -1031,6 +1073,8 @@ const rootRouteChildren: RootRouteChildren = {
   UutisetRoute: UutisetRouteWithChildren,
   VeikkaaRoute: VeikkaaRoute,
   YstavatRoute: YstavatRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   KayttajatIdRoute: KayttajatIdRoute,
   KlubitIdRoute: KlubitIdRoute,
   KlubitunnisteTagRoute: KlubitunnisteTagRoute,
