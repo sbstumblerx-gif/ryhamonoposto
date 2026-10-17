@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { listCalendarSessions, addCalendarSession, deleteCalendarSession, SESSION_TYPES, type CalendarSession, type SessionType } from "@/lib/calendar.functions";
 import { listRaces } from "@/lib/content.functions";
 import { useAdmin } from "@/components/admin-store";
+import { useWebMCP } from "use-webmcp-tool";
+import { runWebMCPTool } from "@/lib/webmcp-telemetry";
 
 export const Route = createFileRoute("/kalenteri")({
   head: () => ({ meta: [
@@ -51,6 +53,37 @@ function CalendarPage() {
   const daySessions = openDay ? byDay.get(openDay) ?? [] : [];
   const icsUrl = typeof window !== "undefined" ? `${window.location.origin}/api/public/kalenteri/ics` : "/api/public/kalenteri/ics";
 
+  function showMonth(y: number, m: number) {
+    if (!Number.isInteger(y) || y < 2026 || y > 2040 || !Number.isInteger(m) || m < 0 || m > 11) throw new Error("Valitse vuosi 2026–2040 ja kuukausi 1–12.");
+    setYear(y); setMonth(m); setOpenDay(null);
+  }
+  useWebMCP({
+    name: "read_calendar", description: "Read sessions in the calendar month currently shown, with IDs, dates and race names.",
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
+    execute: () => runWebMCPTool("read_calendar", () => {
+      if (q.isPending) return "Kalenteri latautuu.";
+      if (q.isError) throw new Error("Kalenterin lataus epäonnistui.");
+      const visible = (q.data ?? []).filter(s => s.session_date.startsWith(`${year}-${pad(month + 1)}-`));
+      return `${MONTHS[month]} ${year}\n` + (visible.map(s => `${s.id}: ${s.session_date} — ${s.race?.flag ?? ""} ${s.race?.name ?? ""}, ${SESSION_TYPES[s.session_type]}`).join("\n") || "Ei sessioita.");
+    }),
+  });
+  useWebMCP({
+    name: "show_calendar_month", description: "Change the visible calendar year and month using the same action as its selectors.",
+    inputSchema: { type: "object", properties: { year: { type: "integer", minimum: 2026, maximum: 2040, description: "Year to show (2026–2040)." }, month: { type: "integer", minimum: 1, maximum: 12, description: "Month to show (1–12)." } }, required: ["year", "month"] },
+    execute: ({ year: y, month: m }: { year: number; month: number }) => runWebMCPTool("show_calendar_month", () => { if (typeof y !== "number" || typeof m !== "number") throw new Error("Vuosi ja kuukausi vaaditaan numeroina."); showMonth(y, m - 1); return `Näytetään ${MONTHS[m - 1]} ${y}.`; }),
+  });
+  useWebMCP({
+    name: "open_calendar_session", description: "Open a session in the currently visible month using its ID from read_calendar.",
+    enabled: q.isSuccess,
+    inputSchema: { type: "object", properties: { id: { type: "string", description: "Visible session ID from read_calendar." } }, required: ["id"] },
+    execute: ({ id }: { id: string }) => runWebMCPTool("open_calendar_session", () => {
+      if (typeof id !== "string") throw new Error("Session tunniste vaaditaan.");
+      const session = (q.data ?? []).find(s => s.id === id && s.session_date.startsWith(`${year}-${pad(month + 1)}-`));
+      if (!session) throw new Error("Sessio ei ole näkyvässä kuukaudessa.");
+      setOpenDay(session.session_date); return "Session tiedot avattu.";
+    }),
+  });
+
   function shift(d: number) { let m = month + d, y = year; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } if (y < 2026 || y > 2040) return; setMonth(m); setYear(y); }
   async function add() {
     if (!openDay || !raceId) { toast.error("Valitse kilpailu"); return; }
@@ -65,8 +98,8 @@ function CalendarPage() {
     <div className="hairline-red mt-3 mb-6" />
     <div className="flex flex-wrap items-center gap-2 mb-4">
       <button onClick={() => shift(-1)} aria-label="Edellinen kuukausi" className="px-3 py-2 border border-primary/40 rounded hover:bg-primary/20">‹</button>
-      <select value={month} onChange={e => setMonth(Number(e.target.value))} className="bg-black/70 border border-primary/40 rounded p-2 text-sm font-display uppercase tracking-widest">{MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}</select>
-      <select value={year} onChange={e => setYear(Number(e.target.value))} className="bg-black/70 border border-primary/40 rounded p-2 text-sm font-display">{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select>
+      <select value={month} onChange={e => showMonth(year, Number(e.target.value))} className="bg-black/70 border border-primary/40 rounded p-2 text-sm font-display uppercase tracking-widest">{MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}</select>
+      <select value={year} onChange={e => showMonth(Number(e.target.value), month)} className="bg-black/70 border border-primary/40 rounded p-2 text-sm font-display">{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select>
       <button onClick={() => shift(1)} aria-label="Seuraava kuukausi" className="px-3 py-2 border border-primary/40 rounded hover:bg-primary/20">›</button>
       <div className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground font-display">T = Testaus · P = Vapaat harjoitukset · SQ = Sprintin aika-ajot · S = Sprintti · Q = Aika-ajot · R = Kilpailu</div>
     </div>

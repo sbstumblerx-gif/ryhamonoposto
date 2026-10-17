@@ -20,6 +20,7 @@ import { Route as KalenteriRouteImport } from './routes/kalenteri'
 import { Route as KilpailutRouteImport } from './routes/kilpailut'
 import { Route as KokoelmaRouteImport } from './routes/kokoelma'
 import { Route as KuljettajatRouteImport } from './routes/kuljettajat'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as OmatPostauksetRouteImport } from './routes/omat-postaukset'
 import { Route as PelaaRouteImport } from './routes/pelaa'
@@ -50,6 +51,7 @@ import { Route as TilastotSeasonRouteImport } from './routes/tilastot.$season'
 import { Route as TilastotKokoHistoriaRouteImport } from './routes/tilastot.koko-historia'
 import { Route as UutisetIndexRouteImport } from './routes/uutiset.index'
 import { Route as UutisetSlugRouteImport } from './routes/uutiset.$slug'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as DataKilpailutSlugRouteImport } from './routes/data.kilpailut.$slug'
 import { Route as DataKuljettajatSlugRouteImport } from './routes/data.kuljettajat.$slug'
 import { Route as DataTiimitSlugRouteImport } from './routes/data.tiimit.$slug'
@@ -110,6 +112,11 @@ const KokoelmaRoute = KokoelmaRouteImport.update({
 const KuljettajatRoute = KuljettajatRouteImport.update({
   id: '/kuljettajat',
   path: '/kuljettajat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -263,6 +270,11 @@ const UutisetSlugRoute = UutisetSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => UutisetRoute,
 } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DataKilpailutSlugRoute = DataKilpailutSlugRouteImport.update({
   id: '/kilpailut/$slug',
   path: '/kilpailut/$slug',
@@ -306,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kokoelma': typeof KokoelmaRoute
   '/kuljettajat': typeof KuljettajatRouteWithChildren
+  '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/omat-postaukset': typeof OmatPostauksetRoute
   '/pelaa': typeof PelaaRoute
@@ -336,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/tiimit/': typeof TiimitIndexRoute
   '/tilastot/': typeof TilastotIndexRoute
   '/uutiset/': typeof UutisetIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/data/kilpailut/$slug': typeof DataKilpailutSlugRoute
   '/data/kuljettajat/$slug': typeof DataKuljettajatSlugRoute
   '/data/tiimit/$slug': typeof DataTiimitSlugRoute
@@ -353,6 +367,7 @@ export interface FileRoutesByTo {
   '/ilmoitukset': typeof IlmoituksetRoute
   '/kalenteri': typeof KalenteriRoute
   '/kokoelma': typeof KokoelmaRoute
+  '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/omat-postaukset': typeof OmatPostauksetRoute
   '/pelaa': typeof PelaaRoute
@@ -380,6 +395,7 @@ export interface FileRoutesByTo {
   '/tiimit': typeof TiimitIndexRoute
   '/tilastot': typeof TilastotIndexRoute
   '/uutiset': typeof UutisetIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/data/kilpailut/$slug': typeof DataKilpailutSlugRoute
   '/data/kuljettajat/$slug': typeof DataKuljettajatSlugRoute
   '/data/tiimit/$slug': typeof DataTiimitSlugRoute
@@ -400,6 +416,7 @@ export interface FileRoutesById {
   '/kilpailut': typeof KilpailutRouteWithChildren
   '/kokoelma': typeof KokoelmaRoute
   '/kuljettajat': typeof KuljettajatRouteWithChildren
+  '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/omat-postaukset': typeof OmatPostauksetRoute
   '/pelaa': typeof PelaaRoute
@@ -430,6 +447,7 @@ export interface FileRoutesById {
   '/tiimit/': typeof TiimitIndexRoute
   '/tilastot/': typeof TilastotIndexRoute
   '/uutiset/': typeof UutisetIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/data/kilpailut/$slug': typeof DataKilpailutSlugRoute
   '/data/kuljettajat/$slug': typeof DataKuljettajatSlugRoute
   '/data/tiimit/$slug': typeof DataTiimitSlugRoute
@@ -451,6 +469,7 @@ export interface FileRouteTypes {
     | '/kilpailut'
     | '/kokoelma'
     | '/kuljettajat'
+    | '/login'
     | '/mcp'
     | '/omat-postaukset'
     | '/pelaa'
@@ -481,6 +500,7 @@ export interface FileRouteTypes {
     | '/tiimit/'
     | '/tilastot/'
     | '/uutiset/'
+    | '/.lovable/oauth/consent'
     | '/data/kilpailut/$slug'
     | '/data/kuljettajat/$slug'
     | '/data/tiimit/$slug'
@@ -498,6 +518,7 @@ export interface FileRouteTypes {
     | '/ilmoitukset'
     | '/kalenteri'
     | '/kokoelma'
+    | '/login'
     | '/mcp'
     | '/omat-postaukset'
     | '/pelaa'
@@ -525,6 +546,7 @@ export interface FileRouteTypes {
     | '/tiimit'
     | '/tilastot'
     | '/uutiset'
+    | '/.lovable/oauth/consent'
     | '/data/kilpailut/$slug'
     | '/data/kuljettajat/$slug'
     | '/data/tiimit/$slug'
@@ -544,6 +566,7 @@ export interface FileRouteTypes {
     | '/kilpailut'
     | '/kokoelma'
     | '/kuljettajat'
+    | '/login'
     | '/mcp'
     | '/omat-postaukset'
     | '/pelaa'
@@ -574,6 +597,7 @@ export interface FileRouteTypes {
     | '/tiimit/'
     | '/tilastot/'
     | '/uutiset/'
+    | '/.lovable/oauth/consent'
     | '/data/kilpailut/$slug'
     | '/data/kuljettajat/$slug'
     | '/data/tiimit/$slug'
@@ -594,6 +618,7 @@ export interface RootRouteChildren {
   KilpailutRoute: typeof KilpailutRouteWithChildren
   KokoelmaRoute: typeof KokoelmaRoute
   KuljettajatRoute: typeof KuljettajatRouteWithChildren
+  LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
   OmatPostauksetRoute: typeof OmatPostauksetRoute
   PelaaRoute: typeof PelaaRoute
@@ -612,6 +637,7 @@ export interface RootRouteChildren {
   KlubitIdRoute: typeof KlubitIdRoute
   KlubitunnisteTagRoute: typeof KlubitunnisteTagRoute
   KlubitIndexRoute: typeof KlubitIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   KlubitLiityCodeRoute: typeof KlubitLiityCodeRoute
   ApiPublicKalenteriIcsRoute: typeof ApiPublicKalenteriIcsRoute
 }
@@ -693,6 +719,13 @@ declare module '@tanstack/react-router' {
       path: '/kuljettajat'
       fullPath: '/kuljettajat'
       preLoaderRoute: typeof KuljettajatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -905,6 +938,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UutisetSlugRouteImport
       parentRoute: typeof UutisetRoute
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/data/kilpailut/$slug': {
       id: '/data/kilpailut/$slug'
       path: '/kilpailut/$slug'
@@ -1060,6 +1100,7 @@ const rootRouteChildren: RootRouteChildren = {
   KilpailutRoute: KilpailutRouteWithChildren,
   KokoelmaRoute: KokoelmaRoute,
   KuljettajatRoute: KuljettajatRouteWithChildren,
+  LoginRoute: LoginRoute,
   McpRoute: McpRoute,
   OmatPostauksetRoute: OmatPostauksetRoute,
   PelaaRoute: PelaaRoute,
@@ -1079,6 +1120,7 @@ const rootRouteChildren: RootRouteChildren = {
   KlubitIdRoute: KlubitIdRoute,
   KlubitunnisteTagRoute: KlubitunnisteTagRoute,
   KlubitIndexRoute: KlubitIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   KlubitLiityCodeRoute: KlubitLiityCodeRoute,
   ApiPublicKalenteriIcsRoute: ApiPublicKalenteriIcsRoute,
 }
