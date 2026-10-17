@@ -62,8 +62,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#000000" },
       { name: "twitter:title", content: "RyhäMonoposto - kotisivu" },
       { name: "twitter:description", content: "RyhäMonoposto-sarjan viralliset kotisivut: kisat, kuljettajat, tiimit, uutiset ja tilastot." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/LOzan581mqhLvcrk5k9IqpGrXEn1/social-images/social-1784396025741-1000003089.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/LOzan581mqhLvcrk5k9IqpGrXEn1/social-images/social-1784396025741-1000003089.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "sdk_version": "3.0.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://nfukkcipyjrcpcltvklq.supabase.co/auth/v1",
+    "require_oauth_client_claim": true,
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "ryh-monoposto",
+      "version": "0.1.0",
+      "title": "RyhäMonoposto"
+    },
+    "tools": [
+      {
+        "name": "list_races",
+        "title": "Kilpailut",
+        "description": "List RyhäMonoposto races with dates, flags, rounds and links, optionally searching their names.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Optional text to find in a race name."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "description": "Maximum races returned (1–100)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_drivers",
+        "title": "Kuljettajat",
+        "description": "Read RyhäMonoposto driver names, numbers, teams and registered contract end years.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "description": "Maximum drivers returned (1–100)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_calendar_sessions",
+        "title": "Kalenterin sessiot",
+        "description": "Read scheduled all-day race sessions for a month, with race names and calendar links.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "year": {
+              "type": "integer",
+              "minimum": 2026,
+              "maximum": 2040,
+              "description": "Calendar year (2026–2040)."
+            },
+            "month": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12,
+              "description": "Calendar month (1–12)."
+            }
+          },
+          "required": [
+            "year",
+            "month"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "read_my_profile",
+        "title": "Oma profiili",
+        "description": "Read only the connected user's RyhäMonoposto display name and avatar.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
