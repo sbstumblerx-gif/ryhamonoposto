@@ -27,7 +27,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     return data;
   },
   pendingComponent: () => <p className="mx-auto max-w-md px-4 py-12 text-muted-foreground">Ladataan yhteyspyyntöä…</p>,
-  errorComponent: ({ error }) => <section className="mx-auto max-w-md px-4 py-12 space-y-4"><h1 className="font-display text-xl text-primary">Yhteyttä ei voitu avata</h1><p role="alert">{error.message}</p><Button asChild variant="outline"><a href="/">Etusivulle</a></Button></section>,
+  errorComponent: ({ error }) => <section className="mx-auto max-w-md px-4 py-12 space-y-4"><h1 className="font-display text-xl text-primary">Yhteyttä ei voitu avata</h1><p role="alert">{error instanceof Error ? error.message : "Yhteyspyyntöä ei voitu ladata."}</p><Button asChild variant="outline"><a href="/">Etusivulle</a></Button></section>,
   component: Consent,
 });
 function Consent() {

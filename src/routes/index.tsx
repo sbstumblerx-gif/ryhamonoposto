@@ -19,6 +19,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "RyhäMonoposto-sarjan viralliset kotisivut — kisat, kuljettajat, tiimit, uutiset, tilastot ja AI-tila." },
       { property: "og:title", content: "RyhäMonoposto - kotisivu" },
       { property: "og:description", content: "RyhäMonoposto-sarjan viralliset kotisivut — kisat, kuljettajat, tiimit, uutiset, tilastot ja AI-tila." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Home,
