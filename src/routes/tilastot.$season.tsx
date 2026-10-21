@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getSeason } from "@/lib/seasons.functions";
 import { getStandings } from "@/lib/stats.functions";
-import { seasonYearFromName } from "@/lib/stats-compute";
+import { aggregateNationalityRows } from "@/lib/stats-compute";
+import { seasonYearFromName, aggregateNationalityRows } from "@/lib/stats-compute";
 import { StandingsTable, STAT_FIELDS, type StatFieldKey } from "@/components/StandingsTable";
 import { Comments } from "@/components/Comments";
 import { useState } from "react";
@@ -25,6 +26,8 @@ export const Route = createFileRoute("/tilastot/$season")({
 const SECTIONS = [
   { key: "drivers", label: "Kuljettajat" },
   { key: "teams", label: "Valmistajat" },
+  { key: "driver-nationalities", label: "Kuljettajakansallisuudet" },
+  { key: "team-nationalities", label: "Valmistajakansallisuudet" },
 ] as const;
 
 function SeasonPage() {
@@ -77,7 +80,7 @@ function SeasonPage() {
       ) : st.isError ? (
         <div className="text-sm text-muted-foreground">Tilastojen lataus epäonnistui. <button onClick={() => void st.refetch()} className="text-primary underline">Yritä uudelleen</button></div>
       ) : (
-        <StandingsTable rows={(sec === "drivers" ? st.data?.drivers : st.data?.teams) ?? []} kind={sec} sortKey={comparison === "all" ? null : comparison} />
+        <StandingsTable rows={sec === "drivers" ? (st.data?.drivers ?? []) : sec === "teams" ? (st.data?.teams ?? []) : aggregateNationalityRows(sec === "driver-nationalities" ? (st.data?.drivers ?? []) : (st.data?.teams ?? []))} kind={sec === "drivers" ? "drivers" : sec === "teams" ? "teams" : "nationalities"} sortKey={comparison === "all" ? null : comparison} />
       )}
 
       {s && <Comments entityType={`season:${season}:${sec}`} entityId={s.id} />}
