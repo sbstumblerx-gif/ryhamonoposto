@@ -26,7 +26,7 @@ const COUNTRY_NAMES: Record<string, string> = {
   "🇳🇱": "Alankomaat", "🇧🇪": "Belgia", "🇨🇭": "Sveitsi", "🇦🇹": "Itävalta", "🇵🇱": "Puola",
   "🇨🇿": "Tšekki", "🇸🇰": "Slovakia", "🇭🇺": "Unkari", "🇷🇺": "Venäjä", "🇯🇵": "Japani",
   "🇨🇳": "Kiina", "🇰🇷": "Etelä-Korea", "🇧🇷": "Brasilia", "🇲🇽": "Meksiko", "🇦🇷": "Argentiina",
-  "🇲🇨": "Monaco", "🇹🇭": "Thaimaa", "🇿🇦": "Etelä-Afrikka", "🇦🇪": "Arabiemiirikunnat",
+  "🇲🇨": "Monaco", "🇲🇾": "Malesia", "🇹🇭": "Thaimaa", "🇿🇦": "Etelä-Afrikka", "🇦🇪": "Arabiemiirikunnat",
   "🇵🇹": "Portugali", "🇮🇪": "Irlanti", "🇬🇷": "Kreikka", "🇹🇷": "Turkki", "🇺🇦": "Ukraina",
 };
 
