@@ -3,7 +3,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/kayttajat/$id")({
-  head: () => ({ meta: [{ title: "Käyttäjä — RyhäMonoposto" }] }),
+  head: () => ({ meta: [
+    { title: "Käyttäjä — RyhäMonoposto" },
+    { name: "description", content: "RyhäMonoposton käyttäjän julkinen nimi ja profiilikuva." },
+    { property: "og:title", content: "Käyttäjä — RyhäMonoposto" },
+    { property: "og:description", content: "RyhäMonoposton käyttäjän julkinen profiili." },
+    { property: "og:type", content: "profile" }, { name: "twitter:card", content: "summary" },
+  ] }),
   component: UserProfilePage,
 });
 
@@ -14,7 +20,7 @@ function UserProfilePage() {
 
   useEffect(() => {
     let alive = true;
-    supabase.from("profiles").select("display_name, avatar_url").eq("id", id).maybeSingle().then(({ data }) => {
+    supabase.rpc("read_public_profile", { profile_id: id }).maybeSingle().then(({ data }) => {
       if (!alive) return;
       setProfile(data ?? null);
       setLoaded(true);

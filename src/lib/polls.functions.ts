@@ -78,11 +78,11 @@ export const pollResults = createServerFn({ method: "POST" })
       .from("poll_votes").select("id").eq("poll_id", data.poll_id).eq("user_id", context.userId).maybeSingle();
     if (!mine && !isClosed(poll?.closes_at ?? null)) return null;
     const { data: rows, error } = await context.supabase
-      .from("poll_votes").select("option_id").eq("poll_id", data.poll_id);
+      .rpc("read_poll_result_counts", { target_poll_id: data.poll_id });
     if (error) throw error;
     const counts: Record<string, number> = {};
-    for (const r of rows ?? []) counts[r.option_id] = (counts[r.option_id] ?? 0) + 1;
-    return { counts, total: (rows ?? []).length };
+    for (const r of rows ?? []) counts[r.option_id] = Number(r.vote_count);
+    return { counts, total: Object.values(counts).reduce((sum, count) => sum + count, 0) };
   });
 
 // Authenticated: cast a vote. Admin-made polls reward a free 1-card pack.

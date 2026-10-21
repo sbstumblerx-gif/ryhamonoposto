@@ -86,7 +86,8 @@ export const leaderboard = createServerFn({ method: "POST" })
       : { data: [] };
     const tags = new Map((clubs ?? []).map(c => [c.id, c]));
     return top.map((r, i) => {
-      const c = profiles[r.user_id]?.club_tag_club_id ? tags.get(profiles[r.user_id].club_tag_club_id!) : null;
+      const clubId = profiles[r.user_id]?.club_tag_club_id;
+      const c = clubId ? tags.get(clubId) : null;
       const active = c?.tag_enabled && c.tag ? c : null;
       return {
         rank: i + 1,
@@ -105,16 +106,12 @@ export const myRank = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Scope.parse(d))
   .handler(async ({ data, context }) => {
-    let q = context.supabase.from("predictions").select("user_id, points, created_at");
-    if (data.scope === "year") q = q.gte("created_at", yearStartIso());
-    const { data: rows, error } = await q;
+    const { data: rows, error } = await context.supabase.rpc("my_prediction_rank", {
+      since_date: data.scope === "year" ? yearStartIso() : undefined,
+    });
     if (error) throw error;
-    const totals = new Map<string, number>();
-    for (const r of rows ?? []) totals.set(r.user_id, (totals.get(r.user_id) ?? 0) + (r.points ?? 0));
-    const arr = [...totals.entries()].map(([user_id, points]) => ({ user_id, points })).sort((a, b) => b.points - a.points);
-    const idx = arr.findIndex(r => r.user_id === context.userId);
-    if (idx < 0) return { rank: null, points: 0 };
-    return { rank: idx + 1, points: arr[idx].points };
+    const ownRank = rows?.[0];
+    return ownRank ? { rank: Number(ownRank.rank), points: Number(ownRank.points) } : { rank: null, points: 0 };
   });
 
 export const adminCreateSession = createServerFn({ method: "POST" })
