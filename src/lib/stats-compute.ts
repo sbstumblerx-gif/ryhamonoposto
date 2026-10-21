@@ -17,3 +17,37 @@ export function applyResult(line: StatLine, r: { position: number | null; status
 export function applySprintResult(line: StatLine, r: { position: number | null; status: ResultStatus }, session: "qualifying" | "sprint") { if (session === "qualifying") { if (r.status === "FIN" && r.position === 1) line.sprintPoles += 1; return; } line.sprintStarts += 1; if (r.status === "DNF") { line.sprintDnf += 1; line.sprintRet += 1; return; } if (r.status === "DSQ") { line.sprintDsq += 1; line.sprintRet += 1; return; } if (r.status === "DNS") { line.sprintDns += 1; line.sprintRet += 1; line.sprintStarts -= 1; return; } const points = sprintPointsForPosition(r.position); line.sprintPoints += points; line.points += points; if (r.position === 1) line.sprintWins += 1; if (r.position != null && r.position <= 3) line.sprintPodiums += 1; if (r.position != null && (line.sprintBest == null || r.position < line.sprintBest)) line.sprintBest = r.position; }
 export function compareRaceOrder(a: { name: string; round_number?: number | null }, b: { name: string; round_number?: number | null }): number { const ya = seasonYearFromName(a.name) ?? Number.POSITIVE_INFINITY, yb = seasonYearFromName(b.name) ?? Number.POSITIVE_INFINITY; if (ya !== yb) return ya - yb; const ra = a.round_number ?? Number.POSITIVE_INFINITY, rb = b.round_number ?? Number.POSITIVE_INFINITY; if (ra !== rb) return ra - rb; return a.name.localeCompare(b.name); }
 export function sortStandings(rows: StatLine[]): StatLine[] { return [...rows].sort((a, b) => b.points - a.points || b.wins - a.wins || b.podiums - a.podiums || a.name.localeCompare(b.name)); }
+
+
+const COUNTRY_NAMES: Record<string, string> = {
+  "🇫🇮": "Suomi", "🇸🇪": "Ruotsi", "🇳🇴": "Norja", "🇩🇰": "Tanska", "🇮🇸": "Islanti",
+  "🇬🇧": "Yhdistynyt kuningaskunta", "🇺🇸": "Yhdysvallat", "🇨🇦": "Kanada", "🇦🇺": "Australia",
+  "🇳🇿": "Uusi-Seelanti", "🇩🇪": "Saksa", "🇫🇷": "Ranska", "🇮🇹": "Italia", "🇪🇸": "Espanja",
+  "🇳🇱": "Alankomaat", "🇧🇪": "Belgia", "🇨🇭": "Sveitsi", "🇦🇹": "Itävalta", "🇵🇱": "Puola",
+  "🇨🇿": "Tšekki", "🇸🇰": "Slovakia", "🇭🇺": "Unkari", "🇷🇺": "Venäjä", "🇯🇵": "Japani",
+  "🇨🇳": "Kiina", "🇰🇷": "Etelä-Korea", "🇧🇷": "Brasilia", "🇲🇽": "Meksiko", "🇦🇷": "Argentiina",
+  "🇲🇨": "Monaco", "🇹🇭": "Thaimaa", "🇿🇦": "Etelä-Afrikka", "🇦🇪": "Arabiemiirikunnat",
+  "🇵🇹": "Portugali", "🇮🇪": "Irlanti", "🇬🇷": "Kreikka", "🇹🇷": "Turkki", "🇺🇦": "Ukraina",
+};
+
+export function aggregateNationalityRows(rows: StatLine[]): StatLine[] {
+  const grouped = new Map<string, StatLine>();
+  const numericFields: (keyof StatLine)[] = [
+    "points", "wins", "podiums", "poles", "driverOfTheDay", "fastestLaps", "dnf", "dsq", "dns",
+    "ret", "starts", "sprintPoints", "sprintWins", "sprintPodiums", "sprintPoles",
+    "sprintFastestLaps", "sprintDnf", "sprintDsq", "sprintDns", "sprintRet", "sprintStarts",
+  ];
+  for (const row of rows) {
+    const flag = row.flag?.trim() || "🏳️";
+    const key = flag;
+    let target = grouped.get(key);
+    if (!target) {
+      target = emptyStatLine(`nationality:${key}`, COUNTRY_NAMES[flag] ?? (flag === "🏳️" ? "Tuntematon" : `Muu / ${flag}`), null, flag === "🏳️" ? "" : flag);
+      grouped.set(key, target);
+    }
+    for (const field of numericFields) target[field] = Number(target[field] ?? 0) + Number(row[field] ?? 0);
+    if (row.best != null && (target.best == null || row.best < target.best)) target.best = row.best;
+    if (row.sprintBest != null && (target.sprintBest == null || row.sprintBest < target.sprintBest)) target.sprintBest = row.sprintBest;
+  }
+  return sortStandings([...grouped.values()]);
+}
