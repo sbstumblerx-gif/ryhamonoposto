@@ -1445,6 +1445,29 @@ export type Database = {
         }
         Returns: boolean
       }
+      my_prediction_rank: {
+        Args: { since_date?: string }
+        Returns: {
+          points: number
+          rank: number
+        }[]
+      }
+      read_poll_result_counts: {
+        Args: { target_poll_id: string }
+        Returns: {
+          option_id: string
+          vote_count: number
+        }[]
+      }
+      read_public_profile: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          club_tag_club_id: string
+          display_name: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin"
