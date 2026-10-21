@@ -45,7 +45,7 @@ export function aggregateNationalityRows(rows: StatLine[]): StatLine[] {
       target = emptyStatLine(`nationality:${key}`, COUNTRY_NAMES[flag] ?? (flag === "🏳️" ? "Tuntematon" : `Muu / ${flag}`), null, flag === "🏳️" ? "" : flag);
       grouped.set(key, target);
     }
-    for (const field of numericFields) target[field] = Number(target[field] ?? 0) + Number(row[field] ?? 0);
+    for (const field of numericFields) (target as any)[field] = Number((target as any)[field] ?? 0) + Number((row as any)[field] ?? 0);
     if (row.best != null && (target.best == null || row.best < target.best)) target.best = row.best;
     if (row.sprintBest != null && (target.sprintBest == null || row.sprintBest < target.sprintBest)) target.sprintBest = row.sprintBest;
   }
