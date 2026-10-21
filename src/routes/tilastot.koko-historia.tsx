@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getStandings } from "@/lib/stats.functions";
+import { aggregateNationalityRows } from "@/lib/stats-compute";
 import { StandingsTable, STAT_FIELDS, type StatFieldKey } from "@/components/StandingsTable";
 import { Comments } from "@/components/Comments";
 import { useState } from "react";
@@ -23,6 +24,8 @@ export const Route = createFileRoute("/tilastot/koko-historia")({
 const SECTIONS = [
   { key: "drivers", label: "Kuljettajat" },
   { key: "teams", label: "Valmistajat" },
+  { key: "driver-nationalities", label: "Kuljettajakansallisuudet" },
+  { key: "team-nationalities", label: "Valmistajakansallisuudet" },
 ] as const;
 
 function FullHistoryPage() {
@@ -64,7 +67,7 @@ function FullHistoryPage() {
       ) : st.isError ? (
         <div className="text-sm text-muted-foreground">Tilastojen lataus epäonnistui. <button onClick={() => void st.refetch()} className="text-primary underline">Yritä uudelleen</button></div>
       ) : (
-        <StandingsTable rows={(sec === "drivers" ? st.data?.drivers : st.data?.teams) ?? []} kind={sec} sortKey={comparison === "all" ? null : comparison} />
+        <StandingsTable rows={sec === "drivers" ? (st.data?.drivers ?? []) : sec === "teams" ? (st.data?.teams ?? []) : aggregateNationalityRows(sec === "driver-nationalities" ? (st.data?.drivers ?? []) : (st.data?.teams ?? []))} kind={sec === "drivers" ? "drivers" : sec === "teams" ? "teams" : "nationalities"} sortKey={comparison === "all" ? null : comparison} />
       )}
       <Comments entityType={`history:${sec}`} entityId="00000000-0000-0000-0000-000000000000" />
     </div>
