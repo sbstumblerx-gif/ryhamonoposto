@@ -6,4 +6,5 @@
 - [x] Järjestä kilpailut aina kausi + round number -järjestyksessä (grafiikat + AI) ja nollaa vanhat grafiikat
 - [x] Korjaa tilastot-sivun "ei tilastoja laskettavaksi" -noutovirhe
 - [x] Grafiikat saa luoda uudelleen, kunhan mikään data ei katoa
-- [ ] Lisää OAuth-suojattu MCP, lupasivu ja kalenterin selaintyökalut; varmista yhteys
+- [x] Lisää OAuth-suojattu MCP, lupasivu ja kalenterin selaintyökalut; tarkista julkaistu OAuth-löydettävyys ja kirjautumisen paluuosoite
+- [ ] Varmista ChatGPT-yhteyden hyväksyminen, peruutus ja lukutyökalut käyttäjän tilillä — estää: käyttäjän kirjautuminen ja yhteyden lisääminen ChatGPT:ssä puuttuvat
