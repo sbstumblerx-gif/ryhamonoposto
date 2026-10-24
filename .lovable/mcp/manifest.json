@@ -3,24 +3,19 @@
   "sdk_version": "3.0.0",
   "path": "/mcp",
   "auth": {
-    "type": "oauth",
-    "issuer": "https://nfukkcipyjrcpcltvklq.supabase.co/auth/v1",
-    "require_oauth_client_claim": true,
-    "accepted_audiences": [
-      "authenticated"
-    ]
+    "type": "none"
   },
   "mcp": {
     "server": {
       "name": "ryh-monoposto",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "title": "RyhäMonoposto"
     },
     "tools": [
       {
         "name": "list_races",
         "title": "Kilpailut",
-        "description": "List RyhäMonoposto races with dates, flags, rounds and links, optionally searching their names.",
+        "description": "List public RyhäMonoposto races with dates, flags, rounds and links, optionally searching race names.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -50,7 +45,7 @@
       {
         "name": "list_drivers",
         "title": "Kuljettajat",
-        "description": "Read RyhäMonoposto driver names, numbers, teams and registered contract end years.",
+        "description": "Read public RyhäMonoposto driver names, numbers, flags, current teams and recorded contract end years.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -75,7 +70,7 @@
       {
         "name": "list_calendar_sessions",
         "title": "Kalenterin sessiot",
-        "description": "Read scheduled all-day race sessions for a month, with race names and calendar links.",
+        "description": "Read public scheduled RyhäMonoposto sessions for a month, including race names and links.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -103,23 +98,6 @@
           ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"
-        },
-        "outputSchema": null
-      },
-      {
-        "name": "read_my_profile",
-        "title": "Oma profiili",
-        "description": "Read only the connected user's RyhäMonoposto display name and avatar.",
-        "annotations": {
-          "readOnlyHint": true,
-          "idempotentHint": true,
-          "openWorldHint": false
-        },
-        "inputSchema": {
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false
         },
         "outputSchema": null
       }
