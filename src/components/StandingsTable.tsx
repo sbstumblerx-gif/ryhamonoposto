@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { compareStatRows, rankingChanges, type StatLine, type NumericStatKey } from "@/lib/stats-compute";
+import { compareStatRows, rankingChanges, statRanks, type StatLine, type NumericStatKey } from "@/lib/stats-compute";
 import { RankChange } from "@/components/RankChange";
 
 export const STAT_FIELDS: { key: NumericStatKey; label: string; shortLabel?: string }[] = [
@@ -36,12 +36,13 @@ export function StandingsTable({ rows, previousRows = [], kind, sortKey = null }
   const sortedRows = sortKey ? [...rows].sort((a, b) => compareStatRows(a, b, sortKey)) : rows;
   const columns = sortKey ? STAT_FIELDS.filter(c => c.key === sortKey) : STAT_FIELDS;
   const orderChanges = rankingChanges(rows, previousRows, sortKey);
+  const selectedRanks = sortKey ? statRanks(rows, sortKey) : null;
   const fieldChanges = new Map(columns.map(c => [c.key, rankingChanges(rows, previousRows, c.key)]));
   return (
     <div className="overflow-x-auto card-dark">
       <table className="w-full text-sm">
         <thead><tr className="border-b border-primary/40 text-primary"><th className="text-left px-2 py-2 font-display text-[11px] uppercase tracking-widest">#</th><th className="text-left px-2 py-2 font-display text-[11px] uppercase tracking-widest">{kind === "drivers" ? "Kuljettaja" : kind === "teams" ? "Valmistaja" : "Kansallisuus"}</th>{columns.map(c => <th key={c.key} className="text-right px-2 py-2 font-display text-[11px] uppercase tracking-widest whitespace-nowrap">{c.shortLabel ?? c.label}</th>)}</tr></thead>
-        <tbody>{sortedRows.map((r, i) => <tr key={r.key} className="border-b border-primary/10 last:border-0"><td className="px-2 py-2 text-muted-foreground"><span className="inline-flex items-center gap-1 whitespace-nowrap">{i + 1}<RankChange change={orderChanges.get(r.key)} /></span></td><td className="px-2 py-2 whitespace-nowrap">{kind !== "nationalities" && r.slug ? <Link to={kind === "drivers" ? "/kuljettajat/$slug" : "/tiimit/$slug"} params={{ slug: r.slug }} className="hover:text-primary underline decoration-primary/40">{r.flag} {r.name}</Link> : <span>{r.flag} {r.name}</span>}</td>{columns.map(c => <td key={c.key} className="px-2 py-2 text-right tabular-nums font-semibold"><span className="inline-flex items-center justify-end gap-1 whitespace-nowrap">{r[c.key] == null ? "–" : c.key === "positionChange" && r.positionChange > 0 ? `+${r.positionChange}` : r[c.key]}<RankChange change={fieldChanges.get(c.key)?.get(r.key)} /></span></td>)}</tr>)}</tbody>
+        <tbody>{sortedRows.map((r, i) => <tr key={r.key} className="border-b border-primary/10 last:border-0"><td className="px-2 py-2 text-muted-foreground"><span className="inline-flex items-center gap-1 whitespace-nowrap">{selectedRanks ? selectedRanks.get(r.key) ?? "–" : i + 1}<RankChange change={orderChanges.get(r.key)} /></span></td><td className="px-2 py-2 whitespace-nowrap">{kind !== "nationalities" && r.slug ? <Link to={kind === "drivers" ? "/kuljettajat/$slug" : "/tiimit/$slug"} params={{ slug: r.slug }} className="hover:text-primary underline decoration-primary/40">{r.flag} {r.name}</Link> : <span>{r.flag} {r.name}</span>}</td>{columns.map(c => <td key={c.key} className="px-2 py-2 text-right tabular-nums font-semibold"><span className="inline-flex items-center justify-end gap-1 whitespace-nowrap">{r[c.key] == null ? "–" : c.key === "positionChange" && r.positionChange > 0 ? `+${r.positionChange}` : r[c.key]}<RankChange change={fieldChanges.get(c.key)?.get(r.key)} /></span></td>)}</tr>)}</tbody>
       </table>
     </div>
   );
