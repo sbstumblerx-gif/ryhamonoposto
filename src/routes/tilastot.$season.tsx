@@ -79,7 +79,7 @@ function SeasonPage() {
       ) : st.isError ? (
         <div className="text-sm text-muted-foreground">Tilastojen lataus epäonnistui. <button onClick={() => void st.refetch()} className="text-primary underline">Yritä uudelleen</button></div>
       ) : (
-        <StandingsTable rows={sec === "drivers" ? (st.data?.drivers ?? []) : sec === "teams" ? (st.data?.teams ?? []) : aggregateNationalityRows(sec === "driver-nationalities" ? (st.data?.drivers ?? []) : (st.data?.teams ?? []))} kind={sec === "drivers" ? "drivers" : sec === "teams" ? "teams" : "nationalities"} sortKey={comparison === "all" ? null : comparison} />
+        <StandingsTable previousRows={sec === "drivers" ? (st.data?.previousDrivers ?? []) : sec === "teams" ? (st.data?.previousTeams ?? []) : aggregateNationalityRows(sec === "driver-nationalities" ? (st.data?.previousDrivers ?? []) : (st.data?.previousTeams ?? []))} rows={sec === "drivers" ? (st.data?.drivers ?? []) : sec === "teams" ? (st.data?.teams ?? []) : aggregateNationalityRows(sec === "driver-nationalities" ? (st.data?.drivers ?? []) : (st.data?.teams ?? []))} kind={sec === "drivers" ? "drivers" : sec === "teams" ? "teams" : "nationalities"} sortKey={comparison === "all" ? null : comparison} />
       )}
 
       {s && <Comments entityType={`season:${season}:${sec}`} entityId={s.id} />}
