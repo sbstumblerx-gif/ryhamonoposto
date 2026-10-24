@@ -8,7 +8,7 @@
   "mcp": {
     "server": {
       "name": "ryh-monoposto",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "title": "RyhäMonoposto"
     },
     "tools": [
@@ -98,6 +98,157 @@
           ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_standings",
+        "title": "Kuljettajien MM-tilanne",
+        "description": "Read current RyhäMonoposto driver standings. Defaults to the explicitly active season, not all-time totals.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_team_standings",
+        "title": "Tiimien MM-tilanne",
+        "description": "Read current RyhäMonoposto team standings. Defaults to the explicitly active season, not all-time totals.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_driver_contracts",
+        "title": "Kuljettajien sopimukset",
+        "description": "Read public driver contract status and current team; unknown values must not be guessed.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Optional name search."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_team_engine",
+        "title": "Tiimien moottoritoimittajat",
+        "description": "Read public team engine suppliers and registered engine contract years.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Optional name search."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_latest_race",
+        "title": "Viimeisin kilpailu",
+        "description": "Read the most recently updated public race result or qualifying report.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_race_result",
+        "title": "Kilpailun tulos",
+        "description": "Read qualifying and race result text for a named RyhäMonoposto race.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Race name or part of its name."
+            }
+          },
+          "required": [
+            "search"
+          ],
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_ryhamonoposto",
+        "title": "Hae RyhäMonopostosta",
+        "description": "Search public drivers, teams, races and news; returns short matches with links.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "description": "Search term, such as a driver, team, race or news title."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": null
       }
