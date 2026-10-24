@@ -9,3 +9,4 @@
 - [x] Lisää OAuth-suojattu MCP, lupasivu ja kalenterin selaintyökalut; tarkista julkaistu OAuth-löydettävyys ja kirjautumisen paluuosoite
 - [ ] Varmista ChatGPT-yhteyden hyväksyminen, peruutus ja lukutyökalut käyttäjän tilillä — estää: käyttäjän kirjautuminen ja yhteyden lisääminen ChatGPT:ssä puuttuvat
 - [x] Korjaa neljä estävää tietoturvahavaintoa: ennustukset, äänet, profiilit ja fanipistetapahtumat; käyttöoikeustestit ja uusi tietoturvatarkistus läpäisty
+- [ ] Lisää Sijoitusmuutos-tilasto ja tilastosijojen muutokset edellisestä kilpailusta; varmista laskenta ja näkymät.
