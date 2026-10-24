@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { addFanPoints } from "./fan-points.server";
+import { addFanPoints, followFanPointKey, removeFanPointEvent } from "./fan-points.server";
 
 type Admin = SupabaseClient<any, any, any>;
 async function admin(): Promise<Admin> {
@@ -15,11 +15,12 @@ export async function toggleFollow(userId: string, kind: FollowKind, slug: strin
   if (existing) {
     const { error } = await db.from("follows").delete().eq("id", existing.id);
     if (error) throw error;
+    await removeFanPointEvent(followFanPointKey(userId, { entity_type: kind, entity_slug: slug }));
     return { following: false };
   }
   const { data: follow, error } = await db.from("follows").insert({ user_id: userId, entity_type: kind, entity_slug: slug }).select("id").single();
   if (error) throw error;
-  await addFanPoints({ entity_type: kind, entity_slug: slug }, 20, `follow:${follow.id}`);
+  await addFanPoints({ entity_type: kind, entity_slug: slug }, 20, followFanPointKey(userId, { entity_type: kind, entity_slug: slug }));
   return { following: true };
 }
 
