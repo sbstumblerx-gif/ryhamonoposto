@@ -12,3 +12,4 @@
 - Keep WebMCP tools in their owning page and share validated actions with its controls; this preserves visible-page boundaries and normal browser behavior.
 - Use the dedicated /login route for MCP consent sign-in and canonical local return paths; this preserves authorization IDs through social authentication.
 - Keep raw profiles, predictions and poll votes owner-readable and fan point events server-only; expose public profile fields and gated aggregate results through allowlisted database functions so private rows cannot be enumerated.
+- Derive statistics and pre-latest-completed-race snapshots in browser-safe pure helpers shared by the server and tests; use shared ranking helpers for tables and entity statistics so all views compare the same historical baseline.
