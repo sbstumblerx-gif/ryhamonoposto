@@ -11,7 +11,7 @@ export default defineTool({
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const escaped = search.replace(/[\\%_]/g, "\\$&");
     const { data, error } = await supabaseAdmin.from("races")
-      .select("slug, name, flag, race_date, round_number, qualifying_content, race_content, sprint_qualifying_content, sprint_content, is_sprint_weekend")
+      .select("slug, name, flag, race_date, round_number, qualifying_content, race_content, sprint_qualifying_content, sprint_content, is_sprint_weekend" as any)
       .ilike("name", `%${escaped}%`).order("round_number", { ascending: true }).limit(10);
     if (error) throw new ToolError("Could not read race results.");
     const races = (data ?? []).map(r => ({
