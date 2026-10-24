@@ -8,6 +8,10 @@ async function db(): Promise<Db> {
   return supabaseAdmin as unknown as Db;
 }
 
+export function followFanPointKey(userId: string, entity: FanEntity) {
+  return `follow:${userId}:${entity.entity_type}:${entity.entity_slug}`;
+}
+
 export async function addFanPoints(entity: FanEntity, points: number, eventKey: string) {
   if (!points) return;
   const database = await db();
@@ -24,6 +28,12 @@ export async function removeFanPointEvent(eventKey: string) {
   if (error) throw error;
 }
 
+export async function removeFanPointEventsForPrefix(prefix: string) {
+  const database = await db();
+  const { error } = await database.from("fan_point_events").delete().like("event_key", `${prefix}%`);
+  if (error) throw error;
+}
+
 export async function addFanPointsForMentionedEntities(
   text: string,
   points: number,
@@ -31,10 +41,12 @@ export async function addFanPointsForMentionedEntities(
   excluded?: FanEntity,
 ) {
   const database = await db();
-  const [{ data: drivers }, { data: teams }] = await Promise.all([
+  const [{ data: drivers, error: driverError }, { data: teams, error: teamError }] = await Promise.all([
     database.from("drivers").select("slug, name"),
     database.from("teams").select("slug, name"),
   ]);
+  if (driverError) throw driverError;
+  if (teamError) throw teamError;
   const haystack = text.toLowerCase();
   const entities: FanEntity[] = [];
   for (const d of drivers ?? []) {
