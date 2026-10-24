@@ -18,7 +18,7 @@ export async function toggleFollow(userId: string, kind: FollowKind, slug: strin
     await removeFanPointEvent(followFanPointKey(userId, { entity_type: kind, entity_slug: slug }));
     return { following: false };
   }
-  const { data: follow, error } = await db.from("follows").insert({ user_id: userId, entity_type: kind, entity_slug: slug }).select("id").single();
+  const { error } = await db.from("follows").insert({ user_id: userId, entity_type: kind, entity_slug: slug });
   if (error) throw error;
   await addFanPoints({ entity_type: kind, entity_slug: slug }, 20, followFanPointKey(userId, { entity_type: kind, entity_slug: slug }));
   return { following: true };
