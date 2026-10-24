@@ -111,10 +111,10 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "outputSchema": null
       },
@@ -128,17 +128,17 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "outputSchema": null
       },
       {
         "name": "get_driver_contracts",
         "title": "Kuljettajien sopimukset",
-        "description": "Read public driver contract status and current team; unknown values must not be guessed.",
+        "description": "Read public driver contract status and current team. Uses the active season context; missing or unknown values must not be guessed.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -150,11 +150,11 @@
             "search": {
               "type": "string",
               "maxLength": 100,
-              "description": "Optional name search."
+              "description": "Optional driver name search."
             }
           },
           "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -173,11 +173,11 @@
             "search": {
               "type": "string",
               "maxLength": 100,
-              "description": "Optional name search."
+              "description": "Optional team name search."
             }
           },
           "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -191,10 +191,10 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "outputSchema": null
       },
@@ -221,14 +221,14 @@
             "search"
           ],
           "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
       {
         "name": "search_ryhamonoposto",
         "title": "Hae RyhäMonopostosta",
-        "description": "Search public drivers, teams, races and news; returns short matches with links.",
+        "description": "Search public RyhäMonoposto drivers, teams, races and news. Returns short matches with links.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -248,7 +248,7 @@
             "query"
           ],
           "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       }

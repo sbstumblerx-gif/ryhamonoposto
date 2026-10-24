@@ -17,7 +17,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/kuljettajat/$slug")({
-  head: ({ params }) => ({ meta: [{ title: `${params.slug} — Kuljettaja` }] }),
+  head: ({ params }) => ({ meta: [
+    { title: `${params.slug} — Kuljettaja | RyhäMonoposto` },
+    { name: "description", content: `${params.slug}: RyhäMonoposton kuljettajatiedot, tilastot ja kilpailuhistoria.` },
+    { property: "og:title", content: `${params.slug} — Kuljettaja | RyhäMonoposto` },
+    { property: "og:description", content: "Kuljettajan tulokset, sijoitusmuutokset ja kilpailuhistoria RyhäMonopostossa." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: DriverPage,
 });
 

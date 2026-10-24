@@ -17,7 +17,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/tiimit/$slug")({
-  head: ({ params }) => ({ meta: [{ title: `${params.slug} — Tiimi` }] }),
+  head: ({ params }) => ({ meta: [
+    { title: `${params.slug} — Tiimi | RyhäMonoposto` },
+    { name: "description", content: `${params.slug}: RyhäMonoposton tiimitiedot, tilastot ja kilpailuhistoria.` },
+    { property: "og:title", content: `${params.slug} — Tiimi | RyhäMonoposto` },
+    { property: "og:description", content: "Tiimin tulokset, sijoitusmuutokset ja kilpailuhistoria RyhäMonopostossa." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: TeamPage,
 });
 const TABS = [{ key: "info", label: "Pikatieto" }, { key: "stats", label: "Tilastot" }, { key: "history", label: "Kisahistoria" }] as const;
