@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   parseResultLines, seasonYearFromName, normalizeName,
-  emptyStatLine, applyResult, applySprintResult, sortStandings, compareRaceOrder, type StatLine,
+  emptyStatLine, applyResult, applySprintResult, sortStandings, compareRaceOrder, racePositionChange, type StatLine,
 } from "./stats-compute";
 
 export type StandingsResult = {
@@ -10,6 +10,10 @@ export type StandingsResult = {
   teams: StatLine[];
   seasonDrivers: Record<string, StatLine[]>;
   seasonTeams: Record<string, StatLine[]>;
+  previousDrivers: StatLine[];
+  previousTeams: StatLine[];
+  previousSeasonDrivers: Record<string, StatLine[]>;
+  previousSeasonTeams: Record<string, StatLine[]>;
   seasons: number[];
   sessionCount: number;
   activeSeason: { slug: string; name: string; year: number } | null;
@@ -46,6 +50,11 @@ export const getStandings = createServerFn({ method: "GET" })
     const seasonTeamRows = new Map<number, Map<string, StatLine>>();
     const seasons = new Set<number>();
     let sessionCount = 0;
+    let previousDrivers: StatLine[] = [];
+    let previousTeams: StatLine[] = [];
+    const previousSeasonDrivers: Record<string, StatLine[]> = {};
+    const previousSeasonTeams: Record<string, StatLine[]> = {};
+    const snapshot = (rows: Map<string, StatLine>) => [...rows.values()].map(row => ({ ...row }));
 
     const orderedRaces = [...((races ?? []) as any[])].sort(compareRaceOrder);
     const getOrCreate = (map: Map<string, StatLine>, key: string, name: string, slug: string | null, flag: string) => {
@@ -72,6 +81,16 @@ export const getStandings = createServerFn({ method: "GET" })
       let seasonD = seasonDriverRows.get(year); if (!seasonD) { seasonD = new Map(); seasonDriverRows.set(year, seasonD); }
       let seasonT = seasonTeamRows.get(year); if (!seasonT) { seasonT = new Map(); seasonTeamRows.set(year, seasonT); }
 
+      // Snapshot the cumulative standings before the latest completed weekend,
+      // never before a future event containing only qualifying or practice.
+      if (parseResultLines(race.race_content).length) {
+        previousDrivers = snapshot(driverRows);
+        previousTeams = snapshot(teamRows);
+        previousSeasonDrivers[String(year)] = snapshot(seasonD);
+        previousSeasonTeams[String(year)] = snapshot(seasonT);
+      }
+      const qualifyingByDriver = new Map(parseResultLines(race.qualifying_content).map(line => [normalizeName(line.driver), line]));
+
       for (const session of ["qualifying", "race"] as const) {
         const text = session === "qualifying" ? race.qualifying_content : race.race_content;
         const lines = parseResultLines(text); if (!lines.length) continue;
@@ -82,11 +101,15 @@ export const getStandings = createServerFn({ method: "GET" })
           const dRow = getOrCreate(driverRows, dKey, d?.name ?? line.driver, d?.slug ?? null, d?.flag ?? "");
           const sdRow = getOrCreate(seasonD, dKey, d?.name ?? line.driver, d?.slug ?? null, d?.flag ?? "");
           applyResult(dRow, line, session); applyResult(sdRow, line, session);
+          const change = session === "race" ? racePositionChange(qualifyingByDriver.get(normalizeName(line.driver)), line) : 0;
+          dRow.positionChange += change; sdRow.positionChange += change;
           const t = (line.team ? teamByName.get(normalizeName(line.team)) : undefined) ?? (d?.current_team_slug ? teamBySlug.get(d.current_team_slug) : undefined) ?? (d?.team_slug ? teamBySlug.get(d.team_slug) : undefined);
           const tName = t?.name ?? line.team; if (!tName) continue;
           const tKey = t?.slug ?? `name:${normalizeName(tName)}`;
-          applyResult(getOrCreate(teamRows, tKey, tName, t?.slug ?? null, t?.flag ?? ""), line, session);
-          applyResult(getOrCreate(seasonT, tKey, tName, t?.slug ?? null, t?.flag ?? ""), line, session);
+          const tRow = getOrCreate(teamRows, tKey, tName, t?.slug ?? null, t?.flag ?? "");
+          const stRow = getOrCreate(seasonT, tKey, tName, t?.slug ?? null, t?.flag ?? "");
+          applyResult(tRow, line, session); applyResult(stRow, line, session);
+          tRow.positionChange += change; stRow.positionChange += change;
         }
       }
 
@@ -141,6 +164,10 @@ export const getStandings = createServerFn({ method: "GET" })
       teams: sortStandings([...teamRows.values()]),
       seasonDrivers: toRecord(seasonDriverRows),
       seasonTeams: toRecord(seasonTeamRows),
+      previousDrivers,
+      previousTeams,
+      previousSeasonDrivers,
+      previousSeasonTeams,
       seasons: [...seasons].sort((a, b) => b - a),
       sessionCount,
       activeSeason: activeSeason ? { slug: activeSeason.slug, name: activeSeason.name, year: activeSeason.sort_order } : null,
