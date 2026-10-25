@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildGraph, graphOptions, signature } from "./graphics.server";
 
 export const graphConfigSchema = z.object({
-  target: z.enum(["drivers", "teams"]), season: z.string().min(1).max(30), participants: z.array(z.string().min(1).max(100)).min(1).max(12), chartType: z.enum(["pie", "bar", "line"]), range: z.enum(["all", "last5", "last10", "last20"]),
+  target: z.enum(["drivers", "teams"]), season: z.string().min(1).max(30), participants: z.array(z.string().min(1).max(100)).min(1).max(12), chartType: z.enum(["pie", "bar", "line", "stage"]), range: z.enum(["all", "last5", "last10", "last20"]),
   metric: z.enum(["points", "wins", "podiums", "dnf", "dsq", "dns", "poles", "starts", "championships", "driverOfTheDay", "fastestLaps", "sprintPoints", "sprintWins", "sprintPodiums", "sprintPoles", "sprintFastestLaps", "sprintDnf", "sprintDsq", "sprintDns", "sprintStarts"]),
 });
 export type GraphConfig = z.infer<typeof graphConfigSchema>;
