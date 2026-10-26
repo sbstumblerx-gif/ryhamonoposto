@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { listSeries, createSeries } from "@/lib/series.functions";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ function SeriesPage() {
   const [search, setSearch] = useState("");
   const [name, setName] = useState(""), [slug, setSlug] = useState(""), [description, setDescription] = useState("");
   const [password, setPassword] = useState(""), [busy, setBusy] = useState(false), [error, setError] = useState(""), [success, setSuccess] = useState("");
-  useState(() => { void supabase.auth.getUser().then(({ data }) => setUid(data.user?.id ?? null)); });
+  useEffect(() => { let active = true; void supabase.auth.getUser().then(({ data }) => { if (active) setUid(data.user?.id ?? null); }); const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setUid(session?.user?.id ?? null)); return () => { active = false; listener.subscription.unsubscribe(); }; }, []);
   const filtered = (query.data ?? []).filter((s: any) => (s.name + " " + s.description).toLowerCase().includes(search.toLowerCase()));
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError(""); setSuccess("");
