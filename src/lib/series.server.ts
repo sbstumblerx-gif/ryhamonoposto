@@ -4,7 +4,7 @@ const scrypt = promisify(scryptCallback);
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+  return supabaseAdmin as any;
 }
 function slugify(value: string) {
   return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
@@ -34,11 +34,17 @@ export async function createSeries(userId: string, input: {
   const passwordHash = await hashPassword(input.adminPassword);
   const { data, error } = await db.from("series").insert({
     owner_id: userId, name: input.name, slug, description: input.description,
-    admin_password_hash: passwordHash,
   }).select("id,slug,name,description,created_at,owner_id").single();
   if (error) {
     if (error.code === "23505") throw new Error("Tämä sarjan osoite on jo käytössä.");
     throw error;
+  }
+  const { error: credentialError } = await db.from("series_admin_credentials").insert({
+    series_id: data.id, password_hash: passwordHash,
+  });
+  if (credentialError) {
+    await db.from("series").delete().eq("id", data.id);
+    throw credentialError;
   }
   return data;
 }
