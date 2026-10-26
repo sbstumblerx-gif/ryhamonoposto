@@ -1137,6 +1137,8 @@ const rootRouteChildren: RootRouteChildren = {
   PostauksetRoute: PostauksetRoute,
   ProfiiliRoute: ProfiiliRoute,
   SeuratutRoute: SeuratutRoute,
+  SarjatRoute: SarjatRoute,
+  SarjatSlugRoute: SarjatSlugRoute,
   SopimuksetRoute: SopimuksetRoute,
   TekoalytilaRoute: TekoalytilaRoute,
   TiimitRoute: TiimitRouteWithChildren,
