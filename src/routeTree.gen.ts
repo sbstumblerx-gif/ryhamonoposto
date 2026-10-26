@@ -786,6 +786,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SeuratutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sarjat': {
+      id: '/sarjat'
+      path: '/sarjat'
+      fullPath: '/sarjat'
+      preLoaderRoute: typeof SarjatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sarjat/$slug': {
+      id: '/sarjat/$slug'
+      path: '/sarjat/$slug'
+      fullPath: '/sarjat/$slug'
+      preLoaderRoute: typeof SarjatSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sopimukset': {
       id: '/sopimukset'
       path: '/sopimukset'
