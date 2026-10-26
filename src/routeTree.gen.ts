@@ -27,6 +27,8 @@ import { Route as PelaaRouteImport } from './routes/pelaa'
 import { Route as PostauksetRouteImport } from './routes/postaukset'
 import { Route as ProfiiliRouteImport } from './routes/profiili'
 import { Route as SeuratutRouteImport } from './routes/seuratut'
+import { Route as SarjatRouteImport } from './routes/sarjat'
+import { Route as SarjatSlugRouteImport } from './routes/sarjat.$slug'
 import { Route as SopimuksetRouteImport } from './routes/sopimukset'
 import { Route as TekoalytilaRouteImport } from './routes/tekoalytila'
 import { Route as TiimitRouteImport } from './routes/tiimit'
@@ -142,6 +144,16 @@ const PostauksetRoute = PostauksetRouteImport.update({
 const ProfiiliRoute = ProfiiliRouteImport.update({
   id: '/profiili',
   path: '/profiili',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SarjatRoute = SarjatRouteImport.update({
+  id: '/sarjat',
+  path: '/sarjat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SarjatSlugRoute = SarjatSlugRouteImport.update({
+  id: '/sarjat/$slug',
+  path: '/sarjat/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SeuratutRoute = SeuratutRouteImport.update({
@@ -325,6 +337,10 @@ export interface FileRoutesByFullPath {
   '/postaukset': typeof PostauksetRoute
   '/profiili': typeof ProfiiliRoute
   '/seuratut': typeof SeuratutRoute
+  '/sarjat': typeof SarjatRoute
+  '/sarjat/$slug': typeof SarjatSlugRoute
+  '/sarjat': typeof SarjatRoute
+  '/sarjat/$slug': typeof SarjatSlugRoute
   '/sopimukset': typeof SopimuksetRoute
   '/tekoalytila': typeof TekoalytilaRoute
   '/tiimit': typeof TiimitRouteWithChildren
