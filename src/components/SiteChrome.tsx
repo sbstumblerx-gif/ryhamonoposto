@@ -15,7 +15,7 @@ type NavSection = { label: string; items: NavItem[] };
 const NAV_SECTIONS: NavSection[] = [
   { label: "Data ja tilastot", items: [{to:"/kuljettajat",label:"Kuljettajat",icon:"🏎️"},{to:"/tiimit",label:"Tiimit",icon:"👥"},{to:"/kilpailut",label:"Kilpailut",icon:"🏁"},{to:"/kalenteri",label:"Kalenteri",icon:"📅"},{to:"/tilastot",label:"Tilastot",icon:"📊"},{to:"/sopimukset",label:"Sopimukset",icon:"📝"},{to:"/uutiset",label:"Uutiset",icon:"📰"}] },
   { label: "Yhteisö", items: [{to:"/ystavat",label:"Ystävät",icon:"👫"},{to:"/klubit",label:"Klubit",icon:"🎟️"},{to:"/aanestykset",label:"Äänestykset",icon:"🗳️"},{to:"/postaukset",label:"Postaukset",icon:"🌍"}] },
-  { label: "Osallistu", items: [{to:"/veikkaa",label:"Veikkaa",icon:"🎰"},{to:"/kokoelma",label:"Kokoelma",icon:"🗂️"},{to:"/pelaa",label:"Pelaa",icon:"🎮"}] },
+  { label: "Osallistu", items: [{to:"/sarjat",label:"Sarjat",icon:"🏁"},{to:"/veikkaa",label:"Veikkaa",icon:"🎰"},{to:"/kokoelma",label:"Kokoelma",icon:"🗂️"},{to:"/pelaa",label:"Pelaa",icon:"🎮"}] },
   { label: "Minä", items: [{to:"/profiili",label:"Profiili",icon:"👤"},{to:"/seuratut",label:"Seuratut",icon:"♥️"},{to:"/omat-postaukset",label:"Omat postaukset",icon:"📁"}] },
 ];
 function useUnreadCount(){const[uid,setUid]=useState<string|null>(null);useEffect(()=>{supabase.auth.getUser().then(({data})=>setUid(data.user?.id??null));const{data:sub}=supabase.auth.onAuthStateChange((_e,s)=>setUid(s?.user?.id??null));return()=>sub.subscription.unsubscribe()},[]);const countFn=useServerFn(unreadNotificationCount);const q=useQuery({queryKey:["notif-count",uid],queryFn:()=>countFn(),enabled:!!uid,refetchInterval:30000});return Number((q.data as any)??0)}
