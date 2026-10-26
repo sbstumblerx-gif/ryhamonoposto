@@ -5,10 +5,17 @@ CREATE TABLE IF NOT EXISTS public.series (
   name text NOT NULL,
   description text NOT NULL DEFAULT '',
   owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  admin_password_hash text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS public.series_admin_credentials (
+  series_id uuid PRIMARY KEY REFERENCES public.series(id) ON DELETE CASCADE,
+  password_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.series_admin_credentials ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.series_admin_credentials TO service_role;
+
 CREATE INDEX IF NOT EXISTS series_created_at_idx ON public.series (created_at DESC);
 ALTER TABLE public.series ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "public can read series" ON public.series;
