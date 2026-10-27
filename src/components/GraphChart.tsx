@@ -72,3 +72,51 @@ export function GraphChart({ graph, height = 440 }: { graph: GraphData; height?:
   const maxValue = Math.max(0, ...data.series.flatMap((s: any) => s.points.map((p: Point) => p.value))); const yMax = maxValue || 1; const chartWidth = Math.max(720, lineData.length * 44);
   return <div><div className="overflow-x-auto"><div style={{ minWidth: chartWidth }}><ResponsiveContainer width="100%" height={height}><LineChart data={lineData} margin={{ top: 10, right: 20, left: 0, bottom: 16 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" interval={0} tickFormatter={(label: string) => axisLabels.get(label) ?? label} tick={{ fontSize: 18 }} /><YAxis allowDecimals={false} allowDataOverflow domain={[0, yMax]} /><Tooltip labelFormatter={(label: string) => label} />{data.series.map((s: any) => <Line key={s.name} type="monotone" dataKey={s.name} stroke={s.color} strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} isAnimationActive={false}><LabelList dataKey={s.name} position="top" fill={s.color} fontSize={11} /></Line>)}</LineChart></ResponsiveContainer></div></div><div className="flex flex-wrap gap-x-5 gap-y-2 px-2 pt-2 text-xs">{data.series.map((s: any) => <div key={s.name} className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded-full" style={{ background: s.color }} />{s.name}</div>)}</div>{data.series.some((s: any) => s.points.some((p: Point) => p.teamName)) && <p className="text-[11px] text-muted-foreground mt-2">Kuljettajagraafeissa väri seuraa kilpailukohtaista tiimiä. Tiiminvaihdos vaihtaa viivan värin kyseisessä kohdassa.</p>}</div>;
 }
+
+/** Export a complete, self-contained JPEG including title, axes, values and legend. */
+export async function downloadGraphJpeg(graphInput: any, title: string, subtitle = "") {
+  const graph = graphInput?.data ?? graphInput;
+  const width = 1400, height = 900;
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("JPEG-vientiä ei voitu alustaa.");
+  ctx.fillStyle = "#101116"; ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#f4f4f5"; ctx.font = "bold 34px Arial"; ctx.fillText(title || graph.title || "RyhäMonoposto-grafiikka", 70, 68, 1260);
+  ctx.fillStyle = "#a1a1aa"; ctx.font = "20px Arial"; ctx.fillText(subtitle || graph.subtitle || "", 70, 105, 1260);
+  const totals = [...(graph.totals ?? [])].sort((a: any,b: any)=>Number(b.value)-Number(a.value));
+  const metricName = metricLabels[graph.config?.metric] ?? graph.config?.metric ?? "Arvo";
+  const left=115, right=width-90, top=165, bottom=height-185, chartW=right-left, chartH=bottom-top;
+  ctx.strokeStyle="#3f414a"; ctx.lineWidth=1; ctx.fillStyle="#b6b7c0"; ctx.font="16px Arial";
+  const drawLegend=(items: any[])=>{
+    let x=left, y=height-115;
+    ctx.font="17px Arial";
+    for (const item of items) {
+      const label=String(item.name ?? "");
+      const estimated=ctx.measureText(label).width+45;
+      if(x+estimated>right){x=left;y+=30;}
+      ctx.fillStyle=item.color || "#9ca3af";ctx.fillRect(x,y-13,15,15);
+      ctx.fillStyle="#e5e7eb";ctx.fillText(label,x+23,y,Math.max(estimated-25,30));x+=estimated+16;
+    }
+  };
+  const maxVal=Math.max(1,...totals.map((x:any)=>Number(x.value)||0));
+  const grid=()=>{for(let i=0;i<=5;i++){const y=bottom-chartH*i/5;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillStyle="#a1a1aa";ctx.textAlign="right";ctx.fillText(Math.round(maxVal*i/5).toLocaleString("fi-FI"),left-16,y+5);}};
+  if(graph.config?.chartType==="pie"){
+    const cx=width/2,cy=top+chartH/2,r=225,total=totals.reduce((sum:any,x:any)=>sum+Math.max(0,Number(x.value)||0),0)||1;let angle=-Math.PI/2;
+    totals.forEach((entry:any)=>{const value=Math.max(0,Number(entry.value)||0),next=angle+value/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,next);ctx.closePath();ctx.fillStyle=entry.color||"#9ca3af";ctx.fill();const mid=(angle+next)/2;ctx.fillStyle="#fff";ctx.font="bold 17px Arial";ctx.textAlign="center";ctx.fillText(String(value),cx+Math.cos(mid)*r*.68,cy+Math.sin(mid)*r*.68);angle=next;});
+    drawLegend(totals);
+  } else if(graph.config?.chartType==="line"){
+    const series=graph.series??[], labels=[...new Set<string>(series.flatMap((s:any)=>s.points.map((p:any)=>p.label)))];
+    const max=Math.max(1,...series.flatMap((s:any)=>s.points.map((p:any)=>Number(p.value)||0)));
+    for(let i=0;i<=5;i++){const y=bottom-chartH*i/5;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillStyle="#a1a1aa";ctx.textAlign="right";ctx.fillText(Math.round(max*i/5).toLocaleString("fi-FI"),left-16,y+5);}
+    series.forEach((s:any)=>{ctx.strokeStyle=s.color||"#fff";ctx.lineWidth=4;ctx.beginPath();s.points.forEach((p:any,i:number)=>{const x=left+(labels.length<2?.5:i/(labels.length-1))*chartW,y=bottom-(Number(p.value)||0)/max*chartH;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();s.points.forEach((p:any,i:number)=>{const x=left+(labels.length<2?.5:i/(labels.length-1))*chartW,y=bottom-(Number(p.value)||0)/max*chartH;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=s.color||"#fff";ctx.fill();ctx.fillStyle="#fff";ctx.font="bold 15px Arial";ctx.textAlign="center";ctx.fillText(String(p.value),x,y-13);});});
+    ctx.fillStyle="#c4c4cc";ctx.font="13px Arial";ctx.textAlign="center";labels.forEach((label,i)=>{if(labels.length<15||i%Math.ceil(labels.length/14)===0)ctx.fillText(String(label).slice(0,18),left+(labels.length<2?.5:i/(labels.length-1))*chartW,bottom+25);});drawLegend(series);
+  } else {
+    grid();const gap=18,barW=Math.max(12,(chartW-gap*(totals.length+1))/Math.max(1,totals.length));
+    totals.forEach((entry:any,i:number)=>{const x=left+gap+i*(barW+gap),v=Number(entry.value)||0,bh=v/maxVal*(chartH-15),y=bottom-bh;ctx.fillStyle=entry.color||"#9ca3af";ctx.fillRect(x,y,barW,bh);ctx.fillStyle="#fff";ctx.font="bold 17px Arial";ctx.textAlign="center";ctx.fillText(v.toLocaleString("fi-FI"),x+barW/2,y-10);ctx.save();ctx.translate(x+barW/2,bottom+14);ctx.rotate(-Math.PI/4);ctx.fillStyle="#d4d4d8";ctx.font="14px Arial";ctx.textAlign="right";ctx.fillText(String(entry.name).slice(0,30),0,0);ctx.restore();});
+    ctx.fillStyle="#a1a1aa";ctx.font="16px Arial";ctx.textAlign="left";ctx.fillText(metricName,left,top-20);drawLegend(totals);
+  }
+  ctx.fillStyle="#71717a";ctx.font="14px Arial";ctx.textAlign="right";ctx.fillText("RyhäMonoposto",width-70,height-28);
+  const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("JPEG-tiedoston luonti epäonnistui.")),"image/jpeg",0.94));
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=(title||"ryhamonoposto-grafiikka").replace(/[^a-z0-9-_]+/gi,"-").toLowerCase()+".jpg";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
