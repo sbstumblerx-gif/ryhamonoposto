@@ -47,7 +47,7 @@ function FullHistoryPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <nav aria-label="Tilastokausien selaus" className="flex items-center justify-between gap-3 mb-4">
-        <span />
+        <span aria-disabled="true" aria-label="Koko historia on ensimmäinen" className="px-3 py-2 opacity-30">←</span>
         <Link to="/tilastot" className="text-xs text-muted-foreground uppercase tracking-widest hover:text-primary">Kaudet</Link>
         {firstSeason ? <Link to="/tilastot/$season" params={{ season: firstSeason.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Seuraava kausi: ${firstSeason.name}`}><span className="hidden sm:inline">Seuraava</span><span aria-hidden="true">→</span></Link> : <span />}
       </nav>
