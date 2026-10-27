@@ -7,7 +7,7 @@ create table if not exists public.graph_folders (
   created_at timestamptz not null default now()
 );
 alter table public.graph_folders enable row level security;
-create policy "graph folders publicly readable" on public.graph_folders for select using (true);
+-- Folder reads and writes go through authenticated server functions only.
 create index if not exists graph_folders_owner_parent_idx on public.graph_folders(owner_id, parent_id);
 alter table public.graphs add column if not exists custom_title text;
 alter table public.graphs add column if not exists folder_id uuid references public.graph_folders(id) on delete set null;
