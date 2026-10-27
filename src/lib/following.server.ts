@@ -98,6 +98,6 @@ export async function followingOverview(userId: string) {
     trendNow: { drivers: driversTrend.slice(0, 3), teams: teamsTrend.slice(0, 2) },
     suggestions,
     report,
-    trends: { drivers: driversTrend.slice(0, 5).concat(driversTrend.filter(e => followKey.has(`driver:${e.entity_slug}`)).filter(e => !driversTrend.slice(0, 5).some(x => x.entity_slug === e.entity_slug))), teams: teamsTrend.slice(0, 5).concat(teamsTrend.filter(e => followKey.has(`team:${e.entity_slug}`)).filter(e => !teamsTrend.slice(0, 5).some(x => x.entity_slug === e.entity_slug))) },
+    trends: { drivers: driversTrend, teams: teamsTrend },
   };
 }
