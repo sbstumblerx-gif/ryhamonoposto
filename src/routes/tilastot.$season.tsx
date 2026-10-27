@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { getSeason } from "@/lib/seasons.functions";
+import { getSeason, listSeasons } from "@/lib/seasons.functions";
 import { getStandings } from "@/lib/stats.functions";
 import { seasonYearFromName, aggregateNationalityRows } from "@/lib/stats-compute";
 import { StandingsTable, STAT_FIELDS, type StatFieldKey } from "@/components/StandingsTable";
@@ -32,13 +32,19 @@ const SECTIONS = [
 function SeasonPage() {
   const { season } = Route.useParams();
   const get = useServerFn(getSeason);
+  const listAllSeasons = useServerFn(listSeasons);
   const standings = useServerFn(getStandings);
   const q = useQuery({ queryKey: ["season", season], queryFn: () => get({ data: { slug: season } }) });
+  const seasonsQuery = useQuery({ queryKey: ["seasons"], queryFn: () => listAllSeasons() });
   const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("drivers");
   const [comparison, setComparison] = useState<StatFieldKey | "all">("all");
 
   const s = q.data;
   const year = seasonYearFromName(s?.name) ?? seasonYearFromName(season) ?? (s?.sort_order && s.sort_order > 2000 ? s.sort_order : null);
+  const orderedSeasons = [...(seasonsQuery.data ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  const seasonIndex = orderedSeasons.findIndex(item => item.slug === season);
+  const previousSeason = seasonIndex > 0 ? orderedSeasons[seasonIndex - 1] : null;
+  const nextSeason = seasonIndex >= 0 && seasonIndex < orderedSeasons.length - 1 ? orderedSeasons[seasonIndex + 1] : null;
 
   const st = useQuery({
     queryKey: ["standings", year],
@@ -51,7 +57,11 @@ function SeasonPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <Link to="/tilastot" className="text-xs text-muted-foreground uppercase tracking-widest hover:text-primary">← Kaudet</Link>
+      <nav aria-label="Tilastokausien selaus" className="flex items-center justify-between gap-3 mb-4">
+        {previousSeason ? <Link to="/tilastot/$season" params={{ season: previousSeason.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Edellinen kausi: ${previousSeason.name}`}><span aria-hidden="true">←</span><span className="hidden sm:inline">Edellinen</span></Link> : <Link to="/tilastot/koko-historia" className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label="Koko historia"><span aria-hidden="true">←</span><span className="hidden sm:inline">Koko historia</span></Link>}
+        <Link to="/tilastot" className="text-xs text-muted-foreground uppercase tracking-widest hover:text-primary">Kaudet</Link>
+        {nextSeason ? <Link to="/tilastot/$season" params={{ season: nextSeason.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Seuraava kausi: ${nextSeason.name}`}><span className="hidden sm:inline">Seuraava</span><span aria-hidden="true">→</span></Link> : <span />}
+      </nav>
       <h1 className="font-display uppercase tracking-widest text-2xl text-primary mt-2">{s?.name ?? season}</h1>
       <div className="hairline-red mt-3 mb-6" />
 
