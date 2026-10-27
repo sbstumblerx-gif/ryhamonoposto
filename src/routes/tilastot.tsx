@@ -20,7 +20,7 @@ export function StatsIndex() {
   const [name, setName] = useState("");
   const [year, setYear] = useState(new Date().getFullYear());
   const q = useQuery({ queryKey: ["seasons"], queryFn: () => list() });
-  const seasons = q.data ?? [];
+  const seasons = [...(q.data ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
   async function add() {
     if (!name.trim()) return;
