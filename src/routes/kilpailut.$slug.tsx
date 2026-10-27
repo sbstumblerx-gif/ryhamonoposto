@@ -78,7 +78,7 @@ function RaceDetail() {
 
   return <div className="mx-auto max-w-4xl px-4 py-8">
     <nav aria-label="Kilpailujen selaus" className="flex items-center justify-between gap-3 mb-5">
-      {previousRace ? <Link to="/kilpailut/$slug" params={{ slug: previousRace.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Edellinen kilpailu: ${previousRace.name}`}><span aria-hidden="true">←</span><span className="hidden sm:inline">Edellinen</span></Link> : <span />}
+      {previousRace ? <Link to="/kilpailut/$slug" params={{ slug: previousRace.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Edellinen kilpailu: ${previousRace.name}`}><span aria-hidden="true">←</span><span className="hidden sm:inline">Edellinen</span></Link> : <span aria-disabled="true" aria-label="Ei edellistä kilpailua" className="px-3 py-2 opacity-30">←</span>}
       <Link to="/kilpailut" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">Kaikki kilpailut</Link>
       {nextRace ? <Link to="/kilpailut/$slug" params={{ slug: nextRace.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Seuraava kilpailu: ${nextRace.name}`}><span className="hidden sm:inline">Seuraava</span><span aria-hidden="true">→</span></Link> : <span />}
     </nav>
