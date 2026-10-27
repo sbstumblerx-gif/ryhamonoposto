@@ -3,7 +3,7 @@ import { getRaceExtras, saveRaceExtra, deleteRaceExtra } from "@/lib/race-extra.
 import { SESSION_TYPES } from "@/lib/calendar.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRace, upsertRace, listDrivers } from "@/lib/content.functions";
+import { getRace, upsertRace, listDrivers, listRaces } from "@/lib/content.functions";
 import { updateSprint } from "@/lib/sprint.functions";
 import { generateResultList } from "@/lib/ai-results.functions";
 import { useEntityIndex } from "@/components/useEntityIndex";
@@ -24,14 +24,30 @@ type Session = string;
 type SprintRace = { is_sprint_weekend?: boolean | null; sprint_qualifying_content?: string | null; sprint_content?: string | null; sprint_qualifying_media_url?: string | null; sprint_media_url?: string | null; sprint_qualifying_youtube_url?: string | null; sprint_youtube_url?: string | null; sprint_fastest_lap_driver_slug?: string | null };
 
 function RaceDetail() {
-  const { slug } = Route.useParams(); const get = useServerFn(getRace); const save = useServerFn(upsertRace); const saveSprint = useServerFn(updateSprint); const list = useServerFn(listDrivers); const genResults = useServerFn(generateResultList); const qc = useQueryClient(); const admin = useAdmin(); const entities = useEntityIndex();
-  const driversQuery = useQuery({ queryKey: ["drivers"], queryFn: () => list() }); const q = useQuery({ queryKey: ["race", slug], queryFn: () => get({ data: { slug } }) });
+  const { slug } = Route.useParams(); const get = useServerFn(getRace); const save = useServerFn(upsertRace); const saveSprint = useServerFn(updateSprint); const list = useServerFn(listDrivers); const listAllRaces = useServerFn(listRaces); const genResults = useServerFn(generateResultList); const qc = useQueryClient(); const admin = useAdmin(); const entities = useEntityIndex();
+  const driversQuery = useQuery({ queryKey: ["drivers"], queryFn: () => list() }); const q = useQuery({ queryKey: ["race", slug], queryFn: () => get({ data: { slug } }) }); const racesQuery = useQuery({ queryKey: ["races"], queryFn: () => listAllRaces() });
   const extrasFn = useServerFn(getRaceExtras), saveExtra = useServerFn(saveRaceExtra), delExtra = useServerFn(deleteRaceExtra);
   const raceId = (q.data as any)?.id as string | undefined;
   const ex = useQuery({ queryKey: ["race-extras", raceId], queryFn: () => extrasFn({ data: { race_id: raceId! } }), enabled: !!raceId });
   const [tab, setTab] = useState<Session>("race"); const [aiBusy, setAiBusy] = useState(false);
   if (q.isLoading) return <div className="mx-auto max-w-4xl px-4 py-8">Ladataan…</div>;
   const r = q.data as NonNullable<typeof q.data>; if (!r) return <div className="mx-auto max-w-4xl px-4 py-8">Kilpailua ei löydy.</div>;
+  const allRaces = (racesQuery.data ?? []) as Array<{ id: string; slug: string; name: string; flag?: string | null; race_date?: string | null; round_number?: number | null; created_at?: string }>;
+  const orderedRaces = [...allRaces].sort((a, b) => {
+    const yearA = Number(a.race_date?.slice(0, 4)) || Number(a.name.match(/(20\d\d)/)?.[1] ?? 0);
+    const yearB = Number(b.race_date?.slice(0, 4)) || Number(b.name.match(/(20\d\d)/)?.[1] ?? 0);
+    if (yearA !== yearB) return yearA - yearB;
+    const roundA = a.round_number ?? Number.MAX_SAFE_INTEGER;
+    const roundB = b.round_number ?? Number.MAX_SAFE_INTEGER;
+    if (roundA !== roundB) return roundA - roundB;
+    const dateA = a.race_date ? new Date(a.race_date).getTime() : Number.MAX_SAFE_INTEGER;
+    const dateB = b.race_date ? new Date(b.race_date).getTime() : Number.MAX_SAFE_INTEGER;
+    if (dateA !== dateB) return dateA - dateB;
+    return new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
+  });
+  const currentRaceIndex = orderedRaces.findIndex(item => item.slug === slug);
+  const previousRace = currentRaceIndex > 0 ? orderedRaces[currentRaceIndex - 1] : null;
+  const nextRace = currentRaceIndex >= 0 && currentRaceIndex < orderedRaces.length - 1 ? orderedRaces[currentRaceIndex + 1] : null;
   const isWinterTest = r.round_number === 0; const sprint = r as typeof r & SprintRace; const isSprint = !!sprint.is_sprint_weekend && !isWinterTest; const extras = ex.data?.extras ?? []; const schedule = ex.data?.schedule ?? [];
   const seasonYear = Number((r.race_date ?? "").slice(0, 4)) || Number(r.name.match(/(20\d\d)/)?.[1] ?? 0);
   const hasPractice = !isWinterTest && seasonYear >= 2027;
@@ -61,6 +77,11 @@ function RaceDetail() {
   const tabLabel = (k: string) => isWinterTest ? (k === "race" ? "Päivä 1" : `Päivä ${k.slice(4)}`) : k === "practice" ? "Vapaat harjoitukset" : k === "sprintQualifying" ? "Sprintin aika-ajo" : k === "sprint" ? "Sprintti" : k === "qualifying" ? "Aika-ajo" : "Kisa";
 
   return <div className="mx-auto max-w-4xl px-4 py-8">
+    <nav aria-label="Kilpailujen selaus" className="flex items-center justify-between gap-3 mb-5">
+      {previousRace ? <Link to="/kilpailut/$slug" params={{ slug: previousRace.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Edellinen kilpailu: ${previousRace.name}`}><span aria-hidden="true">←</span><span className="hidden sm:inline">Edellinen</span></Link> : <span />}
+      <Link to="/kilpailut" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">Kaikki kilpailut</Link>
+      {nextRace ? <Link to="/kilpailut/$slug" params={{ slug: nextRace.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Seuraava kilpailu: ${nextRace.name}`}><span className="hidden sm:inline">Seuraava</span><span aria-hidden="true">→</span></Link> : <span />}
+    </nav>
     <div className="flex items-center gap-3 flex-wrap"><span className="text-3xl">{r.flag}</span>{r.round_number != null && <span className="font-display text-sm px-2 py-1 rounded border border-primary/60 text-primary">{isWinterTest ? "TALVITESTIT" : `R${r.round_number}`}</span>}<h1 className="font-display uppercase tracking-widest text-2xl md:text-3xl">{r.name}</h1>{isSprint && <img src="/images/sprint/ChatGPT Image 16.9.2026 klo 09.46.02.png" alt="Sprinttiviikonloppu" className="h-10 w-auto max-w-20 object-contain" />}</div>
     <div className="hairline-red mt-3 mb-6" />
     <RaceHighlights raceSlug={slug} />
