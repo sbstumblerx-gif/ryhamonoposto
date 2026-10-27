@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getStandings } from "@/lib/stats.functions";
+import { listSeasons } from "@/lib/seasons.functions";
 import { aggregateNationalityRows } from "@/lib/stats-compute";
 import { StandingsTable, STAT_FIELDS, type StatFieldKey } from "@/components/StandingsTable";
 import { Comments } from "@/components/Comments";
@@ -32,6 +33,9 @@ function FullHistoryPage() {
   const [sec, setSec] = useState<(typeof SECTIONS)[number]["key"]>("drivers");
   const [comparison, setComparison] = useState<StatFieldKey | "all">("all");
   const standings = useServerFn(getStandings);
+  const listAllSeasons = useServerFn(listSeasons);
+  const seasonsQuery = useQuery({ queryKey: ["seasons"], queryFn: () => listAllSeasons() });
+  const firstSeason = [...(seasonsQuery.data ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))[0] ?? null;
   const st = useQuery({
     queryKey: ["standings", "all"],
     queryFn: () => standings({ data: { year: null } }),
@@ -42,7 +46,11 @@ function FullHistoryPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <Link to="/tilastot" className="text-xs text-muted-foreground uppercase tracking-widest hover:text-primary">← Kaudet</Link>
+      <nav aria-label="Tilastokausien selaus" className="flex items-center justify-between gap-3 mb-4">
+        <span />
+        <Link to="/tilastot" className="text-xs text-muted-foreground uppercase tracking-widest hover:text-primary">Kaudet</Link>
+        {firstSeason ? <Link to="/tilastot/$season" params={{ season: firstSeason.slug }} className="inline-flex items-center gap-2 rounded border border-primary/40 px-3 py-2 text-sm hover:border-primary hover:bg-primary/10 transition" aria-label={`Seuraava kausi: ${firstSeason.name}`}><span className="hidden sm:inline">Seuraava</span><span aria-hidden="true">→</span></Link> : <span />}
+      </nav>
       <h1 className="font-display uppercase tracking-widest text-2xl text-primary mt-2">Koko historia</h1>
       <div className="hairline-red mt-3 mb-6" />
       <div className="flex gap-2 mb-4 flex-wrap">
