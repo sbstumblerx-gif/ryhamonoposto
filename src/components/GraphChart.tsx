@@ -29,7 +29,7 @@ function StageChart({ data, height }: { data: GraphData; height: number }) {
             <button type="button" onClick={() => setActive(index)}
               className="absolute z-20 max-w-[150px] -translate-x-1/2 truncate rounded px-1 text-center text-xs font-semibold hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
               style={{ left: `${x / 10}%`, top: 6 + (index % 3) * 27, color, maxWidth: "150px" }}>
-              {entry.flag ? `${entry.flag} ` : ""}{entry.name}
+              {entry.flag ? `${entry.flag} ` : ""}{entry.name} · {Number(entry.value).toLocaleString("fi-FI")}
             </button>
           </div>;
         })}
