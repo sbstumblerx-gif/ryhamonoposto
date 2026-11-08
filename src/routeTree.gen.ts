@@ -26,9 +26,8 @@ import { Route as OmatPostauksetRouteImport } from './routes/omat-postaukset'
 import { Route as PelaaRouteImport } from './routes/pelaa'
 import { Route as PostauksetRouteImport } from './routes/postaukset'
 import { Route as ProfiiliRouteImport } from './routes/profiili'
-import { Route as SeuratutRouteImport } from './routes/seuratut'
 import { Route as SarjatRouteImport } from './routes/sarjat'
-import { Route as SarjatSlugRouteImport } from './routes/sarjat.$slug'
+import { Route as SeuratutRouteImport } from './routes/seuratut'
 import { Route as SopimuksetRouteImport } from './routes/sopimukset'
 import { Route as TekoalytilaRouteImport } from './routes/tekoalytila'
 import { Route as TiimitRouteImport } from './routes/tiimit'
@@ -46,6 +45,7 @@ import { Route as KlubitIdRouteImport } from './routes/klubit.$id'
 import { Route as KlubitunnisteTagRouteImport } from './routes/klubitunniste.$tag'
 import { Route as KuljettajatIndexRouteImport } from './routes/kuljettajat.index'
 import { Route as KuljettajatSlugRouteImport } from './routes/kuljettajat.$slug'
+import { Route as SarjatSlugRouteImport } from './routes/sarjat.$slug'
 import { Route as TiimitIndexRouteImport } from './routes/tiimit.index'
 import { Route as TiimitSlugRouteImport } from './routes/tiimit.$slug'
 import { Route as TilastotIndexRouteImport } from './routes/tilastot.index'
@@ -151,11 +151,6 @@ const SarjatRoute = SarjatRouteImport.update({
   path: '/sarjat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SarjatSlugRoute = SarjatSlugRouteImport.update({
-  id: '/sarjat/$slug',
-  path: '/sarjat/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SeuratutRoute = SeuratutRouteImport.update({
   id: '/seuratut',
   path: '/seuratut',
@@ -247,6 +242,11 @@ const KuljettajatSlugRoute = KuljettajatSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => KuljettajatRoute,
 } as any)
+const SarjatSlugRoute = SarjatSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => SarjatRoute,
+} as any)
 const TiimitIndexRoute = TiimitIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -336,11 +336,8 @@ export interface FileRoutesByFullPath {
   '/pelaa': typeof PelaaRoute
   '/postaukset': typeof PostauksetRoute
   '/profiili': typeof ProfiiliRoute
+  '/sarjat': typeof SarjatRouteWithChildren
   '/seuratut': typeof SeuratutRoute
-  '/sarjat': typeof SarjatRoute
-  '/sarjat/$slug': typeof SarjatSlugRoute
-  '/sarjat': typeof SarjatRoute
-  '/sarjat/$slug': typeof SarjatSlugRoute
   '/sopimukset': typeof SopimuksetRoute
   '/tekoalytila': typeof TekoalytilaRoute
   '/tiimit': typeof TiimitRouteWithChildren
@@ -355,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/klubit/$id': typeof KlubitIdRoute
   '/klubitunniste/$tag': typeof KlubitunnisteTagRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
+  '/sarjat/$slug': typeof SarjatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
   '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
@@ -389,6 +387,7 @@ export interface FileRoutesByTo {
   '/pelaa': typeof PelaaRoute
   '/postaukset': typeof PostauksetRoute
   '/profiili': typeof ProfiiliRoute
+  '/sarjat': typeof SarjatRouteWithChildren
   '/seuratut': typeof SeuratutRoute
   '/sopimukset': typeof SopimuksetRoute
   '/tekoalytila': typeof TekoalytilaRoute
@@ -401,6 +400,7 @@ export interface FileRoutesByTo {
   '/klubit/$id': typeof KlubitIdRoute
   '/klubitunniste/$tag': typeof KlubitunnisteTagRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
+  '/sarjat/$slug': typeof SarjatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
   '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
@@ -438,6 +438,7 @@ export interface FileRoutesById {
   '/pelaa': typeof PelaaRoute
   '/postaukset': typeof PostauksetRoute
   '/profiili': typeof ProfiiliRoute
+  '/sarjat': typeof SarjatRouteWithChildren
   '/seuratut': typeof SeuratutRoute
   '/sopimukset': typeof SopimuksetRoute
   '/tekoalytila': typeof TekoalytilaRoute
@@ -453,6 +454,7 @@ export interface FileRoutesById {
   '/klubit/$id': typeof KlubitIdRoute
   '/klubitunniste/$tag': typeof KlubitunnisteTagRoute
   '/kuljettajat/$slug': typeof KuljettajatSlugRoute
+  '/sarjat/$slug': typeof SarjatSlugRoute
   '/tiimit/$slug': typeof TiimitSlugRoute
   '/tilastot/$season': typeof TilastotSeasonRoute
   '/tilastot/koko-historia': typeof TilastotKokoHistoriaRoute
@@ -491,6 +493,7 @@ export interface FileRouteTypes {
     | '/pelaa'
     | '/postaukset'
     | '/profiili'
+    | '/sarjat'
     | '/seuratut'
     | '/sopimukset'
     | '/tekoalytila'
@@ -506,6 +509,7 @@ export interface FileRouteTypes {
     | '/klubit/$id'
     | '/klubitunniste/$tag'
     | '/kuljettajat/$slug'
+    | '/sarjat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
     | '/tilastot/koko-historia'
@@ -540,6 +544,7 @@ export interface FileRouteTypes {
     | '/pelaa'
     | '/postaukset'
     | '/profiili'
+    | '/sarjat'
     | '/seuratut'
     | '/sopimukset'
     | '/tekoalytila'
@@ -552,6 +557,7 @@ export interface FileRouteTypes {
     | '/klubit/$id'
     | '/klubitunniste/$tag'
     | '/kuljettajat/$slug'
+    | '/sarjat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
     | '/tilastot/koko-historia'
@@ -588,6 +594,7 @@ export interface FileRouteTypes {
     | '/pelaa'
     | '/postaukset'
     | '/profiili'
+    | '/sarjat'
     | '/seuratut'
     | '/sopimukset'
     | '/tekoalytila'
@@ -603,6 +610,7 @@ export interface FileRouteTypes {
     | '/klubit/$id'
     | '/klubitunniste/$tag'
     | '/kuljettajat/$slug'
+    | '/sarjat/$slug'
     | '/tiimit/$slug'
     | '/tilastot/$season'
     | '/tilastot/koko-historia'
@@ -640,6 +648,7 @@ export interface RootRouteChildren {
   PelaaRoute: typeof PelaaRoute
   PostauksetRoute: typeof PostauksetRoute
   ProfiiliRoute: typeof ProfiiliRoute
+  SarjatRoute: typeof SarjatRouteWithChildren
   SeuratutRoute: typeof SeuratutRoute
   SopimuksetRoute: typeof SopimuksetRoute
   TekoalytilaRoute: typeof TekoalytilaRoute
@@ -779,13 +788,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfiiliRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/seuratut': {
-      id: '/seuratut'
-      path: '/seuratut'
-      fullPath: '/seuratut'
-      preLoaderRoute: typeof SeuratutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sarjat': {
       id: '/sarjat'
       path: '/sarjat'
@@ -793,11 +795,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SarjatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sarjat/$slug': {
-      id: '/sarjat/$slug'
-      path: '/sarjat/$slug'
-      fullPath: '/sarjat/$slug'
-      preLoaderRoute: typeof SarjatSlugRouteImport
+    '/seuratut': {
+      id: '/seuratut'
+      path: '/seuratut'
+      fullPath: '/seuratut'
+      preLoaderRoute: typeof SeuratutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sopimukset': {
@@ -918,6 +920,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kuljettajat/$slug'
       preLoaderRoute: typeof KuljettajatSlugRouteImport
       parentRoute: typeof KuljettajatRoute
+    }
+    '/sarjat/$slug': {
+      id: '/sarjat/$slug'
+      path: '/$slug'
+      fullPath: '/sarjat/$slug'
+      preLoaderRoute: typeof SarjatSlugRouteImport
+      parentRoute: typeof SarjatRoute
     }
     '/tiimit/': {
       id: '/tiimit/'
@@ -1076,6 +1085,17 @@ const KuljettajatRouteWithChildren = KuljettajatRoute._addFileChildren(
   KuljettajatRouteChildren,
 )
 
+interface SarjatRouteChildren {
+  SarjatSlugRoute: typeof SarjatSlugRoute
+}
+
+const SarjatRouteChildren: SarjatRouteChildren = {
+  SarjatSlugRoute: SarjatSlugRoute,
+}
+
+const SarjatRouteWithChildren =
+  SarjatRoute._addFileChildren(SarjatRouteChildren)
+
 interface TiimitRouteChildren {
   TiimitSlugRoute: typeof TiimitSlugRoute
   TiimitIndexRoute: typeof TiimitIndexRoute
@@ -1136,9 +1156,8 @@ const rootRouteChildren: RootRouteChildren = {
   PelaaRoute: PelaaRoute,
   PostauksetRoute: PostauksetRoute,
   ProfiiliRoute: ProfiiliRoute,
+  SarjatRoute: SarjatRouteWithChildren,
   SeuratutRoute: SeuratutRoute,
-  SarjatRoute: SarjatRoute,
-  SarjatSlugRoute: SarjatSlugRoute,
   SopimuksetRoute: SopimuksetRoute,
   TekoalytilaRoute: TekoalytilaRoute,
   TiimitRoute: TiimitRouteWithChildren,
