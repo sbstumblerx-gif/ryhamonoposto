@@ -10,4 +10,4 @@
 - [ ] Varmista ChatGPT-yhteyden hyväksyminen, peruutus ja lukutyökalut käyttäjän tilillä — estää: käyttäjän kirjautuminen ja yhteyden lisääminen ChatGPT:ssä puuttuvat
 - [x] Korjaa neljä estävää tietoturvahavaintoa: ennustukset, äänet, profiilit ja fanipistetapahtumat; käyttöoikeustestit ja uusi tietoturvatarkistus läpäisty
 - [x] Lisää Sijoitusmuutos-tilasto ja tilastosijojen muutokset edellisestä kilpailusta; 8 laskentatestiä läpäisty ja oikeat tulokset sekä nuolet tarkistettu selaimessa.
-- [ ] Vaihda sovelluksen tekoäly Google AI Studioon ja varmista yhteys tallennetulla avaimella.
+- [ ] Google AI Studio -vaihto tehty keskusteluun, klubien tekoälyyn ja tuloskuvien lukuun; toiminnan varmistus estyy Googlen HTTP 404 -vastaukseen mallilla gemini-2.5-flash.
