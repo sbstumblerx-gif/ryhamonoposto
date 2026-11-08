@@ -13,3 +13,4 @@
 - Use the dedicated /login route for MCP consent sign-in and canonical local return paths; this preserves authorization IDs through social authentication.
 - Keep raw profiles, predictions and poll votes owner-readable and fan point events server-only; expose public profile fields and gated aggregate results through allowlisted database functions so private rows cannot be enumerated.
 - Derive statistics and pre-latest-completed-race snapshots in browser-safe pure helpers shared by the server and tests; use shared ranking helpers for tables and entity statistics so all views compare the same historical baseline.
+- Send site chat, club AI and result-image requests to Google AI Studio's OpenAI-compatible API using server-only GOOGLE_AI_API_KEY; this keeps the selected provider consistent without exposing credentials.

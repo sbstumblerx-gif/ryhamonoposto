@@ -12,8 +12,8 @@ export const generateResultList = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error("Missing OPENAI_API_KEY");
+    const key = process.env.GOOGLE_AI_API_KEY;
+    if (!key) throw new Error("Google AI Studio -avain puuttuu.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [{ data: drivers }, { data: teams }] = await Promise.all([
@@ -47,11 +47,11 @@ Säännöt:
 Kuljettajarekisteri (JSON):
 ${JSON.stringify(roster)}`;
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: "gpt-5.6-luna",
+        model: "gemini-2.5-flash",
         messages: [{
           role: "user",
           content: [
@@ -62,8 +62,7 @@ ${JSON.stringify(roster)}`;
       }),
     });
     if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`AI virhe (${resp.status}): ${text.slice(0, 200)}`);
+      throw new Error(`Google AI -pyyntö epäonnistui (${resp.status}). Tarkista avaimen käyttöoikeudet ja käyttökiintiö.`);
     }
     const json = await resp.json();
     const raw = String(json.choices?.[0]?.message?.content ?? "").trim();
