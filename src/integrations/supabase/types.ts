@@ -568,11 +568,52 @@ export type Database = {
         }
         Relationships: []
       }
+      graph_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "graph_folders_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "graph_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "graph_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       graphs: {
         Row: {
           config: Json
           created_at: string
+          custom_title: string | null
           data: Json
+          folder_id: string | null
           id: string
           owner_id: string | null
           signature: string
@@ -582,7 +623,9 @@ export type Database = {
         Insert: {
           config: Json
           created_at?: string
+          custom_title?: string | null
           data: Json
+          folder_id?: string | null
           id?: string
           owner_id?: string | null
           signature: string
@@ -592,7 +635,9 @@ export type Database = {
         Update: {
           config?: Json
           created_at?: string
+          custom_title?: string | null
           data?: Json
+          folder_id?: string | null
           id?: string
           owner_id?: string | null
           signature?: string
@@ -600,6 +645,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "graphs_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "graph_folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "graphs_owner_id_fkey"
             columns: ["owner_id"]
@@ -1277,6 +1329,239 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      series: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      series_admin_credentials: {
+        Row: {
+          created_at: string
+          password_hash: string
+          series_id: string
+        }
+        Insert: {
+          created_at?: string
+          password_hash: string
+          series_id: string
+        }
+        Update: {
+          created_at?: string
+          password_hash?: string
+          series_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_admin_credentials_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: true
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_drivers: {
+        Row: {
+          color_key: string
+          content: string
+          created_at: string
+          flag: string
+          id: string
+          name: string
+          number: number | null
+          series_id: string
+          slug: string
+          team_id: string | null
+        }
+        Insert: {
+          color_key?: string
+          content?: string
+          created_at?: string
+          flag?: string
+          id?: string
+          name: string
+          number?: number | null
+          series_id: string
+          slug: string
+          team_id?: string | null
+        }
+        Update: {
+          color_key?: string
+          content?: string
+          created_at?: string
+          flag?: string
+          id?: string
+          name?: string
+          number?: number | null
+          series_id?: string
+          slug?: string
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_drivers_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_drivers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "series_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_news: {
+        Row: {
+          content: string
+          created_at: string
+          excerpt: string
+          id: string
+          published_at: string
+          series_id: string
+          slug: string
+          title: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published_at?: string
+          series_id: string
+          slug: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published_at?: string
+          series_id?: string
+          slug?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_news_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_races: {
+        Row: {
+          created_at: string
+          flag: string
+          id: string
+          name: string
+          qualifying_content: string
+          race_content: string
+          race_date: string | null
+          series_id: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          flag?: string
+          id?: string
+          name: string
+          qualifying_content?: string
+          race_content?: string
+          race_date?: string | null
+          series_id: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          flag?: string
+          id?: string
+          name?: string
+          qualifying_content?: string
+          race_content?: string
+          race_date?: string | null
+          series_id?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_races_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_teams: {
+        Row: {
+          color_key: string
+          content: string
+          created_at: string
+          id: string
+          name: string
+          series_id: string
+          slug: string
+        }
+        Insert: {
+          color_key?: string
+          content?: string
+          created_at?: string
+          id?: string
+          name: string
+          series_id: string
+          slug: string
+        }
+        Update: {
+          color_key?: string
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          series_id?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_teams_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stats_pages: {
         Row: {
