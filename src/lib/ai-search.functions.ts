@@ -58,8 +58,8 @@ export const aiChat = createServerFn({ method: "POST" })
     pageContext: z.string().max(500).optional(),
   }).parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error("Missing OPENAI_API_KEY");
+    const key = process.env.GOOGLE_AI_API_KEY;
+    if (!key) throw new Error("Google AI Studio -avain puuttuu.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [drivers, teams, races, news, seasons, media] = await Promise.all([
@@ -116,20 +116,19 @@ Lähteet: sinulla on käytössäsi alla oleva sourceCatalog. Vastauksen lopussa 
       ...data.messages.map((message) => ({ role: message.role, content: message.content })),
     ];
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gpt-5.6-luna",
+        model: "gemini-2.5-flash",
         messages,
       }),
     });
     if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`AI virhe (${resp.status}): ${text.slice(0, 200)}`);
+      throw new Error(`Google AI -pyyntö epäonnistui (${resp.status}). Tarkista avaimen käyttöoikeudet ja käyttökiintiö.`);
     }
     const json = await resp.json();
     const parsed = parseAiPayload(String(json.choices?.[0]?.message?.content ?? ""));

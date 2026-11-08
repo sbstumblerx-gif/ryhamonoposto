@@ -33,7 +33,7 @@ async function siteCorpus(db: Admin) {
 
 /** Generate and store the AI's reply to the latest club message. */
 export async function replyInClub(db: Admin, clubId: string) {
-  const key = process.env.OPENAI_API_KEY;
+  const key = process.env.GOOGLE_AI_API_KEY;
   if (!key) return;
 
   const { data: recent } = await db
@@ -72,13 +72,13 @@ export async function replyInClub(db: Admin, clubId: string) {
 
   let answer = "";
   try {
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "gpt-5.6-luna", messages }),
+      body: JSON.stringify({ model: "gemini-2.5-flash", messages }),
     });
     if (resp.status === 429) answer = "Liikaa pyyntöjä juuri nyt — yritä hetken päästä uudelleen.";
-    else if (resp.status === 402) answer = "OpenAI API -käytön saldo tai laskutus ei ole käytettävissä juuri nyt.";
+    else if (resp.status === 402) answer = "Google AI -palvelun laskutus ei ole käytettävissä juuri nyt.";
     else if (!resp.ok) answer = "En saanut yhteyttä tekoälyyn juuri nyt.";
     else {
       const json = await resp.json();
