@@ -51,7 +51,7 @@ ${JSON.stringify(roster)}`;
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         messages: [{
           role: "user",
           content: [
