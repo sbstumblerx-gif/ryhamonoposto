@@ -123,7 +123,7 @@ Lähteet: sinulla on käytössäsi alla oleva sourceCatalog. Vastauksen lopussa 
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         messages,
       }),
     });

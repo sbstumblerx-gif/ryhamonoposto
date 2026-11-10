@@ -59,6 +59,7 @@ import { Route as DataKuljettajatSlugRouteImport } from './routes/data.kuljettaj
 import { Route as DataTiimitSlugRouteImport } from './routes/data.tiimit.$slug'
 import { Route as DataUutisetSlugRouteImport } from './routes/data.uutiset.$slug'
 import { Route as KlubitLiityCodeRouteImport } from './routes/klubit.liity.$code'
+import { Route as ApiPublicDataTableRouteImport } from './routes/api/public/data.$table'
 import { Route as ApiPublicKalenteriIcsRouteImport } from './routes/api/public/kalenteri.ics'
 
 const IndexRoute = IndexRouteImport.update({
@@ -312,6 +313,11 @@ const KlubitLiityCodeRoute = KlubitLiityCodeRouteImport.update({
   path: '/klubit/liity/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDataTableRoute = ApiPublicDataTableRouteImport.update({
+  id: '/api/public/data/$table',
+  path: '/api/public/data/$table',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicKalenteriIcsRoute = ApiPublicKalenteriIcsRouteImport.update({
   id: '/api/public/kalenteri/ics',
   path: '/api/public/kalenteri/ics',
@@ -369,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/data/tiimit/$slug': typeof DataTiimitSlugRoute
   '/data/uutiset/$slug': typeof DataUutisetSlugRoute
   '/klubit/liity/$code': typeof KlubitLiityCodeRoute
+  '/api/public/data/$table': typeof ApiPublicDataTableRoute
   '/api/public/kalenteri/ics': typeof ApiPublicKalenteriIcsRoute
 }
 export interface FileRoutesByTo {
@@ -417,6 +424,7 @@ export interface FileRoutesByTo {
   '/data/tiimit/$slug': typeof DataTiimitSlugRoute
   '/data/uutiset/$slug': typeof DataUutisetSlugRoute
   '/klubit/liity/$code': typeof KlubitLiityCodeRoute
+  '/api/public/data/$table': typeof ApiPublicDataTableRoute
   '/api/public/kalenteri/ics': typeof ApiPublicKalenteriIcsRoute
 }
 export interface FileRoutesById {
@@ -471,6 +479,7 @@ export interface FileRoutesById {
   '/data/tiimit/$slug': typeof DataTiimitSlugRoute
   '/data/uutiset/$slug': typeof DataUutisetSlugRoute
   '/klubit/liity/$code': typeof KlubitLiityCodeRoute
+  '/api/public/data/$table': typeof ApiPublicDataTableRoute
   '/api/public/kalenteri/ics': typeof ApiPublicKalenteriIcsRoute
 }
 export interface FileRouteTypes {
@@ -526,6 +535,7 @@ export interface FileRouteTypes {
     | '/data/tiimit/$slug'
     | '/data/uutiset/$slug'
     | '/klubit/liity/$code'
+    | '/api/public/data/$table'
     | '/api/public/kalenteri/ics'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -574,6 +584,7 @@ export interface FileRouteTypes {
     | '/data/tiimit/$slug'
     | '/data/uutiset/$slug'
     | '/klubit/liity/$code'
+    | '/api/public/data/$table'
     | '/api/public/kalenteri/ics'
   id:
     | '__root__'
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/data/tiimit/$slug'
     | '/data/uutiset/$slug'
     | '/klubit/liity/$code'
+    | '/api/public/data/$table'
     | '/api/public/kalenteri/ics'
   fileRoutesById: FileRoutesById
 }
@@ -664,6 +676,7 @@ export interface RootRouteChildren {
   KlubitIndexRoute: typeof KlubitIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   KlubitLiityCodeRoute: typeof KlubitLiityCodeRoute
+  ApiPublicDataTableRoute: typeof ApiPublicDataTableRoute
   ApiPublicKalenteriIcsRoute: typeof ApiPublicKalenteriIcsRoute
 }
 
@@ -1019,6 +1032,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KlubitLiityCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/data/$table': {
+      id: '/api/public/data/$table'
+      path: '/api/public/data/$table'
+      fullPath: '/api/public/data/$table'
+      preLoaderRoute: typeof ApiPublicDataTableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/kalenteri/ics': {
       id: '/api/public/kalenteri/ics'
       path: '/api/public/kalenteri/ics'
@@ -1173,6 +1193,7 @@ const rootRouteChildren: RootRouteChildren = {
   KlubitIndexRoute: KlubitIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   KlubitLiityCodeRoute: KlubitLiityCodeRoute,
+  ApiPublicDataTableRoute: ApiPublicDataTableRoute,
   ApiPublicKalenteriIcsRoute: ApiPublicKalenteriIcsRoute,
 }
 export const routeTree = rootRouteImport

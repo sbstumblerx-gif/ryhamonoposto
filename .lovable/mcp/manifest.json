@@ -251,6 +251,63 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "read_public_data",
+        "title": "Julkinen data",
+        "description": "Read-only access to any public RyhäMonoposto dataset (all text and public content). Tables: teams, drivers, races, race_sessions, race_extra_sessions, seasons, news, highlights, media_items, stats_pages, graphs, circuit_contracts, comments, polls, poll_options, prediction_sessions, cards, official_entity_posts. Use offset to page through rows.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table": {
+              "type": "string",
+              "enum": [
+                "teams",
+                "drivers",
+                "races",
+                "race_sessions",
+                "race_extra_sessions",
+                "seasons",
+                "news",
+                "highlights",
+                "media_items",
+                "stats_pages",
+                "graphs",
+                "circuit_contracts",
+                "comments",
+                "polls",
+                "poll_options",
+                "prediction_sessions",
+                "cards",
+                "official_entity_posts"
+              ],
+              "description": "Public dataset to read."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 200
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            }
+          },
+          "required": [
+            "table"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }

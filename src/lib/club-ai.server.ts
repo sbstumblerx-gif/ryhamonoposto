@@ -75,7 +75,7 @@ export async function replyInClub(db: Admin, clubId: string) {
     const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "gemini-2.5-flash", messages }),
+      body: JSON.stringify({ model: "gemini-3.5-flash", messages }),
     });
     if (resp.status === 429) answer = "Liikaa pyyntöjä juuri nyt — yritä hetken päästä uudelleen.";
     else if (resp.status === 402) answer = "Google AI -palvelun laskutus ei ole käytettävissä juuri nyt.";

@@ -56,3 +56,11 @@ Päivämäärät ja kilpailutulokset voivat muuttua, kun ylläpito päivittää 
 ## Normaali sivusto
 
 /
+
+## JSON-rajapinta agenteille (vain luku, ei kirjautumista)
+
+Taulut: /api/public/data/index
+Esim. /api/public/data/races?limit=200&offset=0
+Saatavilla: teams, drivers, races, race_sessions, race_extra_sessions, seasons, news, highlights, media_items, stats_pages, graphs, circuit_contracts, comments, polls, poll_options, prediction_sessions, cards, official_entity_posts
+
+MCP-palvelin: https://ryhamonoposto.lovable.app/mcp (työkalu read_public_data)

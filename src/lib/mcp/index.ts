@@ -7,6 +7,7 @@ import getTeamStandings from "./tools/get-team-standings";
 import { getDriverContracts, getTeamEngine } from "./tools/get-contracts-and-engines";
 import getLatestRace from "./tools/get-latest-race";
 import getRaceResult from "./tools/get-race-result";
+import readPublicData from "./tools/read-public-data";
 import searchRyhamonoposto from "./tools/search-ryhamonoposto";
 
 export default defineMcp({
@@ -25,5 +26,6 @@ export default defineMcp({
     getLatestRace,
     getRaceResult,
     searchRyhamonoposto,
+    readPublicData,
   ],
 });
